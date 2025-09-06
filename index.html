@@ -67,9 +67,17 @@
             
             // Process TikTok embeds when popup opens
             map.on('popupopen', function() {
-                if (window.tiktokEmbed) {
-                    window.tiktokEmbed.load();
-                }
+                // Give TikTok a moment to load, then process embeds
+                setTimeout(function() {
+                    if (window.tiktokEmbed && window.tiktokEmbed.load) {
+                        window.tiktokEmbed.load();
+                    }
+                    // Alternative method for TikTok embed processing
+                    const script = document.createElement('script');
+                    script.src = 'https://www.tiktok.com/embed.js';
+                    script.async = true;
+                    document.head.appendChild(script);
+                }, 100);
             });
         }
     </script>
