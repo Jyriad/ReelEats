@@ -50,7 +50,19 @@
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    reelEmbedHtml: `<iframe src="https://www.tiktok.com/embed/7361096546319961377?autoplay=1&muted=1" width="325" height="570" frameborder="0" scrolling="no" allowfullscreen style="border-radius: 8px;"></iframe>`
+                    reelEmbedHtml: `
+                        <div style="position: relative; width: 325px; height: 570px; margin: 0 auto;">
+                            <iframe src="https://www.tiktok.com/embed/7361096546319961377?autoplay=1&muted=1&loop=1&controls=1" 
+                                    width="325" height="570" frameborder="0" scrolling="no" allowfullscreen 
+                                    allow="autoplay; encrypted-media" style="border-radius: 8px;">
+                            </iframe>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                                        background: rgba(0,0,0,0.7); color: white; padding: 10px 15px; 
+                                        border-radius: 25px; font-size: 12px; pointer-events: none; 
+                                        opacity: 0.8; z-index: 10;">
+                                📍 Bunsik LDN - Korean Corn Dogs
+                            </div>
+                        </div>`
                 },
                 {
                     name: 'Padella Borough Market',
