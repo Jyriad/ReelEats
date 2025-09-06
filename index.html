@@ -50,7 +50,7 @@
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 325px; min-width: 325px; margin: 0 auto;"> <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> <p>📍Bunsik LDN Korean corn dogs with amazing cheese pull! 🧀</p> <a target="_blank" href="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377?refer=embed">♬ original sound</a> </section> </blockquote>`
+                    reelEmbedHtml: `<iframe src="https://www.tiktok.com/embed/7361096546319961377" width="325" height="570" frameborder="0" scrolling="no" allowfullscreen style="border-radius: 8px;"></iframe>`
                 },
                 {
                     name: 'Padella Borough Market',
@@ -65,21 +65,11 @@
                 marker.bindPopup(restaurant.reelEmbedHtml, { minWidth: 325 });
             });
             
-            // Process TikTok embeds when popup opens
-            map.on('popupopen', function() {
-                setTimeout(function() {
-                    // Trigger TikTok embed processing
-                    if (window.tiktokEmbed) {
-                        window.tiktokEmbed.load();
-                    }
-                }, 500);
-            });
+            // TikTok iframes load automatically, no special handling needed
         }
     </script>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="initializeMap()"></script>
-    <!-- We now use the TikTok embed script instead of Instagram's -->
-    <script async src="https://www.tiktok.com/embed.js"></script>
 
 </body>
 </html>
