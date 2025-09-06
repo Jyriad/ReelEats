@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>London Food Map v1 (TikTok Version)</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        html, body { margin: 0; padding: 0; }
+        #map { height: calc(100vh - 60px); width: 100%; }
+        /* Adjusted styles for the TikTok embed */
+        .leaflet-popup-content-wrapper { background-color: #010101; /* TikTok black */ color: #fff; border-radius: 8px; padding: 0; border: 1px solid #333; }
+        .leaflet-popup-content { margin: 0; line-height: 0; width: 330px !important; }
+        .leaflet-popup-tip { background: #010101; }
+        .leaflet-popup-close-button { color: #fff !important; }
+    </style>
+</head>
+<body class="bg-gray-800">
+
+    <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
+        <h1 class="text-2xl font-bold">London Food Map 🗺️</h1>
+    </header>
+
+    <div id="map"></div>
+
+    <script>
+        function initializeMap() {
+            const map = L.map('map').setView([51.5074, -0.1278], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            const restaurants = [
+                {
+                    name: 'Dishoom Covent Garden',
+                    lat: 51.5118,
+                    lon: -0.1263,
+                    // Note: This is still an Instagram link for comparison, but it will no longer render correctly
+                    // because we have removed the Instagram script.
+                    reelEmbedHtml: `<p class="p-4 text-white">Instagram embeds are disabled.</p>`
+                },
+                {
+                    // --- TIKTOK EXAMPLE ---
+                    // This now uses a TikTok embed, which will play inline.
+                    name: 'Bunsik Chinatown',
+                    lat: 51.5115,
+                    lon: -0.1317,
+                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;" > <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> 📍Bunsik LDN  <a title="bunsik" target="_blank" href="https://www.tiktok.com/tag/bunsik?refer=embed">#bunsik</a> <a title="koreancorndog" target="_blank" href="https://www.tiktok.com/tag/koreancorndog?refer=embed">#koreancorndog</a> <a title="corndog" target="_blank" href="https://www.tiktok.com/tag/corndog?refer=embed">#corndog</a> <a title="cheese" target="_blank" href="https://www.tiktok.com/tag/cheese?refer=embed">#cheese</a> <a title="cheesepull" target="_blank" href="https://www.tiktok.com/tag/cheesepull?refer=embed">#cheesepull</a> <a title="food" target="_blank" href="https://www.tiktok.com/tag/food?refer=embed">#food</a> <a title="foodtok" target="_blank" href="https://www.tiktok.com/tag/foodtok?refer=embed">#foodtok</a> <a title="foodtiktok" target="_blank" href="https://www.tiktok.com/tag/foodtiktok?refer=embed">#foodtiktok</a> <a title="fyp" target="_blank" href="https://www.tiktok.com/tag/fyp?refer=embed">#fyp</a> <a title="yup" target="_blank" href="https://www.tiktok.com/tag/yup?refer=embed">#yup</a> <a title="london" target="_blank" href="https://www.tiktok.com/tag/london?refer=embed">#london</a> <a title="foodreview" target="_blank" href="https://www.tiktok.com/tag/foodreview?refer=embed">#foodreview</a> @KristinSchanks <a target="_blank" title="♬ Walking Around - Instrumental Version - Eldar Kedem" href="https://www.tiktok.com/music/Walking-Around-Instrumental-Version-6982541212746008578?refer=embed">♬ Walking Around - Instrumental Version - Eldar Kedem</a> </section> </blockquote>`
+                },
+                {
+                    name: 'Padella Borough Market',
+                    lat: 51.5055,
+                    lon: -0.0913,
+                    reelEmbedHtml: `<p class="p-4 text-white">Instagram embeds are disabled.</p>`
+                }
+            ];
+
+            restaurants.forEach(restaurant => {
+                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                marker.bindPopup(restaurant.reelEmbedHtml, { minWidth: 325 });
+            });
+            
+            // Process TikTok embeds when popup opens
+            map.on('popupopen', function() {
+                if (window.tiktokEmbed) {
+                    window.tiktokEmbed.load();
+                }
+            });
+        }
+    </script>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="initializeMap()"></script>
+    <!-- We now use the TikTok embed script instead of Instagram's -->
+    <script async src="https://www.tiktok.com/embed.js"></script>
+
+</body>
+</html>
+
