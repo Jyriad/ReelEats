@@ -12,10 +12,68 @@
         html, body { margin: 0; padding: 0; }
         #map { height: calc(100vh - 60px); width: 100%; }
         /* Custom popup styles */
-        .leaflet-popup-content-wrapper { background-color: #010101; color: #fff; border-radius: 12px; padding: 5px; border: 2px solid #333; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
-        .leaflet-popup-content { margin: 0; line-height: 1.2; width: 300px !important; height: auto; }
+        .leaflet-popup-content-wrapper { 
+            background-color: #010101; 
+            color: #fff; 
+            border-radius: 12px; 
+            padding: 5px; 
+            border: 2px solid #333; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6); 
+        }
+        .leaflet-popup-content { 
+            margin: 0; 
+            line-height: 1.2; 
+            width: 300px !important; 
+            height: auto; 
+        }
         .leaflet-popup-tip { background: #010101; }
-        .leaflet-popup-close-button { color: #fff !important; font-size: 20px; font-weight: bold; }
+        .leaflet-popup-close-button { 
+            color: #fff !important; 
+            font-size: 24px; 
+            font-weight: bold; 
+            padding: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .leaflet-popup-content-wrapper {
+                max-width: 90vw !important;
+            }
+            .leaflet-popup-content {
+                width: 280px !important;
+            }
+            #map {
+                height: calc(100vh - 60px);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .leaflet-popup-content {
+                width: 260px !important;
+            }
+            .tiktok-video {
+                width: 240px !important;
+                height: 340px !important;
+            }
+        }
+        
+        /* Ensure video responsive behavior */
+        .tiktok-video {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Improve mobile touch targets */
+        @media (max-width: 768px) {
+            .leaflet-popup-close-button {
+                font-size: 28px;
+                padding: 12px;
+                top: 8px;
+                right: 8px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-800">
@@ -51,8 +109,13 @@
                     lat: 51.5115,
                     lon: -0.1317,
                     reelEmbedHtml: `
-                        <div style="text-align: center; padding: 5px;">
-                            <iframe src="https://www.tiktok.com/embed/7361096546319961377" width="280" height="400" frameborder="0" scrolling="no" allowfullscreen style="border-radius: 8px;"></iframe>
+                        <div class="video-popup" style="text-align: center; padding: 5px;">
+                            <iframe src="https://www.tiktok.com/embed/7361096546319961377" 
+                                    class="tiktok-video"
+                                    width="280" height="400" 
+                                    frameborder="0" scrolling="no" allowfullscreen 
+                                    style="border-radius: 8px; max-width: 100%;">
+                            </iframe>
                             <div style="background: #1a1a1a; color: white; padding: 10px; margin-top: 5px; border-radius: 8px; text-align: center;">
                                 <h3 style="margin: 0 0 5px 0; color: #ff6b6b; font-size: 14px;">🥟 Bunsik Chinatown</h3>
                                 <p style="margin: 0 0 5px 0; font-size: 12px; color: #e0e0e0;">
@@ -80,9 +143,14 @@
                     className: 'custom-popup'
                 });
                 
-                // Center map on marker when clicked
+                // Center map on marker when clicked, accounting for popup height
                 marker.on('click', function() {
-                    map.setView([restaurant.lat, restaurant.lon], 15, {
+                    // Calculate offset to center the popup in view
+                    const popupHeight = 500; // Approximate popup height
+                    const mapHeight = map.getSize().y;
+                    const offsetLat = (popupHeight / 2) * (180 / (Math.PI * 6378137)) / Math.cos(restaurant.lat * Math.PI / 180);
+                    
+                    map.setView([restaurant.lat + offsetLat, restaurant.lon], 15, {
                         animate: true,
                         duration: 0.5
                     });
