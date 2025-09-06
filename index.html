@@ -50,7 +50,7 @@
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;" > <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> 📍Bunsik LDN  <a title="bunsik" target="_blank" href="https://www.tiktok.com/tag/bunsik?refer=embed">#bunsik</a> <a title="koreancorndog" target="_blank" href="https://www.tiktok.com/tag/koreancorndog?refer=embed">#koreancorndog</a> <a title="corndog" target="_blank" href="https://www.tiktok.com/tag/corndog?refer=embed">#corndog</a> <a title="cheese" target="_blank" href="https://www.tiktok.com/tag/cheese?refer=embed">#cheese</a> <a title="cheesepull" target="_blank" href="https://www.tiktok.com/tag/cheesepull?refer=embed">#cheesepull</a> <a title="food" target="_blank" href="https://www.tiktok.com/tag/food?refer=embed">#food</a> <a title="foodtok" target="_blank" href="https://www.tiktok.com/tag/foodtok?refer=embed">#foodtok</a> <a title="foodtiktok" target="_blank" href="https://www.tiktok.com/tag/foodtiktok?refer=embed">#foodtiktok</a> <a title="fyp" target="_blank" href="https://www.tiktok.com/tag/fyp?refer=embed">#fyp</a> <a title="yup" target="_blank" href="https://www.tiktok.com/tag/yup?refer=embed">#yup</a> <a title="london" target="_blank" href="https://www.tiktok.com/tag/london?refer=embed">#london</a> <a title="foodreview" target="_blank" href="https://www.tiktok.com/tag/foodreview?refer=embed">#foodreview</a> @KristinSchanks <a target="_blank" title="♬ Walking Around - Instrumental Version - Eldar Kedem" href="https://www.tiktok.com/music/Walking-Around-Instrumental-Version-6982541212746008578?refer=embed">♬ Walking Around - Instrumental Version - Eldar Kedem</a> </section> </blockquote>`
+                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 325px; min-width: 325px; margin: 0 auto;"> <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> <p>📍Bunsik LDN Korean corn dogs with amazing cheese pull! 🧀</p> <a target="_blank" href="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377?refer=embed">♬ original sound</a> </section> </blockquote>`
                 },
                 {
                     name: 'Padella Borough Market',
@@ -67,17 +67,12 @@
             
             // Process TikTok embeds when popup opens
             map.on('popupopen', function() {
-                // Give TikTok a moment to load, then process embeds
                 setTimeout(function() {
-                    if (window.tiktokEmbed && window.tiktokEmbed.load) {
+                    // Trigger TikTok embed processing
+                    if (window.tiktokEmbed) {
                         window.tiktokEmbed.load();
                     }
-                    // Alternative method for TikTok embed processing
-                    const script = document.createElement('script');
-                    script.src = 'https://www.tiktok.com/embed.js';
-                    script.async = true;
-                    document.head.appendChild(script);
-                }, 100);
+                }, 500);
             });
         }
     </script>
