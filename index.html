@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.5 (Robust Loading)</title>
+    <title>London Food Map v1.9 (Centered Spinner)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,33 +11,35 @@
     <style>
         html, body { margin: 0; padding: 0; }
         #map { height: calc(100vh - 60px); width: 100%; }
+        /* --- Popup & Container Styles --- */
         .leaflet-popup-content-wrapper { background-color: #010101; color: #fff; border-radius: 8px; padding: 0; border: 1px solid #333; }
         .leaflet-popup-content { margin: 0; line-height: 0; width: 330px !important; }
         .leaflet-popup-tip { background: #010101; }
         .leaflet-popup-close-button { color: #fff !important; z-index: 10; }
-
-        /* --- Simplified Loading Styles --- */
-        .video-container {
+        
+        .popup-video-container {
+            width: 330px;
+            height: 585px;
             position: relative;
             background-color: #000;
-            min-height: 585px; /* Set a fixed height to prevent layout shift */
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 8px;
         }
         .loading-spinner {
+            /* --- FIX: Added positioning to center the spinner --- */
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            /* --- End of Fix --- */
             border: 4px solid rgba(255, 255, 255, 0.2);
             border-left-color: #fff;
             border-radius: 50%;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
-            z-index: 3;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -47,7 +49,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.5 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 1.9 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -84,64 +86,64 @@
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 
-                let popupContent;
-                if (restaurant.videoId) {
-                    popupContent = `
-                        <div class="video-container" data-video-id="${restaurant.videoId}" data-author="${restaurant.author}">
-                            <div class="loading-spinner"></div>
-                        </div>
-                    `;
-                } else {
-                    popupContent = `<p class="p-4 text-white">${restaurant.name}</p>`;
-                }
-                marker.bindPopup(popupContent, { minWidth: 325 });
+                // Create a popup with a unique ID for its container
+                const popupContainerId = `popup-container-${restaurant.videoId || Math.random()}`;
+                const popupContent = `<div id="${popupContainerId}" class="popup-video-container"></div>`;
+
+                // Bind the static container, which will not change size. This is the key fix.
+                marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
             });
             
             map.on('popupopen', function(e) {
-                const container = e.popup.getElement().querySelector('.video-container');
-                if (!container) return;
+                const container = e.popup.getElement().querySelector('.popup-video-container');
+                if (!container.id) return; // Ignore popups without a container ID
 
-                const videoId = container.dataset.videoId;
-                const author = container.dataset.author;
-                const spinner = container.querySelector('.loading-spinner');
+                // Find the restaurant data associated with this popup
+                const restaurantData = restaurants.find(r => container.id.includes(r.videoId));
+                if (!restaurantData || !restaurantData.videoId) {
+                    container.innerHTML = `<p class="p-4">${restaurants.find(r => e.target.getLatLng().equals([r.lat, r.lon])).name}</p>`;
+                    return;
+                }
                 
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
+                // 1. Show spinner immediately
+                container.innerHTML = '<div class="loading-spinner"></div>';
+                const spinner = container.querySelector('.loading-spinner');
+
+                // 2. Prepare the TikTok blockquote
+                const { videoId, author } = restaurantData;
+                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
                 container.insertAdjacentHTML('beforeend', blockquoteHTML);
                 const blockquote = container.querySelector('.tiktok-embed');
 
-                // This observer now waits for a specific class that TikTok adds when the video is truly ready.
+                // 3. Use an observer to detect when TikTok has finished loading
                 const observer = new MutationObserver((mutations, obs) => {
                     if (blockquote.querySelector('.tiktok-iframe-container')) {
                         spinner.style.display = 'none';
                         blockquote.style.visibility = 'visible';
-                        obs.disconnect(); // Done observing
+                        obs.disconnect();
                     }
                 });
                 observer.observe(blockquote, { childList: true, subtree: true });
 
-                // This function ensures the TikTok script is loaded and tells it to render the video.
-                function loadTikTokScript() {
-                    if (window.tiktokEmbed) {
-                        window.tiktokEmbed.load();
-                        return;
-                    }
-                    const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
-                    if (oldScript) oldScript.remove();
-                    
-                    const newScript = document.createElement('script');
-                    newScript.src = 'https://www.tiktok.com/embed.js';
-                    newScript.async = true;
-                    document.body.appendChild(newScript);
-                    
-                    newScript.onload = () => {
-                        if (window.tiktokEmbed) {
-                            window.tiktokEmbed.load();
-                        }
-                    };
-                }
-
+                // 4. Load the TikTok script to process the blockquote
                 loadTikTokScript();
             });
+
+            function loadTikTokScript() {
+                if (window.tiktokEmbed) {
+                    window.tiktokEmbed.load();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://www.tiktok.com/embed.js';
+                script.async = true;
+                script.onload = () => {
+                    if (window.tiktokEmbed) {
+                        window.tiktokEmbed.load();
+                    }
+                };
+                document.body.appendChild(script);
+            }
         }
     </script>
     
