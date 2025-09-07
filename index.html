@@ -92,16 +92,29 @@
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 
-                // Create a popup with a unique ID for its container
+                // Create a popup with either the provided embed HTML or a container we will fill later
                 const popupContainerId = `popup-container-${restaurant.videoId || Math.random()}`;
-                const popupContent = `<div id="${popupContainerId}" class="popup-video-container"></div>`;
+                const popupContent = restaurant.embedHtml
+                    ? restaurant.embedHtml
+                    : `<div id="${popupContainerId}" class="popup-video-container"></div>`;
 
-                // Bind the static container, which will not change size. This is the key fix.
+                // Bind the content
                 marker.bindPopup(popupContent, { minWidth: 330, autoPan: false });
             });
             
             map.on('popupopen', function(e) {
-                const container = e.popup.getElement().querySelector('.popup-video-container');
+                const popupEl = e.popup.getElement();
+                const container = popupEl.querySelector('.popup-video-container');
+                if (!container) {
+                    // Static embed path (e.g., Bunsik) — just ensure TikTok processes it
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        window.tiktokEmbed.load();
+                        setTimeout(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); }, 500);
+                    } else {
+                        loadTikTokScript();
+                    }
+                    return;
+                }
                 if (!container.id) return; // Ignore popups without a container ID
 
                 // Find the restaurant data associated with this popup
@@ -119,27 +132,35 @@
                 const { videoId, author, embedHtml } = restaurantData;
                 let blockquoteHTML;
                 if (embedHtml) {
-                    // Keep hidden until iframe is injected to avoid jank
-                    blockquoteHTML = embedHtml.replace('style="', 'style="visibility: hidden; margin: 0; ');
+                    // Use provided embed as-is to ensure TikTok processes it
+                    blockquoteHTML = embedHtml;
                 } else {
-                    blockquoteHTML = `<blockquote class=\"tiktok-embed\" cite=\"https://www.tiktok.com/${author}/video/${videoId}\" data-video-id=\"${videoId}\" style=\"width: 330px; height: 585px; visibility: hidden; margin: 0;\"> <section> <a target=\"_blank\" href=\"https://www.tiktok.com/${author}?refer=embed\">${author}</a> </section> </blockquote>`;
+                    blockquoteHTML = `<blockquote class=\"tiktok-embed\" cite=\"https://www.tiktok.com/${author}/video/${videoId}\" data-video-id=\"${videoId}\" style=\"max-width: 605px; min-width: 325px; margin: 0;\"> <section> <a target=\"_blank\" href=\"https://www.tiktok.com/${author}?refer=embed\">${author}</a> </section> </blockquote>`;
                 }
                 container.insertAdjacentHTML('beforeend', blockquoteHTML);
                 const blockquote = container.querySelector('.tiktok-embed');
 
-                // 3. Use an observer to detect when TikTok has finished loading
+                // 3. Detect when TikTok injects the iframe, then hide spinner
+                const showContent = () => {
+                    spinner.style.display = 'none';
+                };
                 const observer = new MutationObserver((mutations, obs) => {
-                    if (blockquote.querySelector('.tiktok-iframe-container')) {
-                        spinner.style.display = 'none';
-                        blockquote.style.visibility = 'visible';
+                    if (container.querySelector('iframe')) {
+                        showContent();
                         obs.disconnect();
                     }
                 });
-                observer.observe(blockquote, { childList: true, subtree: true });
+                observer.observe(container, { childList: true, subtree: true });
+                // Fallback in case observer misses
+                setTimeout(showContent, 6000);
 
                 // 4. Process immediately if script already available; otherwise load it
                 if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                     window.tiktokEmbed.load();
+                    // Nudge again shortly to ensure processing
+                    setTimeout(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); }, 500);
+                    setTimeout(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); }, 1500);
+                    requestAnimationFrame(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); });
                 } else {
                     loadTikTokScript();
                 }
