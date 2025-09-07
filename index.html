@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.2 (Correct Data Access)</title>
+    <title>London Food Map v3.21 (Correct Data Access)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,7 +13,7 @@
         #map { height: calc(100vh - 60px); width: 100%; }
         /* --- Popup & Container Styles --- */
         .leaflet-popup-content-wrapper { background-color: #010101; color: #fff; border-radius: 8px; padding: 0; border: 1px solid #333; }
-        .leaflet-popup-content { margin: 0; line-height: 0; width: 330px !important; }
+        .leaflet-popup-content { margin: 0; line-height: 0; width: auto !important; }
         .leaflet-popup-tip { background: #010101; }
         .leaflet-popup-close-button { color: #fff !important; z-index: 10; }
         
@@ -23,6 +23,7 @@
             position: relative;
             background-color: #000;
             border-radius: 8px;
+            overflow: hidden;
         }
         .loading-spinner {
             position: absolute;
@@ -39,12 +40,30 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        .loading-cover {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 5;
+            transition: opacity 180ms ease;
+        }
+        .popup-video-container iframe { width: 100% !important; height: 100% !important; }
+
+        /* Responsive sizing to keep popup fully visible */
+        @media (max-width: 768px) {
+            .leaflet-popup-content { width: 90vw !important; }
+            .popup-video-container { width: 90vw; height: calc(100vh - 180px); max-height: 585px; }
+        }
+        @media (max-width: 480px) {
+            .leaflet-popup-content { width: 92vw !important; }
+            .popup-video-container { width: 92vw; height: calc(100vh - 180px); max-height: 585px; }
+        }
     </style>
 </head>
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.2 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.21 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -94,7 +113,7 @@
                 marker.restaurantData = restaurant;
                 
                 const popupContent = `<div class="popup-video-container"></div>`;
-                marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
+                marker.bindPopup(popupContent, { minWidth: 325, autoPan: true, keepInView: true, autoPanPadding: [20, 80] });
             });
             
             map.on('popupopen', function(e) {
@@ -109,8 +128,9 @@
                 }
                 
                 // 1. Show spinner immediately
-                container.innerHTML = '<div class="loading-spinner"></div>';
+                container.innerHTML = '<div class="loading-cover"></div><div class="loading-spinner"></div>';
                 const spinner = container.querySelector('.loading-spinner');
+                const cover = container.querySelector('.loading-cover');
 
                 // 2. Dynamically build the CLEAN blockquote from our simple data
                 const { tiktokVideoId, tiktokAuthor } = restaurantData;
@@ -122,6 +142,7 @@
                 const observer = new MutationObserver((mutations, obs) => {
                     if (container.querySelector('iframe') || blockquote.querySelector('.tiktok-iframe-container')) {
                         spinner.style.display = 'none';
+                        if (cover) cover.style.opacity = '0';
                         obs.disconnect();
                     }
                 });
@@ -130,9 +151,10 @@
                 // Fallback: if TikTok doesn't inject an iframe in time, use direct iframe
                 setTimeout(() => {
                     if (!container.querySelector('iframe')) {
-                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${tiktokVideoId}" width="330" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
+                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${tiktokVideoId}" width="100%" height="100%" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
                     }
                     spinner.style.display = 'none';
+                    if (cover) cover.style.opacity = '0';
                 }, 4000);
 
                 // 4. Load the TikTok script to process the blockquote
