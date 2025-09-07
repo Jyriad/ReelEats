@@ -108,21 +108,7 @@
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    reelEmbedHtml: `
-                        <div class="video-popup" style="text-align: center; padding: 5px;">
-                            <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 325px; min-width: 260px; margin: 0 auto;"> 
-                                <section> 
-                                    <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> 
-                                    <p>📍Bunsik LDN — Korean corn dogs with amazing cheese pulls!</p> 
-                                    <a target="_blank" href="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377?refer=embed">Watch on TikTok</a> 
-                                </section> 
-                            </blockquote>
-                            <div style="background: #1a1a1a; color: white; padding: 10px; margin-top: 5px; border-radius: 8px; text-align: center;">
-                                <h3 style="margin: 0 0 5px 0; color: #ff6b6b; font-size: 14px;">🥟 Bunsik Chinatown</h3>
-                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #e0e0e0;">Korean corn dogs with amazing cheese pulls!</p>
-                                <div style="font-size: 11px; color: #888;">📍 Chinatown, London</div>
-                            </div>
-                        </div>`
+                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;"> <section> <a target="_blank" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> </section> </blockquote>`
                 },
                 {
                     name: 'Padella Borough Market',
@@ -154,30 +140,7 @@
                 });
             });
             
-            // Helper to (re)load TikTok embeds reliably
-            function processTikTokEmbeds() {
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    // Give DOM a tick so Leaflet finishes inserting popup contents
-                    setTimeout(function() { window.tiktokEmbed.load(); }, 0);
-                    return;
-                }
-                // If script not yet available, inject it and then process
-                var existing = document.querySelector('script[src^="https://www.tiktok.com/embed.js"]');
-                if (!existing) {
-                    var s = document.createElement('script');
-                    s.src = 'https://www.tiktok.com/embed.js';
-                    s.async = true;
-                    s.onload = function() {
-                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                            window.tiktokEmbed.load();
-                        }
-                    };
-                    document.body.appendChild(s);
-                }
-            }
-
-            // Process TikTok embeds when popup opens
-            map.on('popupopen', function() { processTikTokEmbeds(); });
+            
         }
     </script>
     
