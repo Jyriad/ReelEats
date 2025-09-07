@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v7.2</title>
+    <title>London Food Map v8.1</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -98,7 +98,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 7.2 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.1 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -133,6 +133,7 @@
                     lat: 51.5118,
                     lon: -0.1263,
                     description: "Modern Indian restaurant paying homage to the Irani cafés of Bombay.",
+                    // Reverted to the user's original, working video embed
                     embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@kingkarlae/video/7514283553832570134" data-video-id="7514283553832570134" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
                 },
                 {
@@ -147,6 +148,7 @@
                     lat: 51.5055,
                     lon: -0.0913,
                     description: "An acclaimed pasta bar serving fresh, hand-rolled pasta dishes.",
+                    // Reverted to the user's original, working video embed
                     embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@frankieabroad/video/7439319573335199008" data-video-id="7439319573335199008" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
                 }
             ];
@@ -169,41 +171,37 @@
                 videoContainer.innerHTML = '<div class="loading-spinner"></div>';
                 videoModal.classList.add('show');
                 
-                // Add the blockquote to the container so the script can find it
                 videoContainer.insertAdjacentHTML('beforeend', restaurant.embedHtml);
                 
-                // --- FIX: Use a callback to ensure the observer runs AFTER the script loads ---
-                loadTikTokScript(() => {
-                    const spinner = videoContainer.querySelector('.loading-spinner');
-                    const blockquote = videoContainer.querySelector('.tiktok-embed');
+                const spinner = videoContainer.querySelector('.loading-spinner');
+                const blockquote = videoContainer.querySelector('.tiktok-embed');
 
-                    // Now that the script is loaded, we can safely start observing.
-                    const observer = new MutationObserver((mutations, obs) => {
-                        if (videoContainer.querySelector('iframe')) {
-                            if (spinner) spinner.style.display = 'none';
-                            if (blockquote) blockquote.style.visibility = 'visible';
-                            obs.disconnect();
-                        }
-                    });
-                    observer.observe(videoContainer, { childList: true, subtree: true });
+                const observer = new MutationObserver((mutations, obs) => {
+                    if (videoContainer.querySelector('iframe')) {
+                        if (spinner) spinner.style.display = 'none';
+                        if (blockquote) blockquote.style.visibility = 'visible';
+                        obs.disconnect();
+                    }
                 });
-            }
+                observer.observe(videoContainer, { childList: true, subtree: true });
 
-            // --- FIX: This function now accepts a callback to run on script load ---
-            function loadTikTokScript(callback) {
+                loadFreshTikTokScript();
+            }
+            
+            // --- DEFINITIVE FIX: This function now forces a complete, clean reload of the script on every click ---
+            function loadFreshTikTokScript() {
+                // 1. Remove any old script to prevent conflicts
                 const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
                 if (oldScript) {
                     oldScript.remove();
                 }
+                // 2. Delete the global object created by the script to reset its state
                 delete window.tiktokEmbed;
 
+                // 3. Create and inject a brand new script
                 const newScript = document.createElement('script');
                 newScript.src = 'https://www.tiktok.com/embed.js';
                 newScript.async = true;
-                
-                // Execute the callback function once the script is fully loaded and ready
-                newScript.onload = callback;
-                
                 document.body.appendChild(newScript);
             }
 
