@@ -60,21 +60,27 @@
                 marker.bindPopup(restaurant.reelEmbedHtml, { minWidth: 325 });
             });
             
-            // --- THIS IS THE FIX ---
-            // This tells the TikTok script to re-scan the page every time a popup opens
+            // --- THIS IS THE NEW, MORE ROBUST FIX ---
+            // Every time a popup opens, we dynamically load a fresh TikTok embed script.
+            // This guarantees the script runs *after* the popup's content is on the page.
             map.on('popupopen', function() {
-                // A tiny delay ensures the popup is fully rendered before TikTok scans it
-                setTimeout(function() {
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                    }
-                }, 100); // 100 millisecond delay
+                // First, remove any old script to prevent conflicts.
+                const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+                if (oldScript) {
+                    oldScript.remove();
+                }
+
+                // Then, create and inject a new one.
+                const newScript = document.createElement('script');
+                newScript.src = 'https://www.tiktok.com/embed.js';
+                newScript.async = true;
+                document.body.appendChild(newScript);
             });
         }
     </script>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="initializeMap()"></script>
-    <script async src="https://www.tiktok.com/embed.js"></script>
+    <!-- The old async TikTok script tag has been removed from here -->
 
 </body>
 </html>
