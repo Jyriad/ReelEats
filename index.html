@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v6.2</title>
+    <title>London Food Map v6.3</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -103,7 +103,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 6.2 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 6.3 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -193,8 +193,8 @@
 
                 iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
                 iframe.style.visibility = 'hidden';
-                // --- FIX: Add the referrer policy to authorize the request ---
-                iframe.referrerPolicy = "no-referrer-when-downgrade";
+                // --- FIX 1: Use a more standard referrer policy ---
+                iframe.referrerPolicy = "strict-origin-when-cross-origin";
 
                 iframe.onload = function() {
                     spinner.style.display = 'none';
@@ -202,7 +202,15 @@
                 };
                 
                 videoContainer.appendChild(iframe);
-                iframe.src = `https://www.tiktok.com/embed/video/${restaurant.tiktokVideoId}`;
+                const videoUrl = `https://www.tiktok.com/embed/video/${restaurant.tiktokVideoId}`;
+                iframe.src = videoUrl;
+
+                // --- FIX 2: Add a "nudge" to force reload on stubborn browsers ---
+                setTimeout(() => {
+                    if (spinner.style.display !== 'none') {
+                         iframe.src = videoUrl;
+                    }
+                }, 100);
             }
 
             function closeVideo() {
