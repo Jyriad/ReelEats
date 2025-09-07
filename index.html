@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v6.0 (Two-Column Layout)</title>
+    <title>London Food Map v6.1 (Stable Load)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,10 +44,12 @@
             transition: opacity 0.3s ease, visibility 0.3s ease;
             visibility: hidden;
             opacity: 0;
+            pointer-events: none; /* Prevent interaction when hidden */
         }
         #video-modal.show {
             visibility: visible;
             opacity: 1;
+            pointer-events: auto; /* Allow interaction when visible */
         }
         .video-container {
             width: 330px;
@@ -76,6 +78,8 @@
         }
         .video-container iframe {
             border: none;
+            width: 100%;
+            height: 100%;
         }
         .close-video-btn {
             position: absolute;
@@ -99,10 +103,10 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 6.0 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 6.1 🗺️</h1>
     </header>
 
-    <main class="flex-grow flex">
+    <main class="flex-grow flex min-h-0">
         <!-- Map Area -->
         <div class="w-2/3 h-full relative" id="map-container">
             <div id="map"></div>
@@ -159,13 +163,14 @@
                     tiktokVideoId: '7439319573335199008'
                 }
             ];
+            
+            const markers = {};
 
             restaurants.forEach(restaurant => {
-                // Create Marker
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 marker.on('click', () => showVideoFor(restaurant));
+                markers[restaurant.name] = marker;
 
-                // Create List Item
                 const listItem = document.createElement('div');
                 listItem.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
                 listItem.innerHTML = `
@@ -186,23 +191,25 @@
                 const spinner = videoContainer.querySelector('.loading-spinner');
                 const iframe = document.createElement('iframe');
 
-                iframe.width = "330";
-                iframe.height = "585";
                 iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
                 iframe.style.visibility = 'hidden';
 
+                // --- FIX: Attach onload handler BEFORE setting src ---
                 iframe.onload = function() {
                     spinner.style.display = 'none';
                     iframe.style.visibility = 'visible';
                 };
-
+                
+                // Append iframe to DOM
                 videoContainer.appendChild(iframe);
+
+                // NOW set the src to begin loading
                 iframe.src = `https://www.tiktok.com/embed/video/${restaurant.tiktokVideoId}`;
             }
 
             function closeVideo() {
                 videoModal.classList.remove('show');
-                videoContainer.innerHTML = ''; // Clear content to stop video
+                videoContainer.innerHTML = ''; 
             }
 
             closeVideoBtn.addEventListener('click', closeVideo);
