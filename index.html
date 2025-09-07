@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.3 (True Lazy Loading)</title>
+    <title>London Food Map v1.4 (Simplified Loading)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,49 +16,15 @@
         .leaflet-popup-tip { background: #010101; }
         .leaflet-popup-close-button { color: #fff !important; z-index: 10; }
 
-        /* --- Lazy Loading Styles --- */
+        /* --- Simplified Loading Styles --- */
         .video-container {
             position: relative;
-            cursor: pointer;
             background-color: #000;
-            min-height: 585px; /* Match placeholder height to avoid layout shift */
+            min-height: 585px; /* Set a fixed height to prevent layout shift */
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        .video-thumbnail {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
             border-radius: 8px;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        .play-button {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            background-color: rgba(0, 0, 0, 0.6);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: background-color 0.2s;
-            z-index: 2;
-        }
-        .video-container:hover .play-button {
-            background-color: rgba(255, 0, 0, 0.8);
-        }
-        .play-button svg {
-            width: 30px;
-            height: 30px;
-            fill: white;
-            margin-left: 4px; /* Optical centering */
         }
         .loading-spinner {
             position: absolute;
@@ -81,7 +47,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.2 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 1.4 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -106,8 +72,7 @@
                     lat: 51.5115,
                     lon: -0.1317,
                     videoId: '7361096546319961377',
-                    author: '@picturingsnacks',
-                    thumbnailUrl: 'https://placehold.co/330x585/010101/333333?text=Tap+to+Play'
+                    author: '@picturingsnacks'
                 },
                 {
                     name: 'Padella Borough Market',
@@ -121,13 +86,10 @@
                 
                 let popupContent;
                 if (restaurant.videoId) {
+                    // Start with a container that only has the spinner
                     popupContent = `
                         <div class="video-container" data-video-id="${restaurant.videoId}" data-author="${restaurant.author}">
-                            <img src="${restaurant.thumbnailUrl}" class="video-thumbnail" alt="Video thumbnail for ${restaurant.name}">
-                            <div class="play-button">
-                                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-                            </div>
-                            <div class="loading-spinner" style="display: none;"></div>
+                            <div class="loading-spinner"></div>
                         </div>
                     `;
                 } else {
@@ -140,40 +102,36 @@
                 const container = e.popup.getElement().querySelector('.video-container');
                 if (!container) return;
 
-                container.addEventListener('click', function loadVideo() {
-                    // Show spinner on top of the thumbnail, don't hide thumbnail yet
-                    container.querySelector('.loading-spinner').style.display = 'block';
-                    container.querySelector('.play-button').style.display = 'none';
+                const videoId = container.dataset.videoId;
+                const author = container.dataset.author;
+                const spinner = container.querySelector('.loading-spinner');
+                
+                // Immediately start the loading process
+                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
+                container.insertAdjacentHTML('beforeend', blockquoteHTML);
+                const blockquote = container.querySelector('.tiktok-embed');
 
-                    const videoId = container.dataset.videoId;
-                    const author = container.dataset.author;
-                    const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
-                    container.insertAdjacentHTML('beforeend', blockquoteHTML);
-                    const blockquote = container.querySelector('.tiktok-embed');
+                const observer = new MutationObserver((mutations, obs) => {
+                    const iframe = blockquote.querySelector('iframe');
+                    if (iframe) {
+                        // Iframe element exists, now wait for it to be fully loaded
+                        iframe.onload = () => {
+                            // Content is ready! Now do the final switch.
+                            spinner.style.display = 'none';
+                            blockquote.style.visibility = 'visible';
+                        };
+                        obs.disconnect(); // We found the iframe, so we're done observing
+                    }
+                });
+                observer.observe(blockquote, { childList: true, subtree: true });
 
-                    const observer = new MutationObserver((mutations, obs) => {
-                        const iframe = blockquote.querySelector('iframe');
-                        if (iframe) {
-                            // Iframe element exists, now wait for it to be fully loaded
-                            iframe.onload = () => {
-                                // Content is ready! Now do the final switch.
-                                container.querySelector('.loading-spinner').style.display = 'none';
-                                container.querySelector('.video-thumbnail').style.display = 'none';
-                                blockquote.style.visibility = 'visible';
-                            };
-                            obs.disconnect(); // We found the iframe, so we're done observing
-                        }
-                    });
-                    observer.observe(blockquote, { childList: true, subtree: true });
-
-                    const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
-                    if (oldScript) oldScript.remove();
-                    const newScript = document.createElement('script');
-                    newScript.src = 'https://www.tiktok.com/embed.js';
-                    newScript.async = true;
-                    document.body.appendChild(newScript);
-
-                }, { once: true });
+                const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+                if (oldScript) oldScript.remove();
+                
+                const newScript = document.createElement('script');
+                newScript.src = 'https://www.tiktok.com/embed.js';
+                newScript.async = true;
+                document.body.appendChild(newScript);
             });
         }
     </script>
