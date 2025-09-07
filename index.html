@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v6.3</title>
+    <title>London Food Map v7.0</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,7 +19,6 @@
             width: 100%; 
             background-color: #1a202c;
         }
-        /* Custom scrollbar for the side panel */
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
         }
@@ -33,23 +32,21 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #718096;
         }
-
-        /* Video Modal Styles */
         #video-modal {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 1000; /* Ensure it's above the map but below the header */
+            z-index: 1000;
             transition: opacity 0.3s ease, visibility 0.3s ease;
             visibility: hidden;
             opacity: 0;
-            pointer-events: none; /* Prevent interaction when hidden */
+            pointer-events: none;
         }
         #video-modal.show {
             visibility: visible;
             opacity: 1;
-            pointer-events: auto; /* Allow interaction when visible */
+            pointer-events: auto;
         }
         .video-container {
             width: 330px;
@@ -60,6 +57,9 @@
             overflow: hidden;
             border: 2px solid #4a5568;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .loading-spinner {
             position: absolute;
@@ -75,11 +75,6 @@
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-        .video-container iframe {
-            border: none;
-            width: 100%;
-            height: 100%;
         }
         .close-video-btn {
             position: absolute;
@@ -103,25 +98,19 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 6.3 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 7.0 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
-        <!-- Map Area -->
         <div class="w-2/3 h-full relative" id="map-container">
             <div id="map"></div>
-            <!-- Video Modal will be positioned here -->
             <div id="video-modal">
                 <button class="close-video-btn">&times;</button>
                 <div class="video-container"></div>
             </div>
         </div>
-
-        <!-- Side Panel -->
         <aside class="w-1/3 h-full bg-gray-800 p-4 overflow-y-auto custom-scrollbar">
-            <div id="restaurant-list" class="space-y-4">
-                <!-- Restaurant cards will be injected here -->
-            </div>
+            <div id="restaurant-list" class="space-y-4"></div>
         </aside>
     </main>
 
@@ -130,9 +119,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const map = L.map('map').setView([51.5074, -0.1278], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
+                attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20
             }).addTo(map);
 
             const restaurantList = document.getElementById('restaurant-list');
@@ -145,38 +132,32 @@
                     name: 'Dishoom Covent Garden',
                     lat: 51.5118,
                     lon: -0.1263,
-                    description: "Modern Indian restaurant paying homage to the Irani cafés of Bombay. Expect long queues and delicious food.",
-                    tiktokVideoId: '7514283553832570134'
+                    description: "Modern Indian restaurant paying homage to the Irani cafés of Bombay.",
+                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@kingkarlae/video/7514283553832570134" data-video-id="7514283553832570134" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
                 },
                 {
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    description: "A popular spot for Korean street food, famous for its variety of corn dogs with amazing cheese pulls.",
-                    tiktokVideoId: '7361096546319961377'
+                    description: "A popular spot for Korean street food, famous for its corn dogs.",
+                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
                 },
                 {
                     name: 'Padella Borough Market',
                     lat: 51.5055,
                     lon: -0.0913,
-                    description: "An acclaimed pasta bar serving fresh, hand-rolled pasta dishes. Simple, affordable, and incredibly popular.",
-                    tiktokVideoId: '7439319573335199008'
+                    description: "An acclaimed pasta bar serving fresh, hand-rolled pasta dishes.",
+                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@frankieabroad/video/7439319573335199008" data-video-id="7439319573335199008" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
                 }
             ];
-            
-            const markers = {};
 
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 marker.on('click', () => showVideoFor(restaurant));
-                markers[restaurant.name] = marker;
 
                 const listItem = document.createElement('div');
                 listItem.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
-                listItem.innerHTML = `
-                    <h3 class="text-white text-lg font-bold">${restaurant.name}</h3>
-                    <p class="text-gray-400 text-sm mt-1">${restaurant.description}</p>
-                `;
+                listItem.innerHTML = `<h3 class="text-white text-lg font-bold">${restaurant.name}</h3><p class="text-gray-400 text-sm mt-1">${restaurant.description}</p>`;
                 listItem.addEventListener('click', () => {
                     showVideoFor(restaurant);
                     map.flyTo([restaurant.lat, restaurant.lon], 15);
@@ -189,35 +170,44 @@
                 videoModal.classList.add('show');
                 
                 const spinner = videoContainer.querySelector('.loading-spinner');
-                const iframe = document.createElement('iframe');
+                videoContainer.insertAdjacentHTML('beforeend', restaurant.embedHtml);
+                const blockquote = videoContainer.querySelector('.tiktok-embed');
 
-                iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
-                iframe.style.visibility = 'hidden';
-                // --- FIX 1: Use a more standard referrer policy ---
-                iframe.referrerPolicy = "strict-origin-when-cross-origin";
-
-                iframe.onload = function() {
-                    spinner.style.display = 'none';
-                    iframe.style.visibility = 'visible';
-                };
-                
-                videoContainer.appendChild(iframe);
-                const videoUrl = `https://www.tiktok.com/embed/video/${restaurant.tiktokVideoId}`;
-                iframe.src = videoUrl;
-
-                // --- FIX 2: Add a "nudge" to force reload on stubborn browsers ---
-                setTimeout(() => {
-                    if (spinner.style.display !== 'none') {
-                         iframe.src = videoUrl;
+                const observer = new MutationObserver((mutations, obs) => {
+                    if (videoContainer.querySelector('iframe')) {
+                        spinner.style.display = 'none';
+                        blockquote.style.visibility = 'visible';
+                        obs.disconnect();
                     }
-                }, 100);
+                });
+                observer.observe(videoContainer, { childList: true, subtree: true });
+
+                loadTikTokScript();
+            }
+
+            function loadTikTokScript() {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    window.tiktokEmbed.load();
+                    return;
+                }
+                const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+                if (existingScript) return;
+
+                const script = document.createElement('script');
+                script.src = 'https://www.tiktok.com/embed.js';
+                script.async = true;
+                script.onload = () => {
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        window.tiktokEmbed.load();
+                    }
+                };
+                document.body.appendChild(script);
             }
 
             function closeVideo() {
                 videoModal.classList.remove('show');
-                videoContainer.innerHTML = ''; 
+                videoContainer.innerHTML = '';
             }
-
             closeVideoBtn.addEventListener('click', closeVideo);
         });
     </script>
