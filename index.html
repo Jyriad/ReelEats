@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.9 (Centered Spinner)</title>
+    <title>London Food Map v1.91 (Centered Spinner)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,7 +52,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.9 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 1.91 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -79,7 +79,8 @@
                     lat: 51.5115,
                     lon: -0.1317,
                     videoId: '7361096546319961377',
-                    author: '@picturingsnacks'
+                    author: '@picturingsnacks',
+                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;" > <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> 📍Bunsik LDN  <a title="bunsik" target="_blank" href="https://www.tiktok.com/tag/bunsik?refer=embed">#bunsik</a> <a title="koreancorndog" target="_blank" href="https://www.tiktok.com/tag/koreancorndog?refer=embed">#koreancorndog</a> <a title="corndog" target="_blank" href="https://www.tiktok.com/tag/corndog?refer=embed">#corndog</a> <a title="cheese" target="_blank" href="https://www.tiktok.com/tag/cheese?refer=embed">#cheese</a> <a title="cheesepull" target="_blank" href="https://www.tiktok.com/tag/cheesepull?refer=embed">#cheesepull</a> <a title="food" target="_blank" href="https://www.tiktok.com/tag/food?refer=embed">#food</a> <a title="foodtok" target="_blank" href="https://www.tiktok.com/tag/foodtok?refer=embed">#foodtok</a> <a title="foodtiktok" target="_blank" href="https://www.tiktok.com/tag/foodtiktok?refer=embed">#foodtiktok</a> <a title="fyp" target="_blank" href="https://www.tiktok.com/tag/fyp?refer=embed">#fyp</a> <a title="yup" target="_blank" href="https://www.tiktok.com/tag/yup?refer=embed">#yup</a> <a title="london" target="_blank" href="https://www.tiktok.com/tag/london?refer=embed">#london</a> <a title="foodreview" target="_blank" href="https://www.tiktok.com/tag/foodreview?refer=embed">#foodreview</a> @KristinSchanks <a target="_blank" title="♬ Walking Around - Instrumental Version - Eldar Kedem" href="https://www.tiktok.com/music/Walking-Around-Instrumental-Version-6982541212746008578?refer=embed">♬ Walking Around - Instrumental Version - Eldar Kedem</a> </section> </blockquote>`
                 },
                 {
                     name: 'Padella Borough Market',
@@ -115,8 +116,14 @@
                 const spinner = container.querySelector('.loading-spinner');
 
                 // 2. Prepare the TikTok blockquote
-                const { videoId, author } = restaurantData;
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
+                const { videoId, author, embedHtml } = restaurantData;
+                let blockquoteHTML;
+                if (embedHtml) {
+                    // Keep hidden until iframe is injected to avoid jank
+                    blockquoteHTML = embedHtml.replace('style="', 'style="visibility: hidden; margin: 0; ');
+                } else {
+                    blockquoteHTML = `<blockquote class=\"tiktok-embed\" cite=\"https://www.tiktok.com/${author}/video/${videoId}\" data-video-id=\"${videoId}\" style=\"width: 330px; height: 585px; visibility: hidden; margin: 0;\"> <section> <a target=\"_blank\" href=\"https://www.tiktok.com/${author}?refer=embed\">${author}</a> </section> </blockquote>`;
+                }
                 container.insertAdjacentHTML('beforeend', blockquoteHTML);
                 const blockquote = container.querySelector('.tiktok-embed');
 
