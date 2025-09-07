@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.22 (Correct Data Access)</title>
+    <title>London Food Map v3.23 (Correct Data Access)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,7 +21,7 @@
             width: 330px;
             height: 585px;
             position: relative;
-            background-color: #000;
+            background-color: transparent;
             border-radius: 8px;
             overflow: hidden;
         }
@@ -45,6 +45,7 @@
             inset: 0;
             background: #000;
             z-index: 5;
+            pointer-events: none;
             transition: opacity 180ms ease;
         }
         .popup-video-container iframe { width: 100% !important; height: 100% !important; }
@@ -63,7 +64,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.22 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.23 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -177,7 +178,7 @@
                     }
                     spinner.style.display = 'none';
                     if (cover) cover.style.opacity = '0';
-                }, 4000);
+                }, 2000);
 
                 // 4. Load the TikTok script to process the blockquote
                 loadTikTokScript();
