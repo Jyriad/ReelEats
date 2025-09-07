@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v5.12 (Embed Script + Fallback)</title>
+    <title>London Food Map v5.13 (Multi-Stage TikTok Fallback)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -48,7 +48,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 5.12 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 5.13 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -127,7 +127,7 @@
                         const iframe = document.createElement('iframe');
                         iframe.width = "330"; iframe.height = "585"; iframe.style.display = 'block'; iframe.style.background = '#000';
                         iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
-                        iframe.src = `https://www.tiktok.com/embed/video/${restaurantData.tiktokVideoId}`;
+                        iframe.src = `https://www.tiktok.com/embed/v2/video/${restaurantData.tiktokVideoId}`;
                         container.appendChild(iframe);
                     }
                     spinner.style.display = 'none';
