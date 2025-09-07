@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v7.1</title>
+    <title>London Food Map v7.2</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -98,7 +98,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 7.1 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 7.2 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -169,37 +169,41 @@
                 videoContainer.innerHTML = '<div class="loading-spinner"></div>';
                 videoModal.classList.add('show');
                 
-                const spinner = videoContainer.querySelector('.loading-spinner');
+                // Add the blockquote to the container so the script can find it
                 videoContainer.insertAdjacentHTML('beforeend', restaurant.embedHtml);
-                const blockquote = videoContainer.querySelector('.tiktok-embed');
+                
+                // --- FIX: Use a callback to ensure the observer runs AFTER the script loads ---
+                loadTikTokScript(() => {
+                    const spinner = videoContainer.querySelector('.loading-spinner');
+                    const blockquote = videoContainer.querySelector('.tiktok-embed');
 
-                const observer = new MutationObserver((mutations, obs) => {
-                    if (videoContainer.querySelector('iframe')) {
-                        spinner.style.display = 'none';
-                        blockquote.style.visibility = 'visible';
-                        obs.disconnect();
-                    }
+                    // Now that the script is loaded, we can safely start observing.
+                    const observer = new MutationObserver((mutations, obs) => {
+                        if (videoContainer.querySelector('iframe')) {
+                            if (spinner) spinner.style.display = 'none';
+                            if (blockquote) blockquote.style.visibility = 'visible';
+                            obs.disconnect();
+                        }
+                    });
+                    observer.observe(videoContainer, { childList: true, subtree: true });
                 });
-                observer.observe(videoContainer, { childList: true, subtree: true });
-
-                loadTikTokScript();
             }
 
-            // --- FIX: This function now forces a complete reload of the TikTok script ---
-            function loadTikTokScript() {
-                // Remove any old script and its global object to ensure a fresh start
+            // --- FIX: This function now accepts a callback to run on script load ---
+            function loadTikTokScript(callback) {
                 const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
                 if (oldScript) {
                     oldScript.remove();
                 }
                 delete window.tiktokEmbed;
 
-                // Create a new script tag
                 const newScript = document.createElement('script');
                 newScript.src = 'https://www.tiktok.com/embed.js';
                 newScript.async = true;
                 
-                // The script will find and process the blockquote automatically on load
+                // Execute the callback function once the script is fully loaded and ready
+                newScript.onload = callback;
+                
                 document.body.appendChild(newScript);
             }
 
