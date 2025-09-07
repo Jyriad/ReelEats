@@ -124,6 +124,7 @@
                 }
             ];
 
+            /* Replaced popup-binding flow with overlay modal
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 
@@ -133,89 +134,45 @@
                 const popupContent = `<div class="popup-video-container"></div>`;
                 marker.bindPopup(popupContent, { minWidth: 325, autoPan: true, keepInView: true, autoPanPadding: [20, 80] });
             });
-            
-            map.on('popupopen', function(e) {
-                const container = e.popup.getElement().querySelector('.popup-video-container');
-                
-                // --- FIX: Correctly access the marker from the popup event ---
-                const restaurantData = e.popup._source.restaurantData;
+            */
 
-                if (!restaurantData || !restaurantData.tiktokVideoId) {
-                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="p-4 text-center font-bold">${restaurantData ? restaurantData.name : 'Info not available'}</p></div>`;
-                    return;
-                }
-                
-                // 1. Show spinner immediately
-                container.innerHTML = '<div class="loading-cover"></div><div class="loading-spinner"></div>';
-                const spinner = container.querySelector('.loading-spinner');
-                const cover = container.querySelector('.loading-cover');
-
-                // 2. Dynamically build the CLEAN blockquote from our simple data
-                const { tiktokVideoId, tiktokAuthor } = restaurantData;
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="max-width: 605px; min-width: 325px; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
-                container.insertAdjacentHTML('beforeend', blockquoteHTML);
-                const blockquote = container.querySelector('.tiktok-embed');
-
-                // 3. Use an observer to detect when TikTok has finished loading
-                const observer = new MutationObserver((mutations, obs) => {
-                    const iframe = container.querySelector('iframe') || blockquote.querySelector('iframe');
-                    if (iframe || blockquote.querySelector('.tiktok-iframe-container')) {
-                        // Reveal content
-                        spinner.style.display = 'none';
-                        if (cover) cover.style.opacity = '0';
-                        // Resize container to iframe's height if available
-                        if (iframe) {
-                            const adjustSize = () => {
-                                try {
-                                    const rect = iframe.getBoundingClientRect();
-                                    if (rect.height > 0) {
-                                        container.style.height = rect.height + 'px';
-                                    }
-                                } catch (e) { /* cross-origin, fallback below */ }
-                                // Ask Leaflet to recalc popup position
-                                try { e.popup.update(); } catch (err) {}
-                            };
-                            // Run now and after a short delay (TikTok sometimes resizes once more)
-                            adjustSize();
-                            setTimeout(adjustSize, 350);
-                            setTimeout(adjustSize, 1200);
-                        }
-                        obs.disconnect();
-                    }
-                });
-                observer.observe(container, { childList: true, subtree: true });
-
-                // Fallback: if TikTok doesn't inject an iframe in time, use direct iframe
-                setTimeout(() => {
-                    if (!container.querySelector('iframe')) {
-                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${tiktokVideoId}" width="100%" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
-                        // Ensure container height matches fallback iframe
-                        container.style.height = '585px';
-                        try { e.popup.update(); } catch (err) {}
-                    }
-                    spinner.style.display = 'none';
-                    if (cover) cover.style.opacity = '0';
-                }, 2000);
-
-                // 4. Load the TikTok script to process the blockquote
-                loadTikTokScript();
-            });
-
-            function loadTikTokScript() {
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    window.tiktokEmbed.load();
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = 'https://www.tiktok.com/embed.js';
-                script.async = true;
-                script.onload = () => {
-                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                            window.tiktokEmbed.load();
-                        }
-                    };
-                document.body.appendChild(script);
+            // Overlay helpers
+            const overlay = document.getElementById('videoOverlay');
+            const overlayVideo = document.getElementById('overlayVideo');
+            const overlayClose = document.getElementById('overlayClose');
+            function closeOverlay() {
+                overlay.classList.remove('show');
+                overlayVideo.innerHTML = '';
             }
+            overlayClose.addEventListener('click', closeOverlay);
+            overlay.addEventListener('click', function(ev) {
+                if (ev.target === overlay || ev.target.classList.contains('overlay-backdrop')) {
+                    closeOverlay();
+                }
+            });
+            document.addEventListener('keydown', function(ev) { if (ev.key === 'Escape') closeOverlay(); });
+
+            function openOverlayFor(restaurant) {
+                overlay.classList.add('show');
+                overlayVideo.innerHTML = '<div class="loading-spinner" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"></div>';
+                if (restaurant.tiktokVideoId) {
+                    const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${restaurant.tiktokAuthor}/video/${restaurant.tiktokVideoId}" data-video-id="${restaurant.tiktokVideoId}" style="max-width: 605px; min-width: 325px; margin: 0; height: 100%;"> <section> <a target="_blank" href="https://www.tiktok.com/${restaurant.tiktokAuthor}?refer=embed">${restaurant.tiktokAuthor}</a> </section> </blockquote>`;
+                    overlayVideo.innerHTML = blockquoteHTML;
+                    loadTikTokScript();
+                    setTimeout(() => {
+                        if (!overlayVideo.querySelector('iframe')) {
+                            overlayVideo.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${restaurant.tiktokVideoId}" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="width:100%;height:100%;border:none;background:black;"></iframe>`;
+                        }
+                    }, 1500);
+                } else {
+                    overlayVideo.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-6">No video available for ${restaurant.name}</div>`;
+                }
+            }
+
+            restaurants.forEach(restaurant => {
+                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                marker.on('click', function() { openOverlayFor(restaurant); });
+            });
         }
     </script>
     
