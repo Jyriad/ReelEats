@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.23 (Correct Data Access)</title>
+    <title>London Food Map v3.24 (Modal Player)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -59,15 +59,32 @@
             .leaflet-popup-content { width: 92vw !important; }
             .popup-video-container { width: 92vw; height: calc(100vh - 180px); max-height: 585px; }
         }
+
+        /* Modal overlay player */
+        .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 10000; }
+        .overlay.show { display: flex; }
+        .overlay-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.65); }
+        .overlay-content { position: relative; width: min(92vw, 605px); }
+        .overlay-close { position: absolute; top: -12px; right: -12px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.75); color: #fff; font-size: 20px; cursor: pointer; }
+        .overlay-video { width: min(92vw, 605px); min-width: 325px; height: min(86vh, 700px); background: #000; border-radius: 12px; overflow: hidden; }
+        .overlay-video iframe { width: 100% !important; height: 100% !important; }
     </style>
 </head>
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.23 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.24 🗺️</h1>
     </header>
 
     <div id="map"></div>
+    <!-- Modal overlay for video playback -->
+    <div id="videoOverlay" class="overlay">
+        <div class="overlay-backdrop"></div>
+        <div class="overlay-content">
+            <button id="overlayClose" class="overlay-close">×</button>
+            <div id="overlayVideo" class="overlay-video"></div>
+        </div>
+    </div>
 
     <script>
         function initializeMap() {
@@ -193,10 +210,10 @@
                 script.src = 'https://www.tiktok.com/embed.js';
                 script.async = true;
                 script.onload = () => {
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                    }
-                };
+                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            window.tiktokEmbed.load();
+                        }
+                    };
                 document.body.appendChild(script);
             }
         }
