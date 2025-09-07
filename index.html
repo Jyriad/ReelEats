@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.0 (TikTok Fix)</title>
+    <title>London Food Map v1.1 (Lazy Loading)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,13 +14,64 @@
         .leaflet-popup-content-wrapper { background-color: #010101; color: #fff; border-radius: 8px; padding: 0; border: 1px solid #333; }
         .leaflet-popup-content { margin: 0; line-height: 0; width: 330px !important; }
         .leaflet-popup-tip { background: #010101; }
-        .leaflet-popup-close-button { color: #fff !important; }
+        .leaflet-popup-close-button { color: #fff !important; z-index: 10; }
+
+        /* --- Lazy Loading Styles --- */
+        .video-container {
+            position: relative;
+            cursor: pointer;
+            background-color: #000;
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        .video-container:hover .play-button {
+            background-color: rgba(255, 0, 0, 0.8);
+        }
+        .play-button svg {
+            width: 30px;
+            height: 30px;
+            fill: white;
+            margin-left: 4px; /* Optical centering */
+        }
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.01 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 1.02 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -39,49 +90,81 @@
                     name: 'Dishoom Covent Garden',
                     lat: 51.5118,
                     lon: -0.1263,
-                    reelEmbedHtml: `<p class="p-4 text-white">Example placeholder.</p>`
                 },
                 {
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;"> <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> </section> </blockquote>`
+                    videoId: '7361096546319961377',
+                    author: '@picturingsnacks',
+                    // Using a placeholder that looks good in the dark theme
+                    thumbnailUrl: 'https://placehold.co/330x585/010101/333333?text=Tap+to+Play'
                 },
                 {
                     name: 'Padella Borough Market',
                     lat: 51.5055,
                     lon: -0.0913,
-                    reelEmbedHtml: `<p class="p-4 text-white">Example placeholder.</p>`
                 }
             ];
 
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.bindPopup(restaurant.reelEmbedHtml, { minWidth: 325 });
+                
+                let popupContent;
+                if (restaurant.videoId) {
+                    popupContent = `
+                        <div class="video-container" data-video-id="${restaurant.videoId}" data-author="${restaurant.author}">
+                            <img src="${restaurant.thumbnailUrl}" class="video-thumbnail" alt="Video thumbnail for ${restaurant.name}">
+                            <div class="play-button">
+                                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                            </div>
+                            <div class="loading-spinner" style="display: none;"></div>
+                        </div>
+                    `;
+                } else {
+                    popupContent = `<p class="p-4 text-white">${restaurant.name}</p>`;
+                }
+                marker.bindPopup(popupContent, { minWidth: 325 });
             });
             
-            // --- THIS IS THE NEW, MORE ROBUST FIX ---
-            // Every time a popup opens, we dynamically load a fresh TikTok embed script.
-            // This guarantees the script runs *after* the popup's content is on the page.
-            map.on('popupopen', function() {
-                // First, remove any old script to prevent conflicts.
-                const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
-                if (oldScript) {
-                    oldScript.remove();
-                }
+            map.on('popupopen', function(e) {
+                const container = e.popup.getElement().querySelector('.video-container');
+                if (!container) return;
 
-                // Then, create and inject a new one.
-                const newScript = document.createElement('script');
-                newScript.src = 'https://www.tiktok.com/embed.js';
-                newScript.async = true;
-                document.body.appendChild(newScript);
+                container.addEventListener('click', function loadVideo() {
+                    container.querySelector('.loading-spinner').style.display = 'block';
+                    container.querySelector('.video-thumbnail').style.display = 'none';
+                    container.querySelector('.play-button').style.display = 'none';
+
+                    const videoId = container.dataset.videoId;
+                    const author = container.dataset.author;
+                    const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px; visibility: hidden;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
+                    container.insertAdjacentHTML('beforeend', blockquoteHTML);
+                    const blockquote = container.querySelector('.tiktok-embed');
+
+                    const observer = new MutationObserver((mutations, obs) => {
+                        const iframe = blockquote.querySelector('iframe');
+                        if (iframe) {
+                            container.querySelector('.loading-spinner').style.display = 'none';
+                            blockquote.style.visibility = 'visible';
+                            obs.disconnect();
+                        }
+                    });
+                    observer.observe(blockquote, { childList: true, subtree: true });
+
+                    const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+                    if (oldScript) oldScript.remove();
+                    const newScript = document.createElement('script');
+                    newScript.src = 'https://www.tiktok.com/embed.js';
+                    newScript.async = true;
+                    document.body.appendChild(newScript);
+
+                }, { once: true });
             });
         }
     </script>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="initializeMap()"></script>
-    <!-- The old async TikTok script tag has been removed from here -->
-
 </body>
 </html>
 
