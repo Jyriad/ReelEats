@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.31</title>
+    <title>London Food Map v8.32</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -98,7 +98,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.31 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.32 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -169,32 +169,41 @@
             function showVideoFor(restaurant) {
                 videoContainer.innerHTML = '<div class="loading-spinner"></div>';
                 videoModal.classList.add('show');
-                
-                videoContainer.insertAdjacentHTML('beforeend', restaurant.embedHtml);
-                
-                const spinner = videoContainer.querySelector('.loading-spinner');
-                const blockquote = videoContainer.querySelector('.tiktok-embed');
-
-                const observer = new MutationObserver((mutations, obs) => {
-                    if (videoContainer.querySelector('iframe')) {
-                        if (spinner) spinner.style.display = 'none';
-                        obs.disconnect();
-                    }
-                });
-                observer.observe(videoContainer, { childList: true, subtree: true });
-
-                // Process with existing script if available
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    window.tiktokEmbed.load();
+                // Extract the videoId from the provided embedHtml
+                let videoId = '';
+                try {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = restaurant.embedHtml || '';
+                    const el = temp.querySelector('.tiktok-embed');
+                    if (el) videoId = el.getAttribute('data-video-id') || '';
+                } catch (_) {}
+                if (!videoId) {
+                    // As a last resort, attempt a regex extraction
+                    const m = (restaurant.embedHtml || '').match(/data-video-id=["'](\d+)["']/);
+                    if (m) videoId = m[1];
                 }
 
-                // Final fallback: if no iframe after 2s, swap to direct iframe
+                // Build a direct iframe (bypass embed.js to avoid profile errors)
+                const iframe = document.createElement('iframe');
+                iframe.width = '330';
+                iframe.height = '585';
+                iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+                iframe.setAttribute('allowfullscreen', 'true');
+                iframe.referrerPolicy = 'origin-when-cross-origin';
+                iframe.style.background = '#000';
+                iframe.style.border = 'none';
+                iframe.src = `https://www.tiktok.com/embed/v2/video/${videoId}?lang=en-US`;
+                iframe.onload = function() {
+                    const spinner = videoContainer.querySelector('.loading-spinner');
+                    if (spinner) spinner.style.display = 'none';
+                };
+                videoContainer.appendChild(iframe);
+
+                // Ensure spinner clears even if onload is delayed
                 setTimeout(() => {
-                    if (!videoContainer.querySelector('iframe')) {
-                        const videoId = blockquote ? blockquote.getAttribute('data-video-id') : '';
-                        videoContainer.innerHTML = `<iframe src="https://www.tiktok.com/embed/v2/video/${videoId}" width="330" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen style="background:#000;border:none;"></iframe>`;
-                    }
-                }, 2000);
+                    const spinner = videoContainer.querySelector('.loading-spinner');
+                    if (spinner) spinner.style.display = 'none';
+                }, 2500);
             }
 
 
