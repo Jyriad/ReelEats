@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.27 (Restore Default Markers)</title>
+    <title>London Food Map v3.3 (Robust Data Link)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,7 +13,7 @@
         #map { height: calc(100vh - 60px); width: 100%; }
         /* --- Popup & Container Styles --- */
         .leaflet-popup-content-wrapper { background-color: #010101; color: #fff; border-radius: 8px; padding: 0; border: 1px solid #333; }
-        .leaflet-popup-content { margin: 0; line-height: 0; width: auto !important; }
+        .leaflet-popup-content { margin: 0; line-height: 0; width: 330px !important; }
         .leaflet-popup-tip { background: #010101; }
         .leaflet-popup-close-button { color: #fff !important; z-index: 10; }
         
@@ -21,9 +21,8 @@
             width: 330px;
             height: 585px;
             position: relative;
-            background-color: transparent;
+            background-color: #000;
             border-radius: 8px;
-            overflow: hidden;
         }
         .loading-spinner {
             position: absolute;
@@ -40,51 +39,15 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        .loading-cover {
-            position: absolute;
-            inset: 0;
-            background: #000;
-            z-index: 5;
-            pointer-events: none;
-            transition: opacity 180ms ease;
-        }
-        .popup-video-container iframe { width: 100% !important; height: 100% !important; }
-
-        /* Responsive sizing to keep popup fully visible */
-        @media (max-width: 768px) {
-            .leaflet-popup-content { width: 90vw !important; }
-            .popup-video-container { width: 90vw; height: calc(100vh - 180px); max-height: 585px; }
-        }
-        @media (max-width: 480px) {
-            .leaflet-popup-content { width: 92vw !important; }
-            .popup-video-container { width: 92vw; height: calc(100vh - 180px); max-height: 585px; }
-        }
-
-        /* Modal overlay player */
-        .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 10000; }
-        .overlay.show { display: flex; }
-        .overlay-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.65); }
-        .overlay-content { position: relative; width: min(92vw, 605px); }
-        .overlay-close { position: absolute; top: -12px; right: -12px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.75); color: #fff; font-size: 20px; cursor: pointer; }
-        .overlay-video { width: min(92vw, 605px); min-width: 325px; height: min(86vh, 700px); background: #000; border-radius: 12px; overflow: hidden; }
-        .overlay-video iframe { width: 100% !important; height: 100% !important; }
     </style>
 </head>
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.27 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.3 🗺️</h1>
     </header>
 
     <div id="map"></div>
-    <!-- Modal overlay for video playback -->
-    <div id="videoOverlay" class="overlay">
-        <div class="overlay-backdrop"></div>
-        <div class="overlay-content">
-            <button id="overlayClose" class="overlay-close">×</button>
-            <div id="overlayVideo" class="overlay-video"></div>
-        </div>
-    </div>
 
     <script>
         function initializeMap() {
@@ -94,16 +57,6 @@
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
-            // Preload TikTok script so embeds process quickly
-            loadTikTokScript();
-
-            // Ensure default Leaflet marker icons load from CDN (fix for missing markers)
-            const DefaultIcon = L.Icon.Default.extend({});
-            L.Icon.Default.mergeOptions({
-                iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-            });
 
             const restaurants = [
                 {
@@ -132,55 +85,66 @@
                 }
             ];
 
-            /* Replaced popup-binding flow with overlay modal
             restaurants.forEach(restaurant => {
-                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                
-                // --- Directly attach the restaurant data to the marker ---
-                marker.restaurantData = restaurant;
+                // --- FIX: Attach data using the official 'options' object ---
+                const marker = L.marker([restaurant.lat, restaurant.lon], { 
+                    restaurantData: restaurant 
+                }).addTo(map);
                 
                 const popupContent = `<div class="popup-video-container"></div>`;
-                marker.bindPopup(popupContent, { minWidth: 325, autoPan: true, keepInView: true, autoPanPadding: [20, 80] });
+                marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
             });
-            */
+            
+            map.on('popupopen', function(e) {
+                const container = e.popup.getElement().querySelector('.popup-video-container');
+                
+                // --- FIX: Retrieve data using the official 'options' object ---
+                const restaurantData = e.popup.getSource().options.restaurantData;
 
-            // Overlay helpers
-            const overlay = document.getElementById('videoOverlay');
-            const overlayVideo = document.getElementById('overlayVideo');
-            const overlayClose = document.getElementById('overlayClose');
-            function closeOverlay() {
-                overlay.classList.remove('show');
-                overlayVideo.innerHTML = '';
-            }
-            overlayClose.addEventListener('click', closeOverlay);
-            overlay.addEventListener('click', function(ev) {
-                if (ev.target === overlay || ev.target.classList.contains('overlay-backdrop')) {
-                    closeOverlay();
+                if (!restaurantData || !restaurantData.tiktokVideoId) {
+                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="p-4 text-center font-bold">${restaurantData ? restaurantData.name : 'Info not available'}</p></div>`;
+                    return;
                 }
-            });
-            document.addEventListener('keydown', function(ev) { if (ev.key === 'Escape') closeOverlay(); });
+                
+                // 1. Show spinner immediately
+                container.innerHTML = '<div class="loading-spinner"></div>';
+                const spinner = container.querySelector('.loading-spinner');
 
-            function openOverlayFor(restaurant) {
-                overlay.classList.add('show');
-                overlayVideo.innerHTML = '<div class="loading-spinner" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"></div>';
-                if (restaurant.tiktokVideoId) {
-                    const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${restaurant.tiktokAuthor}/video/${restaurant.tiktokVideoId}" data-video-id="${restaurant.tiktokVideoId}" style="max-width: 605px; min-width: 325px; margin: 0; height: 100%;"> <section> <a target="_blank" href="https://www.tiktok.com/${restaurant.tiktokAuthor}?refer=embed">${restaurant.tiktokAuthor}</a> </section> </blockquote>`;
-                    overlayVideo.innerHTML = blockquoteHTML;
-                    loadTikTokScript();
-                    setTimeout(() => {
-                        if (!overlayVideo.querySelector('iframe')) {
-                            overlayVideo.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${restaurant.tiktokVideoId}" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="width:100%;height:100%;border:none;background:black;"></iframe>`;
-                        }
-                    }, 1500);
-                } else {
-                    overlayVideo.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-6">No video available for ${restaurant.name}</div>`;
+                // 2. Dynamically build the CLEAN blockquote from our simple data
+                const { tiktokVideoId, tiktokAuthor } = restaurantData;
+                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
+                container.insertAdjacentHTML('beforeend', blockquoteHTML);
+                const blockquote = container.querySelector('.tiktok-embed');
+
+                // 3. Use an observer to detect when TikTok has finished loading
+                const observer = new MutationObserver((mutations, obs) => {
+                    if (blockquote.querySelector('.tiktok-iframe-container')) {
+                        spinner.style.display = 'none';
+                        blockquote.style.visibility = 'visible';
+                        obs.disconnect();
+                    }
+                });
+                observer.observe(blockquote, { childList: true, subtree: true });
+
+                // 4. Load the TikTok script to process the blockquote
+                loadTikTokScript();
+            });
+
+            function loadTikTokScript() {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    window.tiktokEmbed.load();
+                    return;
                 }
+                const script = document.createElement('script');
+                script.src = 'https://www.tiktok.com/embed.js';
+                script.async = true;
+                script.onload = () => {
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        window.tiktokEmbed.load();
+                    }
+                };
+                document.body.appendChild(script);
             }
-
-            restaurants.forEach(restaurant => {
-                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.on('click', function() { openOverlayFor(restaurant); });
-            });
         }
     </script>
     
