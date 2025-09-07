@@ -7,6 +7,7 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://www.tiktok.com" />
 
     <style>
         html, body { margin: 0; padding: 0; }
@@ -28,17 +29,19 @@
             border-radius: 8px;
         }
         .loading-spinner {
-            /* --- FIX: Added positioning to center the spinner --- */
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            /* --- End of Fix --- */
+            width: 40px;
+            height: 40px;
+        }
+        .loading-spinner .spinner-disc {
             border: 4px solid rgba(255, 255, 255, 0.2);
             border-left-color: #fff;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 100%;
+            height: 100%;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
@@ -62,6 +65,8 @@
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
+            // Warm up TikTok embed script early so the first open is fast
+            loadTikTokScript();
 
             const restaurants = [
                 {
@@ -91,7 +96,7 @@
                 const popupContent = `<div id="${popupContainerId}" class="popup-video-container"></div>`;
 
                 // Bind the static container, which will not change size. This is the key fix.
-                marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
+                marker.bindPopup(popupContent, { minWidth: 330, autoPan: false });
             });
             
             map.on('popupopen', function(e) {
@@ -101,12 +106,12 @@
                 // Find the restaurant data associated with this popup
                 const restaurantData = restaurants.find(r => container.id.includes(r.videoId));
                 if (!restaurantData || !restaurantData.videoId) {
-                    container.innerHTML = `<p class="p-4">${restaurants.find(r => e.target.getLatLng().equals([r.lat, r.lon])).name}</p>`;
+                    container.innerHTML = '<p class="p-4 text-white">No video available for this location.</p>';
                     return;
                 }
                 
                 // 1. Show spinner immediately
-                container.innerHTML = '<div class="loading-spinner"></div>';
+                container.innerHTML = '<div class="loading-spinner"><div class="spinner-disc"></div></div>';
                 const spinner = container.querySelector('.loading-spinner');
 
                 // 2. Prepare the TikTok blockquote
@@ -125,8 +130,12 @@
                 });
                 observer.observe(blockquote, { childList: true, subtree: true });
 
-                // 4. Load the TikTok script to process the blockquote
-                loadTikTokScript();
+                // 4. Process immediately if script already available; otherwise load it
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    window.tiktokEmbed.load();
+                } else {
+                    loadTikTokScript();
+                }
             });
 
             function loadTikTokScript() {
