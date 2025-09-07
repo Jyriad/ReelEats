@@ -154,14 +154,30 @@
                 });
             });
             
-            // Process TikTok embeds when popup opens
-            map.on('popupopen', function() {
-                if (window.tiktokEmbed && window.tiktokEmbed.load) {
-                    window.tiktokEmbed.load();
-                } else if (window.instgrm && window.instgrm.Embeds) {
-                    // no-op for safety if instagram present from cache
+            // Helper to (re)load TikTok embeds reliably
+            function processTikTokEmbeds() {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    // Give DOM a tick so Leaflet finishes inserting popup contents
+                    setTimeout(function() { window.tiktokEmbed.load(); }, 0);
+                    return;
                 }
-            });
+                // If script not yet available, inject it and then process
+                var existing = document.querySelector('script[src^="https://www.tiktok.com/embed.js"]');
+                if (!existing) {
+                    var s = document.createElement('script');
+                    s.src = 'https://www.tiktok.com/embed.js';
+                    s.async = true;
+                    s.onload = function() {
+                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            window.tiktokEmbed.load();
+                        }
+                    };
+                    document.body.appendChild(s);
+                }
+            }
+
+            // Process TikTok embeds when popup opens
+            map.on('popupopen', function() { processTikTokEmbeds(); });
         }
     </script>
     
