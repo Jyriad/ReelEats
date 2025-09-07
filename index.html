@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.3</title>
+    <title>London Food Map v8.31</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -98,7 +98,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.3 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.31 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -134,21 +134,21 @@
                     lat: 51.5118,
                     lon: -0.1263,
                     description: "Modern Indian restaurant paying homage to the Irani cafés of Bombay.",
-                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@kingkarlae/video/7514283553832570134" data-video-id="7514283553832570134" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
+                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@kingkarlae/video/7514283553832570134" data-video-id="7514283553832570134" style="width: 330px; height: 585px; margin: 0;"><section></section></blockquote>`
                 },
                 {
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
                     description: "A popular spot for Korean street food, famous for its corn dogs.",
-                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
+                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="width: 330px; height: 585px; margin: 0;"><section></section></blockquote>`
                 },
                 {
                     name: 'Padella Borough Market',
                     lat: 51.5055,
                     lon: -0.0913,
                     description: "An acclaimed pasta bar serving fresh, hand-rolled pasta dishes.",
-                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@frankieabroad/video/7439319573335199008" data-video-id="7439319573335199008" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`
+                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@frankieabroad/video/7439319573335199008" data-video-id="7439319573335199008" style="width: 330px; height: 585px; margin: 0;"><section></section></blockquote>`
                 }
             ];
 
@@ -178,7 +178,6 @@
                 const observer = new MutationObserver((mutations, obs) => {
                     if (videoContainer.querySelector('iframe')) {
                         if (spinner) spinner.style.display = 'none';
-                        if (blockquote) blockquote.style.visibility = 'visible';
                         obs.disconnect();
                     }
                 });
