@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.91 (Centered Spinner)</title>
+    <title>London Food Map v1.92 (Centered Spinner)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,7 +52,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.91 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 1.92 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -92,13 +92,10 @@
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 
-                // Create a popup with either the provided embed HTML or a container we will fill later
+                // Always use a stable container to avoid layout jank
                 const popupContainerId = `popup-container-${restaurant.videoId || Math.random()}`;
-                const popupContent = restaurant.embedHtml
-                    ? restaurant.embedHtml
-                    : `<div id="${popupContainerId}" class="popup-video-container"></div>`;
+                const popupContent = `<div id="${popupContainerId}" class="popup-video-container"></div>`;
 
-                // Bind the content
                 marker.bindPopup(popupContent, { minWidth: 330, autoPan: false });
             });
             
@@ -151,8 +148,14 @@
                     }
                 });
                 observer.observe(container, { childList: true, subtree: true });
-                // Fallback in case observer misses
-                setTimeout(showContent, 6000);
+                // Fallback: if TikTok doesn't inject an iframe, switch to direct iframe
+                setTimeout(() => {
+                    if (!container.querySelector('iframe')) {
+                        const idFromEmbed = (blockquote && blockquote.getAttribute('data-video-id')) || videoId;
+                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${idFromEmbed}" width="330" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
+                        showContent();
+                    }
+                }, 4000);
 
                 // 4. Process immediately if script already available; otherwise load it
                 if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
