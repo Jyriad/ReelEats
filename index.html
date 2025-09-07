@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v4.1 (Stable Final)</title>
+    <title>London Food Map v5.0 (Direct Iframe)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,6 +23,7 @@
             position: relative;
             background-color: #000;
             border-radius: 8px;
+            overflow: hidden; /* Ensures iframe corners are rounded */
         }
         .loading-spinner {
             position: absolute;
@@ -39,12 +40,15 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        .popup-video-container iframe {
+            border: none;
+        }
     </style>
 </head>
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 4.1 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 5.0 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -61,42 +65,33 @@
             const restaurants = [
                 {
                     name: 'Dishoom Covent Garden',
-                    address: '12 Upper St Martin\'s Ln, London WC2H 9FB',
                     lat: 51.5118,
                     lon: -0.1263,
-                    tiktokVideoId: null, 
-                    tiktokAuthor: null
+                    tiktokVideoId: null,
                 },
                 {
                     name: 'Bunsik Chinatown',
-                    address: '62 Charing Cross Rd, London WC2H 0BU',
                     lat: 51.5115,
                     lon: -0.1317,
                     tiktokVideoId: '7361096546319961377',
-                    tiktokAuthor: '@picturingsnacks'
                 },
                 {
                     name: 'Padella Borough Market',
-                    address: '6 Southwark St, London SE1 1TQ',
                     lat: 51.5055,
                     lon: -0.0913,
                     tiktokVideoId: null,
-                    tiktokAuthor: null
                 }
             ];
 
             restaurants.forEach(restaurant => {
-                // Attach data using the official 'options' object for robustness
                 const marker = L.marker([restaurant.lat, restaurant.lon], { 
                     restaurantData: restaurant 
                 }).addTo(map);
                 
-                // Bind a simple, empty container. This is the key to stability.
                 const popupContent = `<div class="popup-video-container"></div>`;
                 marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
             });
             
-            // Use the 'popupopen' event to reliably populate content AFTER the popup is stable
             map.on('popupopen', function(e) {
                 const container = e.popup.getElement().querySelector('.popup-video-container');
                 const restaurantData = e.popup.getSource().options.restaurantData;
@@ -110,41 +105,23 @@
                 container.innerHTML = '<div class="loading-spinner"></div>';
                 const spinner = container.querySelector('.loading-spinner');
 
-                // 2. Build the blockquote
-                const { tiktokVideoId, tiktokAuthor } = restaurantData;
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
-                container.insertAdjacentHTML('beforeend', blockquoteHTML);
-                const blockquote = container.querySelector('.tiktok-embed');
+                // 2. Create the iframe directly
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://www.tiktok.com/embed/video/${restaurantData.tiktokVideoId}`;
+                iframe.width = "330";
+                iframe.height = "585";
+                iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+                iframe.style.visibility = 'hidden'; // Keep it hidden until loaded
 
-                // 3. Observe for the iframe
-                const observer = new MutationObserver((mutations, obs) => {
-                    if (blockquote.querySelector('.tiktok-iframe-container')) {
-                        spinner.style.display = 'none';
-                        blockquote.style.visibility = 'visible';
-                        obs.disconnect();
-                    }
-                });
-                observer.observe(container, { childList: true, subtree: true });
-
-                // 4. Load the script
-                loadTikTokScript();
-            });
-
-            function loadTikTokScript() {
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    window.tiktokEmbed.load();
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = 'https://www.tiktok.com/embed.js';
-                script.async = true;
-                script.onload = () => {
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                    }
+                // 3. Wait for the iframe to fully load, then show it
+                iframe.onload = function() {
+                    spinner.style.display = 'none';
+                    iframe.style.visibility = 'visible';
                 };
-                document.body.appendChild(script);
-            }
+                
+                // 4. Append the iframe to start loading
+                container.appendChild(iframe);
+            });
         }
     </script>
     
