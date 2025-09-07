@@ -1,29 +1,63 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full bg-gray-900">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v5.13 (Multi-Stage TikTok Fallback)</title>
+    <title>London Food Map v6.0 (Two-Column Layout)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        html, body { margin: 0; padding: 0; }
-        #map { height: calc(100vh - 60px); width: 100%; }
-        /* --- Popup & Container Styles --- */
-        .leaflet-popup-content-wrapper { background-color: #010101; color: #fff; border-radius: 8px; padding: 0; border: 1px solid #333; }
-        .leaflet-popup-content { margin: 0; line-height: 0; width: 330px !important; }
-        .leaflet-popup-tip { background: #010101; }
-        .leaflet-popup-close-button { color: #fff !important; z-index: 10; }
-        
-        .popup-video-container {
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; /* Prevent body scroll */
+        }
+        #map { 
+            height: 100%; 
+            width: 100%; 
+            background-color: #1a202c;
+        }
+        /* Custom scrollbar for the side panel */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a202c;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+
+        /* Video Modal Styles */
+        #video-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000; /* Ensure it's above the map but below the header */
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            visibility: hidden;
+            opacity: 0;
+        }
+        #video-modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        .video-container {
             width: 330px;
             height: 585px;
             position: relative;
             background-color: #000;
-            border-radius: 8px;
-            overflow: hidden; /* Ensures iframe corners are rounded */
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #4a5568;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .loading-spinner {
             position: absolute;
@@ -40,21 +74,56 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        .popup-video-container iframe {
+        .video-container iframe {
             border: none;
+        }
+        .close-video-btn {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 36px;
+            height: 36px;
+            background: #1a202c;
+            color: white;
+            border: 2px solid #4a5568;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
         }
     </style>
 </head>
-<body class="bg-gray-800">
+<body class="h-full flex flex-col">
 
-    <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 5.13 🗺️</h1>
+    <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
+        <h1 class="text-2xl font-bold">London Food Map 6.0 🗺️</h1>
     </header>
 
-    <div id="map"></div>
+    <main class="flex-grow flex">
+        <!-- Map Area -->
+        <div class="w-2/3 h-full relative" id="map-container">
+            <div id="map"></div>
+            <!-- Video Modal will be positioned here -->
+            <div id="video-modal">
+                <button class="close-video-btn">&times;</button>
+                <div class="video-container"></div>
+            </div>
+        </div>
 
+        <!-- Side Panel -->
+        <aside class="w-1/3 h-full bg-gray-800 p-4 overflow-y-auto custom-scrollbar">
+            <div id="restaurant-list" class="space-y-4">
+                <!-- Restaurant cards will be injected here -->
+            </div>
+        </aside>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        function initializeMap() {
+        document.addEventListener('DOMContentLoaded', function() {
             const map = L.map('map').setView([51.5074, -0.1278], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap &copy; CARTO',
@@ -62,82 +131,83 @@
                 maxZoom: 20
             }).addTo(map);
 
+            const restaurantList = document.getElementById('restaurant-list');
+            const videoModal = document.getElementById('video-modal');
+            const videoContainer = videoModal.querySelector('.video-container');
+            const closeVideoBtn = videoModal.querySelector('.close-video-btn');
+
             const restaurants = [
                 {
                     name: 'Dishoom Covent Garden',
                     lat: 51.5118,
                     lon: -0.1263,
-                    tiktokVideoId: null,
+                    description: "Modern Indian restaurant paying homage to the Irani cafés of Bombay. Expect long queues and delicious food.",
+                    tiktokVideoId: '7514283553832570134'
                 },
                 {
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    tiktokVideoId: '7361096546319961377',
-                    tiktokAuthor: '@picturingsnacks'
+                    description: "A popular spot for Korean street food, famous for its variety of corn dogs with amazing cheese pulls.",
+                    tiktokVideoId: '7361096546319961377'
                 },
                 {
                     name: 'Padella Borough Market',
                     lat: 51.5055,
                     lon: -0.0913,
-                    tiktokVideoId: null,
+                    description: "An acclaimed pasta bar serving fresh, hand-rolled pasta dishes. Simple, affordable, and incredibly popular.",
+                    tiktokVideoId: '7439319573335199008'
                 }
             ];
 
             restaurants.forEach(restaurant => {
-                const marker = L.marker([restaurant.lat, restaurant.lon], { 
-                    restaurantData: restaurant 
-                }).addTo(map);
-                
-                const popupContent = `<div class="popup-video-container"></div>`;
-                marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
+                // Create Marker
+                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                marker.on('click', () => showVideoFor(restaurant));
+
+                // Create List Item
+                const listItem = document.createElement('div');
+                listItem.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
+                listItem.innerHTML = `
+                    <h3 class="text-white text-lg font-bold">${restaurant.name}</h3>
+                    <p class="text-gray-400 text-sm mt-1">${restaurant.description}</p>
+                `;
+                listItem.addEventListener('click', () => {
+                    showVideoFor(restaurant);
+                    map.flyTo([restaurant.lat, restaurant.lon], 15);
+                });
+                restaurantList.appendChild(listItem);
             });
-            
-            map.on('popupopen', function(e) {
-                const container = e.popup.getElement().querySelector('.popup-video-container');
-                const restaurantData = e.popup.getSource().options.restaurantData;
 
-                if (!restaurantData || !restaurantData.tiktokVideoId) {
-                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="p-4 text-center font-bold">${restaurantData ? restaurantData.name : 'Info not available'}</p></div>`;
-                    return;
-                }
+            function showVideoFor(restaurant) {
+                videoContainer.innerHTML = '<div class="loading-spinner"></div>';
+                videoModal.classList.add('show');
                 
-                // 1. Show spinner immediately
-                container.innerHTML = '<div class="loading-spinner"></div>';
-                const spinner = container.querySelector('.loading-spinner');
+                const spinner = videoContainer.querySelector('.loading-spinner');
+                const iframe = document.createElement('iframe');
 
-                // 2. Try TikTok official blockquote first
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${restaurantData.tiktokAuthor || '@picturingsnacks'}/video/${restaurantData.tiktokVideoId}" data-video-id="${restaurantData.tiktokVideoId}" style="max-width: 605px; min-width: 325px; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${restaurantData.tiktokAuthor || '@picturingsnacks'}?refer=embed">${restaurantData.tiktokAuthor || '@picturingsnacks'}</a> </section> </blockquote>`;
-                container.insertAdjacentHTML('beforeend', blockquoteHTML);
-                // Load/process embed.js
-                (function ensureTikTokScript(){
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                    } else {
-                        var s = document.querySelector('script[src^="https://www.tiktok.com/embed.js"]');
-                        if (!s) {
-                            s = document.createElement('script'); s.src = 'https://www.tiktok.com/embed.js'; s.async = true; document.body.appendChild(s);
-                            s.onload = function(){ if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); };
-                        }
-                    }
-                })();
-                // Fallback to raw iframe if blockquote not processed fast
-                setTimeout(function(){
-                    if (!container.querySelector('iframe')) {
-                        container.innerHTML = '';
-                        const iframe = document.createElement('iframe');
-                        iframe.width = "330"; iframe.height = "585"; iframe.style.display = 'block'; iframe.style.background = '#000';
-                        iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
-                        iframe.src = `https://www.tiktok.com/embed/v2/video/${restaurantData.tiktokVideoId}`;
-                        container.appendChild(iframe);
-                    }
+                iframe.width = "330";
+                iframe.height = "585";
+                iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+                iframe.style.visibility = 'hidden';
+
+                iframe.onload = function() {
                     spinner.style.display = 'none';
-                }, 1800);
-            });
-        }
+                    iframe.style.visibility = 'visible';
+                };
+
+                videoContainer.appendChild(iframe);
+                iframe.src = `https://www.tiktok.com/embed/video/${restaurant.tiktokVideoId}`;
+            }
+
+            function closeVideo() {
+                videoModal.classList.remove('show');
+                videoContainer.innerHTML = ''; // Clear content to stop video
+            }
+
+            closeVideoBtn.addEventListener('click', closeVideo);
+        });
     </script>
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="initializeMap()"></script>
 </body>
 </html>
 
