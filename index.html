@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.0 (Clean Data)</title>
+    <title>London Food Map v3.1 (Stable Data Link)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,7 +44,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.0 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.1 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -58,16 +58,13 @@
                 maxZoom: 20
             }).addTo(map);
 
-            // --- REFACTORED DATA STRUCTURE ---
-            // This is now clean, simple, and easy to read.
-            // This is the exact structure we will use in our Supabase database.
             const restaurants = [
                 {
                     name: 'Dishoom Covent Garden',
                     address: '12 Upper St Martin\'s Ln, London WC2H 9FB',
                     lat: 51.5118,
                     lon: -0.1263,
-                    tiktokVideoId: null, // No video for this one yet
+                    tiktokVideoId: null, 
                     tiktokAuthor: null
                 },
                 {
@@ -91,18 +88,18 @@
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 
-                const popupContainerId = `popup-container-${restaurant.lat}-${restaurant.lon}`;
-                const popupContent = `<div id="${popupContainerId}" class="popup-video-container"></div>`;
-
+                // --- FIX: Directly attach the restaurant data to the marker ---
+                marker.restaurantData = restaurant;
+                
+                const popupContent = `<div class="popup-video-container"></div>`;
                 marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
             });
             
             map.on('popupopen', function(e) {
                 const container = e.popup.getElement().querySelector('.popup-video-container');
-                if (!container.id) return;
-
-                // Find the correct restaurant data based on the marker's position
-                const restaurantData = restaurants.find(r => e.target.getLatLng().equals([r.lat, r.lon]));
+                
+                // --- FIX: Get data directly from the marker that was clicked ---
+                const restaurantData = e.target.restaurantData;
 
                 if (!restaurantData || !restaurantData.tiktokVideoId) {
                     container.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="p-4 text-center font-bold">${restaurantData ? restaurantData.name : 'Info not available'}</p></div>`;
