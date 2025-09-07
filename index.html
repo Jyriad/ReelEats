@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v9.0</title>
+    <title>London Food Map v8.3</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -98,7 +98,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 9.0 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.3 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -115,7 +115,6 @@
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- The TikTok script is now loaded once, globally -->
     <script async src="https://www.tiktok.com/embed.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -185,12 +184,21 @@
                 });
                 observer.observe(videoContainer, { childList: true, subtree: true });
 
-                // --- DEFINITIVE FIX: Call the load method on the existing global object ---
+                // Process with existing script if available
                 if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                     window.tiktokEmbed.load();
                 }
+
+                // Final fallback: if no iframe after 2s, swap to direct iframe
+                setTimeout(() => {
+                    if (!videoContainer.querySelector('iframe')) {
+                        const videoId = blockquote ? blockquote.getAttribute('data-video-id') : '';
+                        videoContainer.innerHTML = `<iframe src="https://www.tiktok.com/embed/v2/video/${videoId}" width="330" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen style="background:#000;border:none;"></iframe>`;
+                    }
+                }, 2000);
             }
-            
+
+
             function closeVideo() {
                 videoModal.classList.remove('show');
                 videoContainer.innerHTML = '';
