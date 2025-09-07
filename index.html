@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.4 (Simplified Loading)</title>
+    <title>London Food Map v1.5 (Robust Loading)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -47,7 +47,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.4 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 1.5 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -86,7 +86,6 @@
                 
                 let popupContent;
                 if (restaurant.videoId) {
-                    // Start with a container that only has the spinner
                     popupContent = `
                         <div class="video-container" data-video-id="${restaurant.videoId}" data-author="${restaurant.author}">
                             <div class="loading-spinner"></div>
@@ -106,32 +105,42 @@
                 const author = container.dataset.author;
                 const spinner = container.querySelector('.loading-spinner');
                 
-                // Immediately start the loading process
                 const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
                 container.insertAdjacentHTML('beforeend', blockquoteHTML);
                 const blockquote = container.querySelector('.tiktok-embed');
 
+                // This observer now waits for a specific class that TikTok adds when the video is truly ready.
                 const observer = new MutationObserver((mutations, obs) => {
-                    const iframe = blockquote.querySelector('iframe');
-                    if (iframe) {
-                        // Iframe element exists, now wait for it to be fully loaded
-                        iframe.onload = () => {
-                            // Content is ready! Now do the final switch.
-                            spinner.style.display = 'none';
-                            blockquote.style.visibility = 'visible';
-                        };
-                        obs.disconnect(); // We found the iframe, so we're done observing
+                    if (blockquote.querySelector('.tiktok-iframe-container')) {
+                        spinner.style.display = 'none';
+                        blockquote.style.visibility = 'visible';
+                        obs.disconnect(); // Done observing
                     }
                 });
                 observer.observe(blockquote, { childList: true, subtree: true });
 
-                const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
-                if (oldScript) oldScript.remove();
-                
-                const newScript = document.createElement('script');
-                newScript.src = 'https://www.tiktok.com/embed.js';
-                newScript.async = true;
-                document.body.appendChild(newScript);
+                // This function ensures the TikTok script is loaded and tells it to render the video.
+                function loadTikTokScript() {
+                    if (window.tiktokEmbed) {
+                        window.tiktokEmbed.load();
+                        return;
+                    }
+                    const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+                    if (oldScript) oldScript.remove();
+                    
+                    const newScript = document.createElement('script');
+                    newScript.src = 'https://www.tiktok.com/embed.js';
+                    newScript.async = true;
+                    document.body.appendChild(newScript);
+                    
+                    newScript.onload = () => {
+                        if (window.tiktokEmbed) {
+                            window.tiktokEmbed.load();
+                        }
+                    };
+                }
+
+                loadTikTokScript();
             });
         }
     </script>
