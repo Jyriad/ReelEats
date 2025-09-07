@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.21 (Correct Data Access)</title>
+    <title>London Food Map v3.22 (Correct Data Access)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,7 +63,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.21 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.22 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -140,9 +140,28 @@
 
                 // 3. Use an observer to detect when TikTok has finished loading
                 const observer = new MutationObserver((mutations, obs) => {
-                    if (container.querySelector('iframe') || blockquote.querySelector('.tiktok-iframe-container')) {
+                    const iframe = container.querySelector('iframe') || blockquote.querySelector('iframe');
+                    if (iframe || blockquote.querySelector('.tiktok-iframe-container')) {
+                        // Reveal content
                         spinner.style.display = 'none';
                         if (cover) cover.style.opacity = '0';
+                        // Resize container to iframe's height if available
+                        if (iframe) {
+                            const adjustSize = () => {
+                                try {
+                                    const rect = iframe.getBoundingClientRect();
+                                    if (rect.height > 0) {
+                                        container.style.height = rect.height + 'px';
+                                    }
+                                } catch (e) { /* cross-origin, fallback below */ }
+                                // Ask Leaflet to recalc popup position
+                                try { e.popup.update(); } catch (err) {}
+                            };
+                            // Run now and after a short delay (TikTok sometimes resizes once more)
+                            adjustSize();
+                            setTimeout(adjustSize, 350);
+                            setTimeout(adjustSize, 1200);
+                        }
                         obs.disconnect();
                     }
                 });
@@ -151,7 +170,10 @@
                 // Fallback: if TikTok doesn't inject an iframe in time, use direct iframe
                 setTimeout(() => {
                     if (!container.querySelector('iframe')) {
-                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${tiktokVideoId}" width="100%" height="100%" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
+                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${tiktokVideoId}" width="100%" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
+                        // Ensure container height matches fallback iframe
+                        container.style.height = '585px';
+                        try { e.popup.update(); } catch (err) {}
                     }
                     spinner.style.display = 'none';
                     if (cover) cover.style.opacity = '0';
