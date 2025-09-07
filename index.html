@@ -74,6 +74,7 @@
                     lat: 51.5115,
                     lon: -0.1317,
                     tiktokVideoId: '7361096546319961377',
+                    tiktokAuthor: '@picturingsnacks'
                 },
                 {
                     name: 'Padella Borough Market',
@@ -106,7 +107,7 @@
                 const spinner = container.querySelector('.loading-spinner');
 
                 // 2. Try TikTok official blockquote first
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@placeholder/video/${restaurantData.tiktokVideoId}" data-video-id="${restaurantData.tiktokVideoId}" style="max-width: 605px; min-width: 325px; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/@placeholder?refer=embed">TikTok</a> </section> </blockquote>`;
+                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${restaurantData.tiktokAuthor || '@picturingsnacks'}/video/${restaurantData.tiktokVideoId}" data-video-id="${restaurantData.tiktokVideoId}" style="max-width: 605px; min-width: 325px; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${restaurantData.tiktokAuthor || '@picturingsnacks'}?refer=embed">${restaurantData.tiktokAuthor || '@picturingsnacks'}</a> </section> </blockquote>`;
                 container.insertAdjacentHTML('beforeend', blockquoteHTML);
                 // Load/process embed.js
                 (function ensureTikTokScript(){
