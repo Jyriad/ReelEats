@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1 (TikTok Version)</title>
+    <title>London Food Map v1 (TikTok Fix)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,69 +11,10 @@
     <style>
         html, body { margin: 0; padding: 0; }
         #map { height: calc(100vh - 60px); width: 100%; }
-        /* Custom popup styles */
-        .leaflet-popup-content-wrapper { 
-            background-color: #010101; 
-            color: #fff; 
-            border-radius: 12px; 
-            padding: 5px; 
-            border: 2px solid #333; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6); 
-        }
-        .leaflet-popup-content { 
-            margin: 0; 
-            line-height: 1.2; 
-            width: 300px !important; 
-            height: auto; 
-        }
+        .leaflet-popup-content-wrapper { background-color: #010101; color: #fff; border-radius: 8px; padding: 0; border: 1px solid #333; }
+        .leaflet-popup-content { margin: 0; line-height: 0; width: 330px !important; }
         .leaflet-popup-tip { background: #010101; }
-        .leaflet-popup-close-button { 
-            color: #fff !important; 
-            font-size: 24px; 
-            font-weight: bold; 
-            padding: 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-        }
-        
-        /* Mobile responsive styles */
-        @media (max-width: 768px) {
-            .leaflet-popup-content-wrapper {
-                max-width: 90vw !important;
-            }
-            .leaflet-popup-content {
-                width: 280px !important;
-            }
-            #map {
-                height: calc(100vh - 60px);
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .leaflet-popup-content {
-                width: 260px !important;
-            }
-            .tiktok-video {
-                width: 240px !important;
-                height: 340px !important;
-            }
-        }
-        
-        /* Ensure video responsive behavior */
-        .tiktok-video {
-            max-width: 100%;
-            height: auto;
-        }
-        
-        /* Improve mobile touch targets */
-        @media (max-width: 768px) {
-            .leaflet-popup-close-button {
-                font-size: 28px;
-                padding: 12px;
-                top: 8px;
-                right: 8px;
-            }
-        }
+        .leaflet-popup-close-button { color: #fff !important; }
     </style>
 </head>
 <body class="bg-gray-800">
@@ -98,49 +39,37 @@
                     name: 'Dishoom Covent Garden',
                     lat: 51.5118,
                     lon: -0.1263,
-                    // Note: This is still an Instagram link for comparison, but it will no longer render correctly
-                    // because we have removed the Instagram script.
-                    reelEmbedHtml: `<p class="p-4 text-white">Instagram embeds are disabled.</p>`
+                    reelEmbedHtml: `<p class="p-4 text-white">Example placeholder.</p>`
                 },
                 {
-                    // --- TIKTOK EXAMPLE ---
-                    // This now uses a TikTok embed, which will play inline.
                     name: 'Bunsik Chinatown',
                     lat: 51.5115,
                     lon: -0.1317,
-                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;"> <section> <a target="_blank" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> </section> </blockquote>`
+                    reelEmbedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;"> <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> </section> </blockquote>`
                 },
                 {
                     name: 'Padella Borough Market',
                     lat: 51.5055,
                     lon: -0.0913,
-                    reelEmbedHtml: `<p class="p-4 text-white">Instagram embeds are disabled.</p>`
+                    reelEmbedHtml: `<p class="p-4 text-white">Example placeholder.</p>`
                 }
             ];
 
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.bindPopup(restaurant.reelEmbedHtml, { 
-                    minWidth: 300,
-                    maxWidth: 300,
-                    className: 'custom-popup'
-                });
-                
-                // Center map on marker when clicked, accounting for popup height
-                marker.on('click', function() {
-                    // Calculate offset to center the popup in view
-                    const popupHeight = 500; // Approximate popup height
-                    const mapHeight = map.getSize().y;
-                    const offsetLat = (popupHeight / 2) * (180 / (Math.PI * 6378137)) / Math.cos(restaurant.lat * Math.PI / 180);
-                    
-                    map.setView([restaurant.lat + offsetLat, restaurant.lon], 15, {
-                        animate: true,
-                        duration: 0.5
-                    });
-                });
+                marker.bindPopup(restaurant.reelEmbedHtml, { minWidth: 325 });
             });
             
-            
+            // --- THIS IS THE FIX ---
+            // This tells the TikTok script to re-scan the page every time a popup opens
+            map.on('popupopen', function() {
+                // A tiny delay ensures the popup is fully rendered before TikTok scans it
+                setTimeout(function() {
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        window.tiktokEmbed.load();
+                    }
+                }, 100); // 100 millisecond delay
+            });
         }
     </script>
     
