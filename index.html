@@ -57,6 +57,8 @@
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
+            // Preload TikTok script so embeds process quickly
+            loadTikTokScript();
 
             const restaurants = [
                 {
@@ -112,19 +114,26 @@
 
                 // 2. Dynamically build the CLEAN blockquote from our simple data
                 const { tiktokVideoId, tiktokAuthor } = restaurantData;
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
+                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="max-width: 605px; min-width: 325px; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
                 container.insertAdjacentHTML('beforeend', blockquoteHTML);
                 const blockquote = container.querySelector('.tiktok-embed');
 
                 // 3. Use an observer to detect when TikTok has finished loading
                 const observer = new MutationObserver((mutations, obs) => {
-                    if (blockquote.querySelector('.tiktok-iframe-container')) {
+                    if (container.querySelector('iframe') || blockquote.querySelector('.tiktok-iframe-container')) {
                         spinner.style.display = 'none';
-                        blockquote.style.visibility = 'visible';
                         obs.disconnect();
                     }
                 });
-                observer.observe(blockquote, { childList: true, subtree: true });
+                observer.observe(container, { childList: true, subtree: true });
+
+                // Fallback: if TikTok doesn't inject an iframe in time, use direct iframe
+                setTimeout(() => {
+                    if (!container.querySelector('iframe')) {
+                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${tiktokVideoId}" width="330" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
+                    }
+                    spinner.style.display = 'none';
+                }, 4000);
 
                 // 4. Load the TikTok script to process the blockquote
                 loadTikTokScript();
