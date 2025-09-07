@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.3 (Robust Data Link)</title>
+    <title>London Food Map v4.0 (Event-Driven)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,7 +44,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.3 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 4.0 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -86,48 +86,42 @@
             ];
 
             restaurants.forEach(restaurant => {
-                // --- FIX: Attach data using the official 'options' object ---
-                const marker = L.marker([restaurant.lat, restaurant.lon], { 
-                    restaurantData: restaurant 
-                }).addTo(map);
+                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 
-                const popupContent = `<div class="popup-video-container"></div>`;
-                marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
-            });
-            
-            map.on('popupopen', function(e) {
-                const container = e.popup.getElement().querySelector('.popup-video-container');
-                
-                // --- FIX: Retrieve data using the official 'options' object ---
-                const restaurantData = e.popup.getSource().options.restaurantData;
+                // --- NEW ARCHITECTURE: Attach a specific click listener to each marker ---
+                marker.on('click', function() {
+                    const popupContent = document.createElement('div');
+                    popupContent.className = 'popup-video-container';
+                    
+                    if (restaurant.tiktokVideoId) {
+                        // 1. Show spinner immediately
+                        popupContent.innerHTML = '<div class="loading-spinner"></div>';
+                        const spinner = popupContent.querySelector('.loading-spinner');
 
-                if (!restaurantData || !restaurantData.tiktokVideoId) {
-                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="p-4 text-center font-bold">${restaurantData ? restaurantData.name : 'Info not available'}</p></div>`;
-                    return;
-                }
-                
-                // 1. Show spinner immediately
-                container.innerHTML = '<div class="loading-spinner"></div>';
-                const spinner = container.querySelector('.loading-spinner');
+                        // 2. Build the blockquote
+                        const { tiktokVideoId, tiktokAuthor } = restaurant;
+                        const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
+                        popupContent.insertAdjacentHTML('beforeend', blockquoteHTML);
+                        const blockquote = popupContent.querySelector('.tiktok-embed');
 
-                // 2. Dynamically build the CLEAN blockquote from our simple data
-                const { tiktokVideoId, tiktokAuthor } = restaurantData;
-                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
-                container.insertAdjacentHTML('beforeend', blockquoteHTML);
-                const blockquote = container.querySelector('.tiktok-embed');
+                        // 3. Observe for the iframe
+                        const observer = new MutationObserver((mutations, obs) => {
+                            if (blockquote.querySelector('.tiktok-iframe-container')) {
+                                spinner.style.display = 'none';
+                                blockquote.style.visibility = 'visible';
+                                obs.disconnect();
+                            }
+                        });
+                        observer.observe(popupContent, { childList: true, subtree: true });
 
-                // 3. Use an observer to detect when TikTok has finished loading
-                const observer = new MutationObserver((mutations, obs) => {
-                    if (blockquote.querySelector('.tiktok-iframe-container')) {
-                        spinner.style.display = 'none';
-                        blockquote.style.visibility = 'visible';
-                        obs.disconnect();
+                        // 4. Load the script
+                        loadTikTokScript();
+                    } else {
+                        popupContent.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="p-4 text-center font-bold">${restaurant.name}</p></div>`;
                     }
+                    
+                    marker.bindPopup(popupContent, { minWidth: 325, autoPan: false }).openPopup();
                 });
-                observer.observe(blockquote, { childList: true, subtree: true });
-
-                // 4. Load the TikTok script to process the blockquote
-                loadTikTokScript();
             });
 
             function loadTikTokScript() {
