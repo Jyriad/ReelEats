@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.32</title>
+    <meta name="referrer" content="origin-when-cross-origin">
+    <title>London Food Map v8.33</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -98,7 +99,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.32 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.33 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -115,7 +116,6 @@
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script async src="https://www.tiktok.com/embed.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const map = L.map('map').setView([51.5074, -0.1278], 13);
