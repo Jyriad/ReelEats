@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.1 (Lazy Loading)</title>
+    <title>London Food Map v1.3 (True Lazy Loading)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,12 +21,20 @@
             position: relative;
             cursor: pointer;
             background-color: #000;
+            min-height: 585px; /* Match placeholder height to avoid layout shift */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .video-thumbnail {
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: cover;
             display: block;
             border-radius: 8px;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         .play-button {
             position: absolute;
@@ -41,6 +49,7 @@
             justify-content: center;
             align-items: center;
             transition: background-color 0.2s;
+            z-index: 2;
         }
         .video-container:hover .play-button {
             background-color: rgba(255, 0, 0, 0.8);
@@ -62,6 +71,7 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
+            z-index: 3;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -71,7 +81,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.02 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 1.2 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -97,7 +107,6 @@
                     lon: -0.1317,
                     videoId: '7361096546319961377',
                     author: '@picturingsnacks',
-                    // Using a placeholder that looks good in the dark theme
                     thumbnailUrl: 'https://placehold.co/330x585/010101/333333?text=Tap+to+Play'
                 },
                 {
@@ -132,22 +141,27 @@
                 if (!container) return;
 
                 container.addEventListener('click', function loadVideo() {
+                    // Show spinner on top of the thumbnail, don't hide thumbnail yet
                     container.querySelector('.loading-spinner').style.display = 'block';
-                    container.querySelector('.video-thumbnail').style.display = 'none';
                     container.querySelector('.play-button').style.display = 'none';
 
                     const videoId = container.dataset.videoId;
                     const author = container.dataset.author;
-                    const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px; visibility: hidden;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
+                    const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${author}/video/${videoId}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${author}?refer=embed">${author}</a> </section> </blockquote>`;
                     container.insertAdjacentHTML('beforeend', blockquoteHTML);
                     const blockquote = container.querySelector('.tiktok-embed');
 
                     const observer = new MutationObserver((mutations, obs) => {
                         const iframe = blockquote.querySelector('iframe');
                         if (iframe) {
-                            container.querySelector('.loading-spinner').style.display = 'none';
-                            blockquote.style.visibility = 'visible';
-                            obs.disconnect();
+                            // Iframe element exists, now wait for it to be fully loaded
+                            iframe.onload = () => {
+                                // Content is ready! Now do the final switch.
+                                container.querySelector('.loading-spinner').style.display = 'none';
+                                container.querySelector('.video-thumbnail').style.display = 'none';
+                                blockquote.style.visibility = 'visible';
+                            };
+                            obs.disconnect(); // We found the iframe, so we're done observing
                         }
                     });
                     observer.observe(blockquote, { childList: true, subtree: true });
