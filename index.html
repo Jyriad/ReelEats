@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v7.0</title>
+    <title>London Food Map v7.1</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -98,7 +98,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 7.0 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 7.1 🗺️</h1>
     </header>
 
     <main class="flex-grow flex min-h-0">
@@ -185,23 +185,22 @@
                 loadTikTokScript();
             }
 
+            // --- FIX: This function now forces a complete reload of the TikTok script ---
             function loadTikTokScript() {
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    window.tiktokEmbed.load();
-                    return;
+                // Remove any old script and its global object to ensure a fresh start
+                const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+                if (oldScript) {
+                    oldScript.remove();
                 }
-                const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
-                if (existingScript) return;
+                delete window.tiktokEmbed;
 
-                const script = document.createElement('script');
-                script.src = 'https://www.tiktok.com/embed.js';
-                script.async = true;
-                script.onload = () => {
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                    }
-                };
-                document.body.appendChild(script);
+                // Create a new script tag
+                const newScript = document.createElement('script');
+                newScript.src = 'https://www.tiktok.com/embed.js';
+                newScript.async = true;
+                
+                // The script will find and process the blockquote automatically on load
+                document.body.appendChild(newScript);
             }
 
             function closeVideo() {
