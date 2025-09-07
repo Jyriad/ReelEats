@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v5.0 (Direct Iframe)</title>
+    <title>London Food Map v5.1 (Stable Iframe Load)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -48,7 +48,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 5.0 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 5.1 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -105,22 +105,24 @@
                 container.innerHTML = '<div class="loading-spinner"></div>';
                 const spinner = container.querySelector('.loading-spinner');
 
-                // 2. Create the iframe directly
+                // 2. Create the iframe and set its properties
                 const iframe = document.createElement('iframe');
-                iframe.src = `https://www.tiktok.com/embed/video/${restaurantData.tiktokVideoId}`;
                 iframe.width = "330";
                 iframe.height = "585";
                 iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
                 iframe.style.visibility = 'hidden'; // Keep it hidden until loaded
 
-                // 3. Wait for the iframe to fully load, then show it
+                // --- FIX: Attach the onload handler BEFORE setting the src ---
                 iframe.onload = function() {
                     spinner.style.display = 'none';
                     iframe.style.visibility = 'visible';
                 };
                 
-                // 4. Append the iframe to start loading
+                // 4. Append the iframe to the DOM
                 container.appendChild(iframe);
+                
+                // 5. NOW set the src to begin loading. This is the key change.
+                iframe.src = `https://www.tiktok.com/embed/video/${restaurantData.tiktokVideoId}`;
             });
         }
     </script>
