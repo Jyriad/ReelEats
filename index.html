@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v1.92 (Centered Spinner)</title>
+    <title>London Food Map v3.0 (Clean Data)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://www.tiktok.com" />
 
     <style>
         html, body { margin: 0; padding: 0; }
@@ -23,9 +22,6 @@
             height: 585px;
             position: relative;
             background-color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             border-radius: 8px;
         }
         .loading-spinner {
@@ -33,15 +29,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-        }
-        .loading-spinner .spinner-disc {
             border: 4px solid rgba(255, 255, 255, 0.2);
             border-left-color: #fff;
             border-radius: 50%;
-            width: 100%;
-            height: 100%;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
@@ -52,7 +44,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 1.92 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.0 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -65,112 +57,84 @@
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
-            // Warm up TikTok embed script early so the first open is fast
-            loadTikTokScript();
 
+            // --- REFACTORED DATA STRUCTURE ---
+            // This is now clean, simple, and easy to read.
+            // This is the exact structure we will use in our Supabase database.
             const restaurants = [
                 {
                     name: 'Dishoom Covent Garden',
+                    address: '12 Upper St Martin\'s Ln, London WC2H 9FB',
                     lat: 51.5118,
                     lon: -0.1263,
+                    tiktokVideoId: null, // No video for this one yet
+                    tiktokAuthor: null
                 },
                 {
                     name: 'Bunsik Chinatown',
+                    address: '62 Charing Cross Rd, London WC2H 0BU',
                     lat: 51.5115,
                     lon: -0.1317,
-                    videoId: '7361096546319961377',
-                    author: '@picturingsnacks',
-                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="max-width: 605px;min-width: 325px;" > <section> <a target="_blank" title="@picturingsnacks" href="https://www.tiktok.com/@picturingsnacks?refer=embed">@picturingsnacks</a> 📍Bunsik LDN  <a title="bunsik" target="_blank" href="https://www.tiktok.com/tag/bunsik?refer=embed">#bunsik</a> <a title="koreancorndog" target="_blank" href="https://www.tiktok.com/tag/koreancorndog?refer=embed">#koreancorndog</a> <a title="corndog" target="_blank" href="https://www.tiktok.com/tag/corndog?refer=embed">#corndog</a> <a title="cheese" target="_blank" href="https://www.tiktok.com/tag/cheese?refer=embed">#cheese</a> <a title="cheesepull" target="_blank" href="https://www.tiktok.com/tag/cheesepull?refer=embed">#cheesepull</a> <a title="food" target="_blank" href="https://www.tiktok.com/tag/food?refer=embed">#food</a> <a title="foodtok" target="_blank" href="https://www.tiktok.com/tag/foodtok?refer=embed">#foodtok</a> <a title="foodtiktok" target="_blank" href="https://www.tiktok.com/tag/foodtiktok?refer=embed">#foodtiktok</a> <a title="fyp" target="_blank" href="https://www.tiktok.com/tag/fyp?refer=embed">#fyp</a> <a title="yup" target="_blank" href="https://www.tiktok.com/tag/yup?refer=embed">#yup</a> <a title="london" target="_blank" href="https://www.tiktok.com/tag/london?refer=embed">#london</a> <a title="foodreview" target="_blank" href="https://www.tiktok.com/tag/foodreview?refer=embed">#foodreview</a> @KristinSchanks <a target="_blank" title="♬ Walking Around - Instrumental Version - Eldar Kedem" href="https://www.tiktok.com/music/Walking-Around-Instrumental-Version-6982541212746008578?refer=embed">♬ Walking Around - Instrumental Version - Eldar Kedem</a> </section> </blockquote>`
+                    tiktokVideoId: '7361096546319961377',
+                    tiktokAuthor: '@picturingsnacks'
                 },
                 {
                     name: 'Padella Borough Market',
+                    address: '6 Southwark St, London SE1 1TQ',
                     lat: 51.5055,
                     lon: -0.0913,
+                    tiktokVideoId: null,
+                    tiktokAuthor: null
                 }
             ];
 
             restaurants.forEach(restaurant => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                 
-                // Always use a stable container to avoid layout jank
-                const popupContainerId = `popup-container-${restaurant.videoId || Math.random()}`;
+                const popupContainerId = `popup-container-${restaurant.lat}-${restaurant.lon}`;
                 const popupContent = `<div id="${popupContainerId}" class="popup-video-container"></div>`;
 
-                marker.bindPopup(popupContent, { minWidth: 330, autoPan: false });
+                marker.bindPopup(popupContent, { minWidth: 325, autoPan: false });
             });
             
             map.on('popupopen', function(e) {
-                const popupEl = e.popup.getElement();
-                const container = popupEl.querySelector('.popup-video-container');
-                if (!container) {
-                    // Static embed path (e.g., Bunsik) — just ensure TikTok processes it
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                        setTimeout(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); }, 500);
-                    } else {
-                        loadTikTokScript();
-                    }
-                    return;
-                }
-                if (!container.id) return; // Ignore popups without a container ID
+                const container = e.popup.getElement().querySelector('.popup-video-container');
+                if (!container.id) return;
 
-                // Find the restaurant data associated with this popup
-                const restaurantData = restaurants.find(r => container.id.includes(r.videoId));
-                if (!restaurantData || !restaurantData.videoId) {
-                    container.innerHTML = '<p class="p-4 text-white">No video available for this location.</p>';
+                // Find the correct restaurant data based on the marker's position
+                const restaurantData = restaurants.find(r => e.target.getLatLng().equals([r.lat, r.lon]));
+
+                if (!restaurantData || !restaurantData.tiktokVideoId) {
+                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="p-4 text-center font-bold">${restaurantData ? restaurantData.name : 'Info not available'}</p></div>`;
                     return;
                 }
                 
                 // 1. Show spinner immediately
-                container.innerHTML = '<div class="loading-spinner"><div class="spinner-disc"></div></div>';
+                container.innerHTML = '<div class="loading-spinner"></div>';
                 const spinner = container.querySelector('.loading-spinner');
 
-                // 2. Prepare the TikTok blockquote
-                const { videoId, author, embedHtml } = restaurantData;
-                let blockquoteHTML;
-                if (embedHtml) {
-                    // Use provided embed as-is to ensure TikTok processes it
-                    blockquoteHTML = embedHtml;
-                } else {
-                    blockquoteHTML = `<blockquote class=\"tiktok-embed\" cite=\"https://www.tiktok.com/${author}/video/${videoId}\" data-video-id=\"${videoId}\" style=\"max-width: 605px; min-width: 325px; margin: 0;\"> <section> <a target=\"_blank\" href=\"https://www.tiktok.com/${author}?refer=embed\">${author}</a> </section> </blockquote>`;
-                }
+                // 2. Dynamically build the CLEAN blockquote from our simple data
+                const { tiktokVideoId, tiktokAuthor } = restaurantData;
+                const blockquoteHTML = `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/${tiktokAuthor}/video/${tiktokVideoId}" data-video-id="${tiktokVideoId}" style="width: 330px; height: 585px; visibility: hidden; margin: 0;"> <section> <a target="_blank" href="https://www.tiktok.com/${tiktokAuthor}?refer=embed">${tiktokAuthor}</a> </section> </blockquote>`;
                 container.insertAdjacentHTML('beforeend', blockquoteHTML);
                 const blockquote = container.querySelector('.tiktok-embed');
 
-                // 3. Detect when TikTok injects the iframe, then hide spinner
-                const showContent = () => {
-                    spinner.style.display = 'none';
-                };
+                // 3. Use an observer to detect when TikTok has finished loading
                 const observer = new MutationObserver((mutations, obs) => {
-                    if (container.querySelector('iframe')) {
-                        showContent();
+                    if (blockquote.querySelector('.tiktok-iframe-container')) {
+                        spinner.style.display = 'none';
+                        blockquote.style.visibility = 'visible';
                         obs.disconnect();
                     }
                 });
-                observer.observe(container, { childList: true, subtree: true });
-                // Fallback: if TikTok doesn't inject an iframe, switch to direct iframe
-                setTimeout(() => {
-                    if (!container.querySelector('iframe')) {
-                        const idFromEmbed = (blockquote && blockquote.getAttribute('data-video-id')) || videoId;
-                        container.innerHTML = `<iframe src="https://www.tiktok.com/embed/video/${idFromEmbed}" width="330" height="585" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share" allowfullscreen style="border:none; margin:0; background-color:black;"></iframe>`;
-                        showContent();
-                    }
-                }, 4000);
+                observer.observe(blockquote, { childList: true, subtree: true });
 
-                // 4. Process immediately if script already available; otherwise load it
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    window.tiktokEmbed.load();
-                    // Nudge again shortly to ensure processing
-                    setTimeout(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); }, 500);
-                    setTimeout(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); }, 1500);
-                    requestAnimationFrame(() => { if (window.tiktokEmbed && window.tiktokEmbed.load) window.tiktokEmbed.load(); });
-                } else {
-                    loadTikTokScript();
-                }
+                // 4. Load the TikTok script to process the blockquote
+                loadTikTokScript();
             });
 
             function loadTikTokScript() {
-                if (window.tiktokEmbed) {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                     window.tiktokEmbed.load();
                     return;
                 }
@@ -178,7 +142,7 @@
                 script.src = 'https://www.tiktok.com/embed.js';
                 script.async = true;
                 script.onload = () => {
-                    if (window.tiktokEmbed) {
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                         window.tiktokEmbed.load();
                     }
                 };
