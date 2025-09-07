@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v3.24 (Modal Player)</title>
+    <title>London Food Map v3.27 (Restore Default Markers)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -73,7 +73,7 @@
 <body class="bg-gray-800">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg">
-        <h1 class="text-2xl font-bold">London Food Map 3.24 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 3.27 🗺️</h1>
     </header>
 
     <div id="map"></div>
@@ -96,6 +96,14 @@
             }).addTo(map);
             // Preload TikTok script so embeds process quickly
             loadTikTokScript();
+
+            // Ensure default Leaflet marker icons load from CDN (fix for missing markers)
+            const DefaultIcon = L.Icon.Default.extend({});
+            L.Icon.Default.mergeOptions({
+                iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+            });
 
             const restaurants = [
                 {
