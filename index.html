@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.34</title>
+    <title>London Food Map Gemini v8.34</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -190,7 +190,8 @@
                 iframe.setAttribute('allowfullscreen', 'true');
                 iframe.style.background = '#000';
                 iframe.style.border = 'none';
-                iframe.src = `https://www.tiktok.com/embed/v2/video/${videoId}?lang=en-US`;
+                // --- FIX IS HERE ---
+                iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
                 iframe.onload = function() {
                     const spinner = videoContainer.querySelector('.loading-spinner');
                     if (spinner) spinner.style.display = 'none';
@@ -214,4 +215,3 @@
     </script>
 </body>
 </html>
-
