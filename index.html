@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.47</title>
+    <title>London Food Map v8.48</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -92,6 +92,13 @@
             justify-content: center;
             z-index: 10;
         }
+        #video-title {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
         /* Custom user marker icon */
         .user-location-icon { background: transparent; border: none; }
         .user-icon {
@@ -119,7 +126,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-between px-4 shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.47 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.48 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-gray-800 text-white text-sm rounded px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -142,6 +149,7 @@
         </aside>
         <div id="video-modal">
             <div class="modal-content-wrapper">
+                <div id="video-title" class="hidden"></div>
                 <button class="close-video-btn">&times;</button>
                 <div class="video-container"></div>
             </div>
@@ -159,6 +167,7 @@
             const restaurantList = document.getElementById('restaurant-list');
             const videoModal = document.getElementById('video-modal');
             const videoContainer = videoModal.querySelector('.video-container');
+            const videoTitleEl = document.getElementById('video-title');
             const closeVideoBtn = videoModal.querySelector('.close-video-btn');
             const headerEl = document.querySelector('header');
             const asideEl = document.querySelector('aside');
@@ -302,6 +311,10 @@
                 }
 
                 videoContainer.innerHTML = '';
+                if (videoTitleEl) {
+                    videoTitleEl.textContent = restaurant.name || '';
+                    videoTitleEl.classList.remove('hidden');
+                }
                 videoModal.classList.add('show');
                 
                 let videoId = '';
