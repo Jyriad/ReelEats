@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.40</title>
+    <title>London Food Map v8.41</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -96,17 +96,19 @@
             aside { position: absolute; left: 0; right: 0; bottom: 0; height: var(--drawer-height) !important; z-index: 200; }
             #drawer-handle { cursor: ns-resize; touch-action: none; }
             /* Center modal content fully on screen and fit height */
-            .modal-content-wrapper { top: 0; }
+            .modal-content-wrapper { top: -12px; }
             #video-modal { padding-bottom: 0; }
             .video-container { height: min(85vh, 585px); width: calc(min(85vh, 585px) * 330 / 585); }
             #video-modal .video-container iframe { width: 100% !important; height: 100% !important; }
+            /* Hide Leaflet zoom controls on mobile */
+            .leaflet-control-zoom { display: none !important; }
         }
     </style>
 </head>
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.40 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.41 🗺️</h1>
     </header>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
