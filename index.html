@@ -91,9 +91,9 @@
         /* Mobile drawer resizing */
         @media (max-width: 767px) {
             :root { --drawer-height: 33vh; }
-            main { height: calc(100vh - 60px); }
-            #map-container { height: calc(100% - var(--drawer-height)); }
-            aside { height: var(--drawer-height); }
+            main { position: relative; height: calc(100vh - 60px) !important; }
+            #map-container { height: 100% !important; }
+            aside { position: absolute; left: 0; right: 0; bottom: 0; height: var(--drawer-height) !important; z-index: 20; }
             #drawer-handle { cursor: ns-resize; touch-action: none; }
         }
     </style>
