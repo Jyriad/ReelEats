@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.44</title>
+    <title>London Food Map v8.45</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -92,6 +92,13 @@
             justify-content: center;
             z-index: 10;
         }
+        /* Custom user marker icon */
+        .user-location-icon { background: transparent; border: none; }
+        .user-icon {
+            width: 30px; height: 30px; border-radius: 9999px; background: #06b6d4; /* cyan-500 */
+            border: 2px solid #ffffff; box-shadow: 0 0 0 2px rgba(6,182,212,0.5);
+            display: flex; align-items: center; justify-content: center; color: #0f172a; font-size: 16px; line-height: 1;
+        }
         /* Mobile drawer resizing */
         @media (max-width: 767px) {
             :root { --drawer-height: 33vh; }
@@ -112,7 +119,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.44 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.45 🗺️</h1>
     </header>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
@@ -213,19 +220,30 @@
             }
 
             let userMarker = null, userCircle = null;
+            const userIcon = L.divIcon({
+                className: 'user-location-icon',
+                html: '<div class="user-icon">👤</div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
             function plotUserLocation(lat, lon) {
                 if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
                 if (userCircle) { map.removeLayer(userCircle); userCircle = null; }
-                userMarker = L.marker([lat, lon], { title: 'You are here' }).addTo(map);
-                userCircle = L.circle([lat, lon], { radius: 30, color: '#38bdf8', fillColor: '#38bdf8', fillOpacity: 0.2 }).addTo(map);
+                userMarker = L.marker([lat, lon], { title: 'You are here', icon: userIcon }).addTo(map);
+                userCircle = L.circle([lat, lon], { radius: 30, color: '#06b6d4', fillColor: '#06b6d4', fillOpacity: 0.2 }).addTo(map);
             }
 
             function updateDistances(lat, lon) {
-                // Clear list and rebuild with distances
+                // Clear list and rebuild with distances, sorted nearest to furthest
+                const withDistances = restaurants.map((r, idx) => ({
+                    restaurant: r,
+                    index: idx,
+                    meters: haversineDistanceMeters(lat, lon, r.lat, r.lon)
+                }));
+                withDistances.sort((a, b) => a.meters - b.meters);
                 restaurantList.innerHTML = '';
-                restaurants.forEach((restaurant, index) => {
-                    const dist = haversineDistanceMeters(lat, lon, restaurant.lat, restaurant.lon);
-                    const item = createListItem(restaurant, index, formatDistanceMeters(dist));
+                withDistances.forEach(({ restaurant, index, meters }) => {
+                    const item = createListItem(restaurant, index, formatDistanceMeters(meters));
                     restaurantList.appendChild(item);
                 });
             }
