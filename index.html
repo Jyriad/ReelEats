@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.43</title>
+    <title>London Food Map v8.44</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -112,7 +112,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.43 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.44 🗺️</h1>
     </header>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
@@ -171,20 +171,75 @@
                 }
             ];
 
-            restaurants.forEach((restaurant, index) => {
-                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.on('click', () => showVideoFor(restaurant, index));
-
+            function createListItem(restaurant, index, distanceText = '') {
                 const listItem = document.createElement('div');
                 listItem.setAttribute('data-index', index);
                 listItem.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
-                listItem.innerHTML = `<h3 class="text-white text-lg font-bold">${restaurant.name}</h3><p class="text-gray-400 text-sm mt-1">${restaurant.description}</p>`;
+                const distanceHtml = distanceText ? `<span class="text-gray-300 text-sm"> • ${distanceText}</span>` : '';
+                listItem.innerHTML = `<h3 class="text-white text-lg font-bold">${restaurant.name}${distanceHtml}</h3><p class="text-gray-400 text-sm mt-1">${restaurant.description}</p>`;
                 listItem.addEventListener('click', () => {
                     showVideoFor(restaurant, index);
                     map.flyTo([restaurant.lat, restaurant.lon], 15);
                 });
+                return listItem;
+            }
+
+            function formatDistanceMeters(m) {
+                if (m < 1000) return `${Math.round(m)} m`;
+                const km = m / 1000;
+                if (km < 10) return `${km.toFixed(1)} km`;
+                return `${Math.round(km)} km`;
+            }
+
+            const restaurantMarkers = [];
+            restaurants.forEach((restaurant, index) => {
+                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                marker.on('click', () => showVideoFor(restaurant, index));
+                restaurantMarkers.push(marker);
+                const listItem = createListItem(restaurant, index);
                 restaurantList.appendChild(listItem);
             });
+
+            // Geolocation - only attempt on mobile
+            function isMobileDevice() { return /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768; }
+            function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+                const R = 6371000; // meters
+                const toRad = deg => deg * Math.PI / 180;
+                const dLat = toRad(lat2 - lat1);
+                const dLon = toRad(lon2 - lon1);
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c;
+            }
+
+            let userMarker = null, userCircle = null;
+            function plotUserLocation(lat, lon) {
+                if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+                if (userCircle) { map.removeLayer(userCircle); userCircle = null; }
+                userMarker = L.marker([lat, lon], { title: 'You are here' }).addTo(map);
+                userCircle = L.circle([lat, lon], { radius: 30, color: '#38bdf8', fillColor: '#38bdf8', fillOpacity: 0.2 }).addTo(map);
+            }
+
+            function updateDistances(lat, lon) {
+                // Clear list and rebuild with distances
+                restaurantList.innerHTML = '';
+                restaurants.forEach((restaurant, index) => {
+                    const dist = haversineDistanceMeters(lat, lon, restaurant.lat, restaurant.lon);
+                    const item = createListItem(restaurant, index, formatDistanceMeters(dist));
+                    restaurantList.appendChild(item);
+                });
+            }
+
+            if (isMobileDevice() && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    plotUserLocation(lat, lon);
+                    updateDistances(lat, lon);
+                }, function(_) {
+                    // ignore error; leave list without distances
+                }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+            }
 
             function showVideoFor(restaurant, index) {
                 const allItems = restaurantList.querySelectorAll('div[data-index]');
@@ -200,7 +255,6 @@
                 }
 
                 videoContainer.innerHTML = '';
-                document.body.style.overflow = 'hidden'; // Prevent body from scrolling
                 videoModal.classList.add('show');
                 
                 let videoId = '';
@@ -230,7 +284,6 @@
 
             function closeVideo() {
                 videoModal.classList.remove('show');
-                document.body.style.overflow = ''; // Restore body scrolling
                 videoContainer.innerHTML = '';
 
                 const allItems = restaurantList.querySelectorAll('div[data-index]');
