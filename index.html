@@ -200,6 +200,7 @@
                 }
 
                 videoContainer.innerHTML = '';
+                document.body.style.overflow = 'hidden'; // Prevent body from scrolling
                 videoModal.classList.add('show');
                 
                 let videoId = '';
@@ -229,6 +230,7 @@
 
             function closeVideo() {
                 videoModal.classList.remove('show');
+                document.body.style.overflow = ''; // Restore body scrolling
                 videoContainer.innerHTML = '';
 
                 const allItems = restaurantList.querySelectorAll('div[data-index]');
