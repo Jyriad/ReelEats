@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.37</title>
+    <title>London Food Map v8.38</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -55,8 +55,7 @@
         }
         .modal-content-wrapper {
             position: relative;
-            /* Adjust top for slight upward shift on mobile */
-            top: -20px; /* This moves the video player up by 20px */
+            top: -20px;
         }
         .video-container {
             width: 330px;
@@ -93,11 +92,11 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.37 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.38 🗺️</h1>
     </header>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
-        <div class="w-full h-2/3 md:w-2/3 md:h-full relative" id="map-container">
+        <div class="flex-grow md:w-2/3 md:h-full relative" id="map-container">
             <div id="map"></div>
             <div id="video-modal">
                 <div class="modal-content-wrapper">
@@ -106,8 +105,13 @@
                 </div>
             </div>
         </div>
-        <aside class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-800 p-4 overflow-y-auto custom-scrollbar">
-            <div id="restaurant-list" class="space-y-4"></div>
+        <aside id="list-panel" class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-800 flex flex-col flex-shrink-0">
+            <div id="drag-handle" class="w-full h-5 flex-shrink-0 flex items-center justify-center cursor-row-resize md:hidden">
+                <div class="w-10 h-1 bg-gray-600 rounded-full"></div>
+            </div>
+            <div class="p-4 space-y-4 overflow-y-auto custom-scrollbar" id="restaurant-list-wrapper">
+                <div id="restaurant-list" class="space-y-4"></div>
+            </div>
         </aside>
     </main>
 
@@ -120,109 +124,4 @@
             }).addTo(map);
 
             const restaurantList = document.getElementById('restaurant-list');
-            const videoModal = document.getElementById('video-modal');
-            const videoContainer = videoModal.querySelector('.video-container');
-            const closeVideoBtn = videoModal.querySelector('.close-video-btn');
-
-            const restaurants = [
-                {
-                    name: 'Dishoom Covent Garden',
-                    lat: 51.5118,
-                    lon: -0.1263,
-                    description: "Modern Indian restaurant paying homage to the Irani cafés of Bombay.",
-                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@kingkarlae/video/7514283553832570134" data-video-id="7514283553832570134" style="width: 330px; height: 585px; margin: 0;"><section></section></blockquote>`
-                },
-                {
-                    name: 'Bunsik Chinatown',
-                    lat: 51.5115,
-                    lon: -0.1317,
-                    description: "A popular spot for Korean street food, famous for its corn dogs.",
-                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@picturingsnacks/video/7361096546319961377" data-video-id="7361096546319961377" style="width: 330px; height: 585px; margin: 0;"><section></section></blockquote>`
-                },
-                {
-                    name: 'Padella Borough Market',
-                    lat: 51.5055,
-                    lon: -0.0913,
-                    description: "An acclaimed pasta bar serving fresh, hand-rolled pasta dishes.",
-                    embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@frankieabroad/video/7439319573335199008" data-video-id="7439319573335199008" style="width: 330px; height: 585px; margin: 0;"><section></section></blockquote>`
-                }
-            ];
-
-            restaurants.forEach((restaurant, index) => {
-                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.on('click', () => showVideoFor(restaurant, index));
-
-                const listItem = document.createElement('div');
-                listItem.setAttribute('data-index', index);
-                listItem.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
-                listItem.innerHTML = `<h3 class="text-white text-lg font-bold">${restaurant.name}</h3><p class="text-gray-400 text-sm mt-1">${restaurant.description}</p>`;
-                listItem.addEventListener('click', () => {
-                    showVideoFor(restaurant, index);
-                    map.flyTo([restaurant.lat, restaurant.lon], 15);
-                });
-                restaurantList.appendChild(listItem);
-            });
-
-            function showVideoFor(restaurant, index) {
-                const allItems = restaurantList.querySelectorAll('div[data-index]');
-                allItems.forEach(item => {
-                    item.classList.remove('bg-indigo-600');
-                    item.classList.add('bg-gray-700');
-                });
-
-                const currentItem = restaurantList.querySelector(`div[data-index="${index}"]`);
-                if (currentItem) {
-                    currentItem.classList.remove('bg-gray-700');
-                    currentItem.classList.add('bg-indigo-600');
-                }
-
-                videoContainer.innerHTML = '';
-                videoModal.classList.add('show');
-                
-                let videoId = '';
-                try {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = restaurant.embedHtml || '';
-                    const el = temp.querySelector('.tiktok-embed');
-                    if (el) videoId = el.getAttribute('data-video-id') || '';
-                } catch (_) {}
-                if (!videoId) {
-                    const m = (restaurant.embedHtml || '').match(/data-video-id=["'](\d+)["']/);
-                    if (m) videoId = m[1];
-                }
-
-                const iframe = document.createElement('iframe');
-                iframe.width = '330';
-                iframe.height = '585';
-                iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
-                iframe.setAttribute('allowfullscreen', 'true');
-                iframe.style.background = '#000';
-                iframe.style.border = 'none';
-                iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
-                
-                videoContainer.appendChild(iframe);
-            }
-
-
-            function closeVideo() {
-                videoModal.classList.remove('show');
-                videoContainer.innerHTML = '';
-
-                const allItems = restaurantList.querySelectorAll('div[data-index]');
-                allItems.forEach(item => {
-                    item.classList.remove('bg-indigo-600');
-                    item.classList.add('bg-gray-700');
-                });
-            }
-            closeVideoBtn.addEventListener('click', closeVideo);
-            
-            videoModal.addEventListener('click', function(e) {
-                // Check if the click was on the modal background, not the content
-                if (e.target === videoModal) {
-                    closeVideo();
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+            const videoModal
