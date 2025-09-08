@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.45</title>
+    <title>London Food Map v8.47</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -118,8 +118,18 @@
 </head>
 <body class="h-full flex flex-col">
 
-    <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.45 🗺️</h1>
+    <header class="h-[60px] bg-gray-900 text-white flex items-center justify-between px-4 shadow-lg flex-shrink-0 z-20">
+        <h1 class="text-2xl font-bold">London Food Map 8.47 🗺️</h1>
+        <div class="flex items-center gap-2">
+            <label for="city-select" class="sr-only">Select city</label>
+            <select id="city-select" class="bg-gray-800 text-white text-sm rounded px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="London">London</option>
+                <option value="Birmingham">Birmingham</option>
+                <option value="Manchester">Manchester</option>
+                <option value="Liverpool">Liverpool</option>
+                <option value="Bristol">Bristol</option>
+            </select>
+        </div>
     </header>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
@@ -153,6 +163,7 @@
             const headerEl = document.querySelector('header');
             const asideEl = document.querySelector('aside');
             const handleEl = document.getElementById('drawer-handle');
+            const citySelect = document.getElementById('city-select');
 
             const restaurants = [
                 {
@@ -177,6 +188,24 @@
                     embedHtml: `<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@frankieabroad/video/7439319573335199008" data-video-id="7439319573335199008" style="width: 330px; height: 585px; margin: 0;"><section></section></blockquote>`
                 }
             ];
+
+            const cityToCenter = {
+                'London': [51.5074, -0.1278],
+                'Birmingham': [52.4862, -1.8904],
+                'Manchester': [53.4808, -2.2426],
+                'Liverpool': [53.4084, -2.9916],
+                'Bristol': [51.4545, -2.5879]
+            };
+
+            if (citySelect) {
+                citySelect.addEventListener('change', function() {
+                    const city = citySelect.value;
+                    const center = cityToCenter[city];
+                    if (center) {
+                        map.flyTo(center, 12);
+                    }
+                });
+            }
 
             function createListItem(restaurant, index, distanceText = '') {
                 const listItem = document.createElement('div');
