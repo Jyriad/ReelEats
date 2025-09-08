@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map GPT v8.34</title>
+    <title>London Food Map v8.35</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -60,21 +60,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        .loading-spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 4px solid rgba(255, 255, 255, 0.2);
-            border-left-color: #fff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
         .close-video-btn {
             position: absolute;
@@ -151,23 +136,40 @@
                 }
             ];
 
-            restaurants.forEach(restaurant => {
+            restaurants.forEach((restaurant, index) => {
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.on('click', () => showVideoFor(restaurant));
+                marker.on('click', () => showVideoFor(restaurant, index));
 
                 const listItem = document.createElement('div');
+                // We add a data-index attribute to easily find this element later
+                listItem.setAttribute('data-index', index);
                 listItem.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
                 listItem.innerHTML = `<h3 class="text-white text-lg font-bold">${restaurant.name}</h3><p class="text-gray-400 text-sm mt-1">${restaurant.description}</p>`;
                 listItem.addEventListener('click', () => {
-                    showVideoFor(restaurant);
+                    showVideoFor(restaurant, index);
                     map.flyTo([restaurant.lat, restaurant.lon], 15);
                 });
                 restaurantList.appendChild(listItem);
             });
 
-            function showVideoFor(restaurant) {
-                videoContainer.innerHTML = '<div class="loading-spinner"></div>';
+            function showVideoFor(restaurant, index) {
+                // First, remove highlight from any previously selected item
+                const allItems = restaurantList.querySelectorAll('div[data-index]');
+                allItems.forEach(item => {
+                    item.classList.remove('bg-indigo-600');
+                    item.classList.add('bg-gray-700');
+                });
+
+                // Then, add highlight to the current item
+                const currentItem = restaurantList.querySelector(`div[data-index="${index}"]`);
+                if (currentItem) {
+                    currentItem.classList.remove('bg-gray-700');
+                    currentItem.classList.add('bg-indigo-600');
+                }
+
+                videoContainer.innerHTML = ''; // Clear previous content
                 videoModal.classList.add('show');
+                
                 // Extract the videoId from the provided embedHtml
                 let videoId = '';
                 try {
@@ -177,12 +179,10 @@
                     if (el) videoId = el.getAttribute('data-video-id') || '';
                 } catch (_) {}
                 if (!videoId) {
-                    // As a last resort, attempt a regex extraction
                     const m = (restaurant.embedHtml || '').match(/data-video-id=["'](\d+)["']/);
                     if (m) videoId = m[1];
                 }
 
-                // Build a direct iframe (fixed embed endpoint)
                 const iframe = document.createElement('iframe');
                 iframe.width = '330';
                 iframe.height = '585';
@@ -190,23 +190,22 @@
                 iframe.setAttribute('allowfullscreen', 'true');
                 iframe.style.background = '#000';
                 iframe.style.border = 'none';
-                iframe.src = `https://www.tiktok.com/embed/${videoId}`;
-                iframe.onload = function() {
-                    const spinner = videoContainer.querySelector('.loading-spinner');
-                    if (spinner) spinner.style.display = 'none';
-                };
+                iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
+                
                 videoContainer.appendChild(iframe);
-
-                // Ensure spinner clears even if onload is delayed
-                setTimeout(() => {
-                    const spinner = videoContainer.querySelector('.loading-spinner');
-                    if (spinner) spinner.style.display = 'none';
-                }, 2500);
             }
+
 
             function closeVideo() {
                 videoModal.classList.remove('show');
                 videoContainer.innerHTML = '';
+
+                // Remove highlight from all items when the modal closes
+                const allItems = restaurantList.querySelectorAll('div[data-index]');
+                allItems.forEach(item => {
+                    item.classList.remove('bg-indigo-600');
+                    item.classList.add('bg-gray-700');
+                });
             }
             closeVideoBtn.addEventListener('click', closeVideo);
         });
