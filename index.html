@@ -55,6 +55,8 @@
         }
         .modal-content-wrapper {
             position: relative;
+            /* Adjust top for slight upward shift on mobile */
+            top: -20px; /* This moves the video player up by 20px */
         }
         .video-container {
             width: 330px;
@@ -215,6 +217,7 @@
             closeVideoBtn.addEventListener('click', closeVideo);
             
             videoModal.addEventListener('click', function(e) {
+                // Check if the click was on the modal background, not the content
                 if (e.target === videoModal) {
                     closeVideo();
                 }
