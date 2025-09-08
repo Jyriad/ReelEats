@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.42</title>
+    <title>London Food Map v8.43</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -47,7 +47,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden; /* prevent scrollbars on modal */
         }
+        /* Hide modal scrollbar in all browsers */
+        #video-modal { -ms-overflow-style: none; scrollbar-width: none; }
+        #video-modal::-webkit-scrollbar { display: none; }
         #video-modal.show {
             visibility: visible;
             opacity: 1;
@@ -108,7 +112,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.42 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.43 🗺️</h1>
     </header>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
