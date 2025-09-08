@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Gemini v8.34</title>
+    <title>London Food Map GPT v8.34</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -182,7 +182,7 @@
                     if (m) videoId = m[1];
                 }
 
-                // Build a direct iframe (bypass embed.js to avoid profile errors)
+                // Build a direct iframe (fixed embed endpoint)
                 const iframe = document.createElement('iframe');
                 iframe.width = '330';
                 iframe.height = '585';
@@ -190,8 +190,7 @@
                 iframe.setAttribute('allowfullscreen', 'true');
                 iframe.style.background = '#000';
                 iframe.style.border = 'none';
-                // --- FIX IS HERE ---
-                iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
+                iframe.src = `https://www.tiktok.com/embed/${videoId}`;
                 iframe.onload = function() {
                     const spinner = videoContainer.querySelector('.loading-spinner');
                     if (spinner) spinner.style.display = 'none';
@@ -204,7 +203,6 @@
                     if (spinner) spinner.style.display = 'none';
                 }, 2500);
             }
-
 
             function closeVideo() {
                 videoModal.classList.remove('show');
