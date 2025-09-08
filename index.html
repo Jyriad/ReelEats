@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map v8.37</title>
+    <title>London Food Map v8.38</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -92,8 +92,8 @@
         @media (max-width: 767px) {
             :root { --drawer-height: 33vh; }
             main { position: relative; height: calc(100vh - 60px) !important; }
-            #map-container { height: 100% !important; }
-            aside { position: absolute; left: 0; right: 0; bottom: 0; height: var(--drawer-height) !important; z-index: 20; }
+            #map-container { height: 100% !important; z-index: 0; }
+            aside { position: absolute; left: 0; right: 0; bottom: 0; height: var(--drawer-height) !important; z-index: 200; }
             #drawer-handle { cursor: ns-resize; touch-action: none; }
         }
     </style>
@@ -101,7 +101,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-center shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map 8.37 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map 8.38 🗺️</h1>
     </header>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
