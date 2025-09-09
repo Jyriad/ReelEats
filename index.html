@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.08</title>
+    <title>London Food Map Supabase v0.09</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
     
@@ -110,6 +110,8 @@
             border: 2px solid #ffffff; box-shadow: 0 0 0 2px rgba(6,182,212,0.5);
             display: flex; align-items: center; justify-content: center; color: #0f172a; font-size: 16px; line-height: 1;
         }
+        /* Active list item highlight */
+        .active-list-item { background-color: #eef2ff !important; border-color: #a5b4fc !important; }
         /* Mobile drawer resizing */
         @media (max-width: 767px) {
             :root { --drawer-height: 33vh; }
@@ -132,7 +134,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-4 shadow flex-shrink-0 z-20 border-b border-gray-200">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.08 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.09 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-sm rounded px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -224,10 +226,11 @@
 
             restaurants.forEach((restaurant, index) => {
                         const listItem = createListItem(restaurant, index);
+                        listItem.id = `restaurant-item-${index}`;
                         restaurantList.appendChild(listItem);
                         
                 const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.on('click', () => showVideoFor(restaurant, index));
+                marker.on('click', () => { showVideoFor(restaurant, index); highlightListItem(index); });
                         restaurantMarkers.push(marker);
                     });
                 }
@@ -277,9 +280,10 @@
                     withDistances.forEach(({ idx, r, m }) => {
                         const item = document.createElement('div');
                         item.setAttribute('data-index', idx);
+                        item.id = `restaurant-item-${idx}`;
                         item.className = 'bg-white p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200';
                         item.innerHTML = `<h3 class="text-gray-900 text-lg font-bold">${r.name} <span class="text-gray-500 text-sm">• ${formatDistanceMeters(m)}</span></h3><p class="text-gray-600 text-sm mt-1">${r.description || ''}</p>`;
-                        item.addEventListener('click', () => { showVideoFor(r, idx); map.flyTo([r.lat, r.lon], 15); });
+                        item.addEventListener('click', () => { showVideoFor(r, idx); highlightListItem(idx); map.flyTo([r.lat, r.lon], 15); });
                         restaurantList.appendChild(item);
                     });
                 }
@@ -391,49 +395,62 @@
                 });
                 
                 function createListItem(restaurant, index) {
-                const listItem = document.createElement('div');
-                listItem.setAttribute('data-index', index);
+                    const listItem = document.createElement('div');
+                    listItem.setAttribute('data-index', index);
+                    listItem.id = `restaurant-item-${index}`;
                     listItem.className = 'bg-white p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200';
                     listItem.innerHTML = `<h3 class="text-gray-900 text-lg font-bold">${restaurant.name}</h3><p class="text-gray-600 text-sm mt-1">${restaurant.description}</p>`;
-                listItem.addEventListener('click', () => {
-                    showVideoFor(restaurant, index);
-                    map.flyTo([restaurant.lat, restaurant.lon], 15);
-                });
+                    listItem.addEventListener('click', () => {
+                        showVideoFor(restaurant, index);
+                        highlightListItem(index);
+                        map.flyTo([restaurant.lat, restaurant.lon], 15);
+                    });
                     return listItem;
                 }
 
+                function highlightListItem(index) {
+                    const all = restaurantList.querySelectorAll('[data-index]');
+                    all.forEach(el => el.classList.remove('active-list-item'));
+                    const target = document.getElementById(`restaurant-item-${index}`);
+                    if (target) {
+                        target.classList.add('active-list-item');
+                        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+
                 function showVideoFor(restaurant, index) {
-                videoContainer.innerHTML = '';
+                    videoContainer.innerHTML = '';
                     if (videoTitleEl) {
                         videoTitleEl.textContent = restaurant.name || '';
                         videoTitleEl.classList.remove('hidden');
                     }
-                videoModal.classList.add('show');
-                
-                let videoId = '';
+                    videoModal.classList.add('show');
+                    highlightListItem(index);
+                    
+                    let videoId = '';
                     const embedHtml = restaurant.tiktok_embed_html || '';
-                try {
-                    const temp = document.createElement('div');
+                    try {
+                        const temp = document.createElement('div');
                         temp.innerHTML = embedHtml;
-                    const el = temp.querySelector('.tiktok-embed');
-                    if (el) videoId = el.getAttribute('data-video-id') || '';
-                } catch (_) {}
-                if (!videoId) {
+                        const el = temp.querySelector('.tiktok-embed');
+                        if (el) videoId = el.getAttribute('data-video-id') || '';
+                    } catch (_) {}
+                    if (!videoId) {
                         const m = embedHtml.match(/data-video-id=["'](\d+)["']/);
-                    if (m) videoId = m[1];
-                }
+                        if (m) videoId = m[1];
+                    }
 
-                const iframe = document.createElement('iframe');
-                iframe.width = '330';
-                iframe.height = '585';
-                iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
-                iframe.setAttribute('allowfullscreen', 'true');
-                iframe.style.background = '#000';
-                iframe.style.border = 'none';
-                iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
-                
-                videoContainer.appendChild(iframe);
-            }
+                    const iframe = document.createElement('iframe');
+                    iframe.width = '330';
+                    iframe.height = '585';
+                    iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+                    iframe.setAttribute('allowfullscreen', 'true');
+                    iframe.style.background = '#000';
+                    iframe.style.border = 'none';
+                    iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
+                    
+                    videoContainer.appendChild(iframe);
+                }
 
             function closeVideo() {
                 videoModal.classList.remove('show');
