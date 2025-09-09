@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase V1 </title>
+    <title>London Food Map Supabase v0.02</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn/tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -128,7 +128,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-between px-4 shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map Supabase V1 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.02 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-gray-800 text-white text-sm rounded px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -155,11 +155,12 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- 2. Initialize Supabase Client ---
+        // --- Initialize Supabase Client ---
         const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Replace with your URL
         const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Replace with your anon key
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ** FIX IS HERE **
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         document.addEventListener('DOMContentLoaded', async function() {
             const map = L.map('map').setView([51.5074, -0.1278], 13);
@@ -174,18 +175,18 @@
             const closeVideoBtn = videoModal.querySelector('.close-video-btn');
             const citySelect = document.getElementById('city-select');
             
-            let currentRestaurants = []; // To hold the currently displayed restaurants
-            let restaurantMarkers = []; // To hold the map markers
+            let currentRestaurants = [];
+            let restaurantMarkers = [];
 
-            // --- 3. Fetch Data from Supabase ---
+            // --- Fetch Data from Supabase ---
             async function loadCities() {
-                const { data: cities, error } = await supabase.from('cities').select('*');
+                const { data: cities, error } = await supabaseClient.from('cities').select('*');
                 if (error) {
-                    console.error('Error fetching cities:', error);
+                    console.error('Error fetching cities:', error.message);
                     return;
                 }
                 
-                citySelect.innerHTML = ''; // Clear existing options
+                citySelect.innerHTML = '';
                 cities.forEach(city => {
                     const option = document.createElement('option');
                     option.value = city.id;
@@ -195,62 +196,58 @@
                     citySelect.appendChild(option);
                 });
 
-                // Load restaurants for the first city in the list
                 if (cities.length > 0) {
-                    loadRestaurantsForCity(cities[0].id);
+                    await loadRestaurantsForCity(cities[0].id);
                     map.flyTo([cities[0].lat, cities[0].lon], 12);
                 }
             }
             
             async function loadRestaurantsForCity(cityId) {
-                const { data: restaurants, error } = await supabase
+                const { data: restaurants, error } = await supabaseClient
                     .from('restaurants')
                     .select('*')
                     .eq('city_id', cityId);
 
                 if (error) {
-                    console.error('Error fetching restaurants:', error);
+                    console.error('Error fetching restaurants:', error.message);
                     return;
                 }
                 currentRestaurants = restaurants;
                 displayRestaurants(currentRestaurants);
             }
 
-            // --- 4. Update the UI ---
+            // --- Update the UI ---
             function displayRestaurants(restaurants) {
                 restaurantList.innerHTML = '';
-                // Clear existing map markers
                 restaurantMarkers.forEach(marker => map.removeLayer(marker));
                 restaurantMarkers = [];
 
                 restaurants.forEach((restaurant, index) => {
-                    // Add restaurant to the side panel
                     const listItem = createListItem(restaurant, index);
                     restaurantList.appendChild(listItem);
                     
-                    // Add marker to the map
                     const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
                     marker.on('click', () => showVideoFor(restaurant, index));
                     restaurantMarkers.push(marker);
                 });
             }
             
-            citySelect.addEventListener('change', function() {
+            citySelect.addEventListener('change', async function() {
                 const selectedOption = citySelect.options[citySelect.selectedIndex];
                 const cityId = selectedOption.value;
                 const lat = selectedOption.dataset.lat;
                 const lon = selectedOption.dataset.lon;
                 
                 if (cityId) {
-                    loadRestaurantsForCity(cityId);
+                    await loadRestaurantsForCity(cityId);
                     map.flyTo([lat, lon], 12);
                 }
             });
 
             // Initial load
             await loadCities();
-
-            // --- Other functions (createListItem, showVideoFor, etc.) remain largely the same ---
+            
+            // --- Other functions remain the same ---
 
             function createListItem(restaurant, index, distanceText = '') {
                 const listItem = document.createElement('div');
@@ -266,7 +263,6 @@
             }
 
             function showVideoFor(restaurant, index) {
-                // This function works as before, using the passed `restaurant` object
                 videoContainer.innerHTML = '';
                 if (videoTitleEl) {
                     videoTitleEl.textContent = restaurant.name || '';
@@ -275,14 +271,16 @@
                 videoModal.classList.add('show');
                 
                 let videoId = '';
+                // Adjusted to look for tiktok_embed_html property
+                const embedHtml = restaurant.tiktok_embed_html || ''; 
                 try {
                     const temp = document.createElement('div');
-                    temp.innerHTML = restaurant.embedHtml || '';
+                    temp.innerHTML = embedHtml;
                     const el = temp.querySelector('.tiktok-embed');
                     if (el) videoId = el.getAttribute('data-video-id') || '';
                 } catch (_) {}
                 if (!videoId) {
-                    const m = (restaurant.embedHtml || '').match(/data-video-id=["'](\d+)["']/);
+                    const m = embedHtml.match(/data-video-id=["'](\d+)["']/);
                     if (m) videoId = m[1];
                 }
 
@@ -299,21 +297,11 @@
             }
 
             function closeVideo() {
-                // This function remains the same
                 videoModal.classList.remove('show');
                 videoContainer.innerHTML = '';
-
-                const allItems = restaurantList.querySelectorAll('div[data-index]');
-                allItems.forEach(item => {
-                    item.classList.remove('bg-indigo-600');
-                    item.classList.add('bg-gray-700');
-                });
             }
             closeVideoBtn.addEventListener('click', closeVideo);
             videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
-
-            // Geolocation and drawer logic can be re-integrated here as needed
-            // ...
         });
     </script>
 </body>
