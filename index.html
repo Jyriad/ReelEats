@@ -176,6 +176,9 @@
                 const videoTitleEl = document.getElementById('video-title');
                 const closeVideoBtn = videoModal.querySelector('.close-video-btn');
                 const citySelect = document.getElementById('city-select');
+                const headerEl = document.querySelector('header');
+                const asideEl = document.querySelector('aside');
+                const handleEl = document.getElementById('drawer-handle');
                 
                 let currentRestaurants = [];
                 let restaurantMarkers = [];
@@ -240,6 +243,150 @@
                 });
 
                 await loadCities();
+
+                // --- Geolocation: show user's location and compute distances ---
+                let userMarker = null; let userCircle = null;
+                const userIcon = L.divIcon({
+                    className: 'user-location-icon',
+                    html: '<div class="user-icon">👤</div>',
+                    iconSize: [30, 30], iconAnchor: [15, 15]
+                });
+                function plotUserLocation(lat, lon) {
+                    if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+                    if (userCircle) { map.removeLayer(userCircle); userCircle = null; }
+                    userMarker = L.marker([lat, lon], { title: 'You are here', icon: userIcon }).addTo(map);
+                    userCircle = L.circle([lat, lon], { radius: 30, color: '#06b6d4', fillColor: '#06b6d4', fillOpacity: 0.2 }).addTo(map);
+                }
+                function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+                    const R = 6371000; const toRad = d => d * Math.PI / 180;
+                    const dLat = toRad(lat2 - lat1); const dLon = toRad(lon2 - lon1);
+                    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    return R * c;
+                }
+                function formatDistanceMeters(m) {
+                    if (m < 1000) return `${Math.round(m)} m`;
+                    const km = m / 1000; return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
+                }
+                function updateListWithDistances(lat, lon) {
+                    restaurantList.innerHTML = '';
+                    const withDistances = currentRestaurants.map((r, idx) => ({ idx, r, m: haversineDistanceMeters(lat, lon, r.lat, r.lon) }));
+                    withDistances.sort((a, b) => a.m - b.m);
+                    withDistances.forEach(({ idx, r, m }) => {
+                        const item = document.createElement('div');
+                        item.setAttribute('data-index', idx);
+                        item.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
+                        item.innerHTML = `<h3 class="text-white text-lg font-bold">${r.name} <span class="text-gray-300 text-sm">• ${formatDistanceMeters(m)}</span></h3><p class="text-gray-400 text-sm mt-1">${r.description || ''}</p>`;
+                        item.addEventListener('click', () => { showVideoFor(r, idx); map.flyTo([r.lat, r.lon], 15); });
+                        restaurantList.appendChild(item);
+                    });
+                }
+                function isMobileDevice() { return /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768; }
+                if (isMobileDevice() && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        const lat = pos.coords.latitude; const lon = pos.coords.longitude;
+                        plotUserLocation(lat, lon);
+                        updateListWithDistances(lat, lon);
+                    }, (_) => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+                }
+
+                // --- Drawer resize logic (mobile) ---
+                function isMobile() { return window.innerWidth < 768; }
+                function getMainHeight() {
+                    const headerH = headerEl ? headerEl.offsetHeight : 60;
+                    return Math.max(0, window.innerHeight - headerH);
+                }
+                function getDrawerHeightPx() {
+                    const cs = getComputedStyle(document.documentElement);
+                    const val = cs.getPropertyValue('--drawer-height').trim();
+                    if (val.endsWith('vh')) {
+                        const num = parseFloat(val);
+                        return getMainHeight() * (num / 100);
+                    }
+                    if (val.endsWith('px')) {
+                        return parseFloat(val);
+                    }
+                    return asideEl ? asideEl.getBoundingClientRect().height : 0;
+                }
+                function setDrawerHeightPx(px) {
+                    document.documentElement.style.setProperty('--drawer-height', px + 'px');
+                    requestAnimationFrame(() => { map.invalidateSize(); });
+                }
+
+                let dragging = false;
+                let startY = 0;
+                let startHeight = 0;
+
+                function onMove(clientY) {
+                    const delta = startY - clientY;
+                    const mainH = getMainHeight();
+                    const minH = Math.min(220, Math.max(120, mainH * 0.2));
+                    const maxH = Math.max(mainH - 120, mainH * 0.85);
+                    const next = Math.max(minH, Math.min(maxH, startHeight + delta));
+                    setDrawerHeightPx(next);
+                }
+
+                function onEnd() {
+                    if (!dragging) return;
+                    dragging = false;
+                    const mainH = getMainHeight();
+                    const current = getDrawerHeightPx();
+                    const ratios = [0.25, 0.5, 0.75];
+                    let best = current;
+                    let bestDiff = Infinity;
+                    ratios.forEach(r => {
+                        const px = r * mainH;
+                        const d = Math.abs(px - current);
+                        if (d < bestDiff) { best = px; bestDiff = d; }
+                    });
+                    if (bestDiff <= mainH * 0.1) setDrawerHeightPx(best);
+                    map.invalidateSize();
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                    window.removeEventListener('touchmove', onTouchMove, { passive: false });
+                    window.removeEventListener('touchend', onTouchEnd);
+                }
+
+                function onMouseMove(e) { if (dragging) onMove(e.clientY); }
+                function onMouseUp() { onEnd(); }
+                function onTouchMove(e) { if (dragging) { e.preventDefault(); onMove(e.touches[0].clientY); } }
+                function onTouchEnd() { onEnd(); }
+
+                let handleListenersAttached = false;
+                function enableHandleIfMobile() {
+                    if (!handleEl) return;
+                    if (isMobile()) {
+                        handleEl.style.display = '';
+                        if (!handleListenersAttached) {
+                            handleEl.addEventListener('mousedown', function(e) {
+                                dragging = true;
+                                startY = e.clientY;
+                                startHeight = getDrawerHeightPx();
+                                window.addEventListener('mousemove', onMouseMove);
+                                window.addEventListener('mouseup', onMouseUp);
+                            });
+                            handleEl.addEventListener('touchstart', function(e) {
+                                dragging = true;
+                                startY = e.touches[0].clientY;
+                                startHeight = getDrawerHeightPx();
+                                window.addEventListener('touchmove', onTouchMove, { passive: false });
+                                window.addEventListener('touchend', onTouchEnd);
+                            }, { passive: true });
+                            handleListenersAttached = true;
+                        }
+                    } else {
+                        handleEl.style.display = 'none';
+                    }
+                }
+
+                enableHandleIfMobile();
+                window.addEventListener('resize', function() {
+                    if (!isMobile()) {
+                        document.documentElement.style.removeProperty('--drawer-height');
+                        map.invalidateSize();
+                    }
+                    enableHandleIfMobile();
+                });
                 
                 function createListItem(restaurant, index) {
                     const listItem = document.createElement('div');
