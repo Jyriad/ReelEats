@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.09</title>
+    <title>London Food Map Supabase v0.10</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -147,7 +147,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-4 shadow flex-shrink-0 z-20 border-b border-gray-200">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.09 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.10 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-sm rounded px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -237,29 +237,36 @@
                     restaurantMarkers.forEach(marker => map.removeLayer(marker));
                     restaurantMarkers = [];
 
-                    const batchSize = 20;
-                    let i = 0;
-                    function processBatch(deadline) {
-                        let count = 0;
-                        while (i < restaurants.length && count < batchSize && (!deadline || (deadline.timeRemaining && deadline.timeRemaining() > 0))) {
-                            const restaurant = restaurants[i];
-                            const index = i;
-                            const listItem = createListItem(restaurant, index);
-                            listItem.id = `restaurant-item-${index}`;
-                            restaurantList.appendChild(listItem);
-
-                            const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                            marker.on('click', () => { showVideoFor(restaurant, index); highlightListItem(index); });
-                            restaurantMarkers.push(marker);
-                            i++; count++;
-                        }
-                        if (i < restaurants.length) {
-                            if (window.requestIdleCallback) requestIdleCallback(processBatch);
-                            else setTimeout(processBatch, 0);
-                        }
+                    // Show a small chunk immediately for instant feedback
+                    const initialCount = Math.min(12, restaurants.length);
+                    for (let i = 0; i < initialCount; i++) {
+                        const restaurant = restaurants[i];
+                        const listItem = createListItem(restaurant, i);
+                        listItem.id = `restaurant-item-${i}`;
+                        restaurantList.appendChild(listItem);
+                        const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                        marker.on('click', () => { showVideoFor(restaurant, i); highlightListItem(i); });
+                        restaurantMarkers.push(marker);
                     }
-                    if (window.requestIdleCallback) requestIdleCallback(processBatch);
-                    else setTimeout(processBatch, 0);
+
+                    // Batch the rest in tiny chunks without waiting for idle time
+                    let idx = initialCount;
+                    const batchSize = 25;
+                    function batchAppend() {
+                        let processed = 0;
+                        while (idx < restaurants.length && processed < batchSize) {
+                            const restaurant = restaurants[idx];
+                            const listItem = createListItem(restaurant, idx);
+                            listItem.id = `restaurant-item-${idx}`;
+                            restaurantList.appendChild(listItem);
+                            const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                            marker.on('click', () => { showVideoFor(restaurant, idx); highlightListItem(idx); });
+                            restaurantMarkers.push(marker);
+                            idx++; processed++;
+                        }
+                        if (idx < restaurants.length) setTimeout(batchAppend, 0);
+                    }
+                    if (idx < restaurants.length) setTimeout(batchAppend, 0);
                 }
                 
                 citySelect.addEventListener('change', async function() {
