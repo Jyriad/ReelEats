@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-900">
-<head>
+<<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.02</title>
+    <title>London Food Map Supabase v0.03</title>
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn/tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+    
+    <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -128,7 +130,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-between px-4 shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.02 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.03 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-gray-800 text-white text-sm rounded px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -306,3 +308,4 @@
     </script>
 </body>
 </html>
+
