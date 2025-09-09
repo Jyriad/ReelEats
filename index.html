@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.04</title>
+    <title>London Food Map Supabase v0.05</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
     
@@ -21,7 +21,7 @@
         #map { 
             height: 100%; 
             width: 100%; 
-            background-color: #1a20-2c;
+            background-color: #1a202c;
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
@@ -116,7 +116,7 @@
             main { position: relative; height: calc(100vh - 60px) !important; }
             #map-container { height: 100% !important; z-index: 0; }
             aside { position: absolute; left: 0; right: 0; bottom: 0; height: var(--drawer-height) !important; z-index: 200; }
-            #drawer-handle { cursor: ns-resize; touch-action: none; position: sticky; top: 0; z-index: 5; }
+            #drawer-handle { cursor: ns-resize; touch-action: none; position: sticky; top: 0; z-index: 5; background-color: rgba(107,114,128,0.8); }
             /* Center modal content fully on screen and fit height */
             .modal-content-wrapper { top: -24px; }
             #video-modal { padding-bottom: 0; }
@@ -130,7 +130,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-900 text-white flex items-center justify-between px-4 shadow-lg flex-shrink-0 z-20">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.04 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.05 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-gray-800 text-white text-sm rounded px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
