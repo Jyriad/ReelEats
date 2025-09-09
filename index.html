@@ -232,35 +232,43 @@
                     displayRestaurants(currentRestaurants);
                 }
 
-                const markerLayer = L.layerGroup().addTo(map);
-                function renderMarkersInView() {
-                    markerLayer.clearLayers();
-                    const bounds = map.getBounds().pad(0.2);
-                    for (let i = 0; i < currentRestaurants.length; i++) {
-                        const r = currentRestaurants[i];
-                        if (r && typeof r.lat === 'number' && typeof r.lon === 'number' && bounds.contains([r.lat, r.lon])) {
-                            const cm = L.circleMarker([r.lat, r.lon], { radius: 6, color: '#2563eb', weight: 2, fillColor: '#60a5fa', fillOpacity: 0.85 });
-                            cm.on('click', () => { showVideoFor(r, i); highlightListItem(i); });
-                            markerLayer.addLayer(cm);
-                        }
-                    }
-                }
-
+                // Revert to default markers for better tap targets
+                // (No in-view circle marker optimization)
                 function displayRestaurants(restaurants) {
                     restaurantList.innerHTML = '';
                     restaurantMarkers.forEach(marker => map.removeLayer(marker));
                     restaurantMarkers = [];
 
-                    // Render list items efficiently
-                    const frag = document.createDocumentFragment();
-                    for (let i = 0; i < restaurants.length; i++) {
-                        const listItem = createListItem(restaurants[i], i);
+                    // Show a small chunk immediately for instant feedback
+                    const initialCount = Math.min(12, restaurants.length);
+                    for (let i = 0; i < initialCount; i++) {
+                        const restaurant = restaurants[i];
+                        const listItem = createListItem(restaurant, i);
                         listItem.id = `restaurant-item-${i}`;
-                        frag.appendChild(listItem);
+                        restaurantList.appendChild(listItem);
+                        const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                        marker.on('click', () => { showVideoFor(restaurant, i); highlightListItem(i); });
+                        restaurantMarkers.push(marker);
                     }
-                    restaurantList.appendChild(frag);
-                    // Render only markers in view
-                    renderMarkersInView();
+
+                    // Batch the rest in tiny chunks
+                    let idx = initialCount;
+                    const batchSize = 25;
+                    function batchAppend() {
+                        let processed = 0;
+                        while (idx < restaurants.length && processed < batchSize) {
+                            const restaurant = restaurants[idx];
+                            const listItem = createListItem(restaurant, idx);
+                            listItem.id = `restaurant-item-${idx}`;
+                            restaurantList.appendChild(listItem);
+                            const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                            marker.on('click', () => { showVideoFor(restaurant, idx); highlightListItem(idx); });
+                            restaurantMarkers.push(marker);
+                            idx++; processed++;
+                        }
+                        if (idx < restaurants.length) setTimeout(batchAppend, 0);
+                    }
+                    if (idx < restaurants.length) setTimeout(batchAppend, 0);
                 }
                 
                 citySelect.addEventListener('change', async function() {
@@ -272,7 +280,6 @@
                     if (cityId) {
                         await loadRestaurantsForCity(cityId);
                         map.flyTo([lat, lon], 12);
-                        renderMarkersInView();
                     }
                 });
 
