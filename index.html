@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>London Food Map Supabase v0.09</title>
     
+    <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
+    <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
+    <link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossorigin>
+    <link rel="preconnect" href="https://d.basemaps.cartocdn.com" crossorigin>
+    <link rel="preconnect" href="https://www.tiktok.com" crossorigin>
+    <link rel="preconnect" href="https://jsuxrpnfofkigdfpnuua.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="//a.basemaps.cartocdn.com">
+    <link rel="dns-prefetch" href="//b.basemaps.cartocdn.com">
+    <link rel="dns-prefetch" href="//c.basemaps.cartocdn.com">
+    <link rel="dns-prefetch" href="//d.basemaps.cartocdn.com">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -110,8 +121,10 @@
             border: 2px solid #ffffff; box-shadow: 0 0 0 2px rgba(6,182,212,0.5);
             display: flex; align-items: center; justify-content: center; color: #0f172a; font-size: 16px; line-height: 1;
         }
-        /* Active list item highlight */
+        /* Highlight for selected restaurant in list */
         .active-list-item { background-color: #eef2ff !important; border-color: #a5b4fc !important; }
+        /* Isolate list rendering for perf */
+        #restaurant-list { contain: content; }
         /* Mobile drawer resizing */
         @media (max-width: 767px) {
             :root { --drawer-height: 33vh; }
@@ -169,10 +182,10 @@
 
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-            const map = L.map('map').setView([51.5074, -0.1278], 13);
+                const map = L.map('map', { preferCanvas: true }).setView([51.5074, -0.1278], 13);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20
-            }).addTo(map);
+                    attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20, updateWhenIdle: true
+                }).addTo(map);
 
             const restaurantList = document.getElementById('restaurant-list');
             const videoModal = document.getElementById('video-modal');
@@ -224,15 +237,29 @@
                     restaurantMarkers.forEach(marker => map.removeLayer(marker));
                     restaurantMarkers = [];
 
-            restaurants.forEach((restaurant, index) => {
-                        const listItem = createListItem(restaurant, index);
-                        listItem.id = `restaurant-item-${index}`;
-                        restaurantList.appendChild(listItem);
-                        
-                const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                marker.on('click', () => { showVideoFor(restaurant, index); highlightListItem(index); });
-                        restaurantMarkers.push(marker);
-                    });
+                    const batchSize = 20;
+                    let i = 0;
+                    function processBatch(deadline) {
+                        let count = 0;
+                        while (i < restaurants.length && count < batchSize && (!deadline || (deadline.timeRemaining && deadline.timeRemaining() > 0))) {
+                            const restaurant = restaurants[i];
+                            const index = i;
+                            const listItem = createListItem(restaurant, index);
+                            listItem.id = `restaurant-item-${index}`;
+                            restaurantList.appendChild(listItem);
+
+                            const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                            marker.on('click', () => { showVideoFor(restaurant, index); highlightListItem(index); });
+                            restaurantMarkers.push(marker);
+                            i++; count++;
+                        }
+                        if (i < restaurants.length) {
+                            if (window.requestIdleCallback) requestIdleCallback(processBatch);
+                            else setTimeout(processBatch, 0);
+                        }
+                    }
+                    if (window.requestIdleCallback) requestIdleCallback(processBatch);
+                    else setTimeout(processBatch, 0);
                 }
                 
                 citySelect.addEventListener('change', async function() {
@@ -445,6 +472,7 @@
                     iframe.height = '585';
                     iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
                     iframe.setAttribute('allowfullscreen', 'true');
+                    iframe.setAttribute('loading', 'lazy');
                     iframe.style.background = '#000';
                     iframe.style.border = 'none';
                     iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
