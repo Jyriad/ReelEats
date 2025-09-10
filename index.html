@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.14</title>
+    <title>London Food Map Supabase v0.15</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -220,10 +220,10 @@
             #drawer-handle { cursor: ns-resize; touch-action: none; position: sticky; top: 0; z-index: 5; background-color: rgba(107,114,128,0.8); position: sticky; }
             /* Expand functional hit area without changing visible size */
             #drawer-handle::before { content: ""; position: absolute; left: 50%; transform: translateX(-50%); top: -12px; width: 200px; height: 36px; }
-            /* Center modal content fully on screen and fit height */
-            .modal-content-wrapper { top: -24px; }
-            #video-modal { padding-bottom: 0; }
-            .video-container { height: min(85vh, 585px); width: calc(min(85vh, 585px) * 330 / 585); }
+            /* Center modal content with better mobile positioning */
+            .modal-content-wrapper { top: -60px; }
+            #video-modal { padding-bottom: 0; padding-top: 40px; }
+            .video-container { height: min(80vh, 585px); width: calc(min(80vh, 585px) * 330 / 585); }
             #video-modal .video-container iframe { width: 100% !important; height: 100% !important; }
             /* Hide Leaflet zoom controls on mobile */
             .leaflet-control-zoom { display: none !important; }
@@ -233,7 +233,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-4 shadow flex-shrink-0 z-20 border-b border-gray-200">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.14 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.15 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-sm rounded px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
