@@ -230,7 +230,7 @@ html, body {
         z-index: 200; 
         border-top: 3px solid #e5e7eb;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-        padding: 0;
+        padding: 0 !important;
         display: flex;
         flex-direction: column;
     }
@@ -245,6 +245,9 @@ html, body {
         height: 2px !important;
         border: none !important;
         margin: 0 !important;
+        box-sizing: border-box !important;
+        min-height: 2px !important;
+        max-height: 2px !important;
     }
     /* Expand functional hit area without changing visible size */
     #drawer-handle::before { content: ""; position: absolute; left: 50%; transform: translateX(-50%); top: -12px; width: 200px; height: 36px; }
