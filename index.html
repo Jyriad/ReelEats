@@ -40,7 +40,7 @@
             <div id="map"></div>
         </div>
         <aside class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-50 p-4 overflow-y-auto custom-scrollbar border-t border-gray-200">
-            <div id="drawer-handle" class="md:hidden mx-auto mt-1 mb-3 w-12 h-1.5 rounded-full bg-gray-500/70 select-none"></div>
+            <div id="drawer-handle" class="md:hidden mx-auto mt-1 mb-3 w-20 h-1 rounded-full bg-gray-500/70 select-none"></div>
             <div id="restaurant-list" class="space-y-4"></div>
         </aside>
             <div id="video-modal">
@@ -349,39 +349,22 @@
                         bounds.contains([restaurant.lat, restaurant.lon])
                     );
                     
-                    // Remove markers that are no longer visible
-                    const markersToRemove = [];
-                    restaurantMarkers.forEach((marker, index) => {
-                        const latLng = marker.getLatLng();
-                        if (!bounds.contains(latLng)) {
-                            map.removeLayer(marker);
-                            markersToRemove.push(index);
-                        }
-                    });
+                    // Remove all existing markers
+                    restaurantMarkers.forEach(marker => map.removeLayer(marker));
+                    restaurantMarkers = [];
+                    restaurantNumbering.clear();
                     
-                    // Remove markers from array (in reverse order to maintain indices)
-                    markersToRemove.reverse().forEach(index => {
-                        restaurantMarkers.splice(index, 1);
-                    });
-                    
-                    // Add markers for newly visible restaurants
-                    visibleRestaurants.forEach(restaurant => {
-                        const hasMarker = restaurantMarkers.some(marker => 
-                            marker.getLatLng().lat === restaurant.lat && 
-                            marker.getLatLng().lng === restaurant.lon
+                    // Re-add markers for visible restaurants with proper sequential numbering
+                    visibleRestaurants.forEach((restaurant, i) => {
+                        const index = currentRestaurants.findIndex(r => 
+                            r.lat === restaurant.lat && r.lon === restaurant.lon
                         );
+                        const displayNumber = i + 1;
+                        restaurantNumbering.set(index, displayNumber);
                         
-                        if (!hasMarker) {
-                            const index = currentRestaurants.findIndex(r => 
-                                r.lat === restaurant.lat && r.lon === restaurant.lon
-                            );
-                            const displayNumber = restaurantMarkers.length + 1;
-                            restaurantNumbering.set(index, displayNumber);
-                            
-                            const marker = createNumberedMarker(restaurant, index, displayNumber);
-                            marker.addTo(map);
-                            restaurantMarkers.push(marker);
-                        }
+                        const marker = createNumberedMarker(restaurant, index, displayNumber);
+                        marker.addTo(map);
+                        restaurantMarkers.push(marker);
                     });
                 }
 
