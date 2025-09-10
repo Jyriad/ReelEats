@@ -241,14 +241,13 @@ html, body {
         z-index: 5; 
         background: #9ca3af !important;
         flex-shrink: 0;
-        padding: 0 !important;
-        height: 2px !important;
+        padding: 4px 0 !important;
+        height: 4px !important;
         border: none !important;
         margin: 0 auto !important;
         box-sizing: border-box !important;
-        min-height: 2px !important;
-        max-height: 2px !important;
         width: 48px !important;
+        border-radius: 2px !important;
     }
     /* Expand functional hit area without changing visible size */
     #drawer-handle::before { content: ""; position: absolute; left: 50%; transform: translateX(-50%); top: -12px; width: 200px; height: 36px; }
