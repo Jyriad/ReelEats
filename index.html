@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.15</title>
+    <title>London Food Map Supabase v0.16</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -176,6 +176,31 @@
             margin-right: 8px;
             flex-shrink: 0;
         }
+        .directions-button {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+        .directions-button:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        .directions-button:active {
+            transform: translateY(0);
+        }
+        .directions-icon {
+            font-size: 14px;
+        }
         .close-video-btn {
             position: absolute;
             top: -15px;
@@ -233,7 +258,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-4 shadow flex-shrink-0 z-20 border-b border-gray-200">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.15 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.16 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-sm rounded px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -496,6 +521,33 @@
                     
                     return marker;
                 }
+
+                function openDirections(restaurant) {
+                    const lat = restaurant.lat;
+                    const lon = restaurant.lon;
+                    const name = encodeURIComponent(restaurant.name);
+                    
+                    // Try to detect the user's platform and open appropriate navigation app
+                    const userAgent = navigator.userAgent.toLowerCase();
+                    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+                    const isAndroid = /android/.test(userAgent);
+                    
+                    let directionsUrl;
+                    
+                    if (isIOS) {
+                        // Try Apple Maps first, fallback to Google Maps
+                        directionsUrl = `maps://maps.google.com/maps?daddr=${lat},${lon}&amp;ll=`;
+                    } else if (isAndroid) {
+                        // Use Google Maps for Android
+                        directionsUrl = `geo:${lat},${lon}?q=${lat},${lon}(${name})`;
+                    } else {
+                        // Desktop/other - use Google Maps web
+                        directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&destination_place_id=${name}`;
+                    }
+                    
+                    // Open the directions URL
+                    window.open(directionsUrl, '_blank');
+                }
                 
                 citySelect.addEventListener('change', async function() {
                     const selectedOption = citySelect.options[citySelect.selectedIndex];
@@ -605,8 +657,20 @@
                             <div class="flex-1">
                                 <h3 class="text-gray-900 text-lg font-bold">${r.name} <span class="text-gray-500 text-sm">• ${formatDistanceMeters(m)}</span></h3>
                                 <p class="text-gray-600 text-sm mt-1">${r.description || ''}</p>
+                                <button class="directions-button">
+                                    <span class="directions-icon">🧭</span>
+                                    Directions
+                                </button>
                             </div>
                         `;
+                        
+                        // Add directions button event listener
+                        const directionsBtn = item.querySelector('.directions-button');
+                        directionsBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openDirections(r);
+                        });
+                        
                         item.addEventListener('click', () => { showVideoFor(r, idx); highlightListItem(idx); map.flyTo([r.lat, r.lon], 15); });
                         restaurantList.appendChild(item);
                     });
@@ -734,8 +798,19 @@
                         <div class="flex-1">
                             <h3 class="text-gray-900 text-lg font-bold">${restaurant.name}</h3>
                             <p class="text-gray-600 text-sm mt-1">${restaurant.description}</p>
+                            <button class="directions-button">
+                                <span class="directions-icon">🧭</span>
+                                Directions
+                            </button>
                         </div>
                     `;
+                    
+                    // Add directions button event listener
+                    const directionsBtn = listItem.querySelector('.directions-button');
+                    directionsBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openDirections(restaurant);
+                    });
                     
                     // Preload video on hover for faster loading
                     listItem.addEventListener('mouseenter', () => {
