@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.19</title>
+    <title>London Food Map Supabase v0.20</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -255,6 +255,7 @@
                 z-index: 200; 
                 border-top: 3px solid #e5e7eb;
                 box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+                padding-top: 40px;
             }
             #drawer-handle { 
                 cursor: ns-resize; 
@@ -278,15 +279,14 @@
             .leaflet-control-zoom { display: none !important; }
             /* Show directions button only on mobile */
             .directions-button { display: flex !important; }
-            /* Add top padding to drawer content to prevent overlap with handle */
-            #restaurant-list { padding-top: 20px; }
+            /* Drawer content now has proper spacing from handle */
         }
     </style>
 </head>
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-4 shadow flex-shrink-0 z-20 border-b border-gray-200">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.19 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.20 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-sm rounded px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
