@@ -234,23 +234,28 @@ html, body {
         display: flex;
         flex-direction: column;
     }
+    /* Mobile drawer handle - clean rebuild */
     #drawer-handle { 
-        cursor: ns-resize !important; 
-        touch-action: none; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 8px 0;
+        cursor: ns-resize;
+        touch-action: none;
         position: relative;
-        z-index: 5; 
-        background: #9ca3af !important;
+        z-index: 5;
         flex-shrink: 0;
-        padding: 4px 0 !important;
-        height: 4px !important;
-        border: none !important;
-        margin: 0 auto !important;
-        box-sizing: border-box !important;
-        width: 48px !important;
-        border-radius: 2px !important;
+        background: transparent;
     }
-    /* Expand functional hit area without changing visible size */
-    #drawer-handle::before { content: ""; position: absolute; left: 50%; transform: translateX(-50%); top: -12px; width: 200px; height: 36px; }
+    
+    #drawer-handle::after {
+        content: '';
+        width: 40px;
+        height: 4px;
+        background: #9ca3af;
+        border-radius: 2px;
+        display: block;
+    }
     /* Center modal content with better mobile positioning */
     .modal-content-wrapper { top: -60px; }
     #video-modal { padding-bottom: 0; padding-top: 40px; }
