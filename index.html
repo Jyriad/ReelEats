@@ -90,6 +90,49 @@
             align-items: center;
             justify-content: center;
         }
+        .video-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+        .video-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        .video-loading-text {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tiktok-logo {
+            width: 60px;
+            height: 60px;
+            background: #000;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 12px;
+        }
         .close-video-btn {
             position: absolute;
             top: -15px;
@@ -229,46 +272,83 @@
                     if (error) throw error;
                     
                     currentRestaurants = restaurants;
-                    displayRestaurants(currentRestaurants);
+                    // Filter restaurants based on current map bounds for initial load
+                    const bounds = map.getBounds();
+                    const visibleRestaurants = restaurants.filter(restaurant => 
+                        bounds.contains([restaurant.lat, restaurant.lon])
+                    );
+                    
+                    // Load visible restaurants first, then others
+                    displayRestaurantsOptimized(visibleRestaurants, restaurants);
                 }
 
-                // Revert to default markers for better tap targets
-                // (No in-view circle marker optimization)
-                function displayRestaurants(restaurants) {
+                // Optimized restaurant display with viewport-based loading
+                function displayRestaurantsOptimized(visibleRestaurants, allRestaurants) {
                     restaurantList.innerHTML = '';
                     restaurantMarkers.forEach(marker => map.removeLayer(marker));
                     restaurantMarkers = [];
 
-                    // Show a small chunk immediately for instant feedback
-                    const initialCount = Math.min(12, restaurants.length);
-                    for (let i = 0; i < initialCount; i++) {
-                        const restaurant = restaurants[i];
-                        const listItem = createListItem(restaurant, i);
-                        listItem.id = `restaurant-item-${i}`;
+                    // Create a map of all restaurants for quick lookup
+                    const restaurantMap = new Map();
+                    allRestaurants.forEach((restaurant, index) => {
+                        restaurantMap.set(`${restaurant.lat},${restaurant.lon}`, { restaurant, index });
+                    });
+
+                    // Load visible restaurants immediately
+                    visibleRestaurants.forEach((restaurant, i) => {
+                        const originalIndex = restaurantMap.get(`${restaurant.lat},${restaurant.lon}`).index;
+                        const listItem = createListItem(restaurant, originalIndex);
+                        listItem.id = `restaurant-item-${originalIndex}`;
                         restaurantList.appendChild(listItem);
                         const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                        marker.on('click', () => { showVideoFor(restaurant, i); highlightListItem(i); });
+                        marker.on('click', () => { showVideoFor(restaurant, originalIndex); highlightListItem(originalIndex); });
                         restaurantMarkers.push(marker);
-                    }
+                    });
 
-                    // Batch the rest in tiny chunks
-                    let idx = initialCount;
-                    const batchSize = 25;
-                    function batchAppend() {
-                        let processed = 0;
-                        while (idx < restaurants.length && processed < batchSize) {
-                            const restaurant = restaurants[idx];
-                            const listItem = createListItem(restaurant, idx);
-                            listItem.id = `restaurant-item-${idx}`;
+                    // Set up Intersection Observer for lazy loading
+                    setupIntersectionObserver(allRestaurants, restaurantMap);
+                }
+
+                function setupIntersectionObserver(allRestaurants, restaurantMap) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const index = parseInt(entry.target.dataset.index);
+                                const restaurant = allRestaurants[index];
+                                
+                                // Only add marker if not already added
+                                if (!restaurantMarkers.find(m => 
+                                    m.getLatLng().lat === restaurant.lat && 
+                                    m.getLatLng().lng === restaurant.lon
+                                )) {
+                                    const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                                    marker.on('click', () => { showVideoFor(restaurant, index); highlightListItem(index); });
+                                    restaurantMarkers.push(marker);
+                                }
+                                
+                                observer.unobserve(entry.target);
+                            }
+                        });
+                    }, { rootMargin: '50px' });
+
+                    // Add remaining restaurants to list with lazy loading
+                    allRestaurants.forEach((restaurant, index) => {
+                        if (!restaurantMarkers.find(m => 
+                            m.getLatLng().lat === restaurant.lat && 
+                            m.getLatLng().lng === restaurant.lon
+                        )) {
+                            const listItem = createListItem(restaurant, index);
+                            listItem.id = `restaurant-item-${index}`;
+                            listItem.dataset.index = index;
                             restaurantList.appendChild(listItem);
-                            const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                            marker.on('click', () => { showVideoFor(restaurant, idx); highlightListItem(idx); });
-                            restaurantMarkers.push(marker);
-                            idx++; processed++;
+                            observer.observe(listItem);
                         }
-                        if (idx < restaurants.length) setTimeout(batchAppend, 0);
-                    }
-                    if (idx < restaurants.length) setTimeout(batchAppend, 0);
+                    });
+                }
+
+                // Fallback function for backward compatibility
+                function displayRestaurants(restaurants) {
+                    displayRestaurantsOptimized(restaurants, restaurants);
                 }
                 
                 citySelect.addEventListener('change', async function() {
@@ -284,6 +364,48 @@
                 });
 
                 await loadCities();
+
+                // Add map bounds change listener for dynamic loading
+                map.on('moveend zoomend', () => {
+                    if (currentRestaurants.length > 0) {
+                        updateRestaurantsForCurrentView();
+                    }
+                });
+
+                function updateRestaurantsForCurrentView() {
+                    const bounds = map.getBounds();
+                    const visibleRestaurants = currentRestaurants.filter(restaurant => 
+                        bounds.contains([restaurant.lat, restaurant.lon])
+                    );
+                    
+                    // Update markers based on current view
+                    restaurantMarkers.forEach(marker => {
+                        const latLng = marker.getLatLng();
+                        if (!bounds.contains(latLng)) {
+                            map.removeLayer(marker);
+                        }
+                    });
+                    
+                    // Add markers for newly visible restaurants
+                    visibleRestaurants.forEach(restaurant => {
+                        const hasMarker = restaurantMarkers.some(marker => 
+                            marker.getLatLng().lat === restaurant.lat && 
+                            marker.getLatLng().lng === restaurant.lon
+                        );
+                        
+                        if (!hasMarker) {
+                            const index = currentRestaurants.findIndex(r => 
+                                r.lat === restaurant.lat && r.lon === restaurant.lon
+                            );
+                            const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
+                            marker.on('click', () => { 
+                                showVideoFor(restaurant, index); 
+                                highlightListItem(index); 
+                            });
+                            restaurantMarkers.push(marker);
+                        }
+                    });
+                }
 
                 // --- Geolocation: show user's location and compute distances ---
                 let userMarker = null; let userCircle = null;
@@ -463,6 +585,9 @@
                     videoModal.classList.add('show');
                     highlightListItem(index);
                     
+                    // Show loading state immediately
+                    showVideoLoadingState();
+                    
                     let videoId = '';
                     const embedHtml = restaurant.tiktok_embed_html || '';
                     try {
@@ -476,17 +601,66 @@
                         if (m) videoId = m[1];
                     }
 
+                    if (!videoId) {
+                        showVideoErrorState();
+                        return;
+                    }
+
+                    // Preload the iframe
                     const iframe = document.createElement('iframe');
                     iframe.width = '330';
                     iframe.height = '585';
                     iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
                     iframe.setAttribute('allowfullscreen', 'true');
-                    iframe.setAttribute('loading', 'lazy');
+                    iframe.setAttribute('loading', 'eager'); // Changed from lazy to eager for better performance
                     iframe.style.background = '#000';
                     iframe.style.border = 'none';
+                    iframe.style.opacity = '0';
+                    iframe.style.transition = 'opacity 0.3s ease';
+                    
+                    // Add load event listener
+                    iframe.addEventListener('load', () => {
+                        hideVideoLoadingState();
+                        iframe.style.opacity = '1';
+                    });
+                    
+                    iframe.addEventListener('error', () => {
+                        showVideoErrorState();
+                    });
+                    
+                    // Set source after adding event listeners
                     iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
                     
                     videoContainer.appendChild(iframe);
+                }
+
+                function showVideoLoadingState() {
+                    const loadingDiv = document.createElement('div');
+                    loadingDiv.className = 'video-loading';
+                    loadingDiv.innerHTML = `
+                        <div class="tiktok-logo">🎵</div>
+                        <div class="video-loading-spinner"></div>
+                        <div class="video-loading-text">Loading video...</div>
+                    `;
+                    videoContainer.appendChild(loadingDiv);
+                }
+
+                function hideVideoLoadingState() {
+                    const loadingDiv = videoContainer.querySelector('.video-loading');
+                    if (loadingDiv) {
+                        loadingDiv.remove();
+                    }
+                }
+
+                function showVideoErrorState() {
+                    hideVideoLoadingState();
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'video-loading';
+                    errorDiv.innerHTML = `
+                        <div class="tiktok-logo">⚠️</div>
+                        <div class="video-loading-text">Failed to load video</div>
+                    `;
+                    videoContainer.appendChild(errorDiv);
                 }
 
             function closeVideo() {
@@ -508,3 +682,4 @@
     </script>
 </body>
 </html>
+
