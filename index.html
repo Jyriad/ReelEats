@@ -133,6 +133,15 @@
             color: #fff;
             margin-bottom: 12px;
         }
+        .video-preload {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
         .close-video-btn {
             position: absolute;
             top: -15px;
@@ -242,6 +251,8 @@
                 
                 let currentRestaurants = [];
                 let restaurantMarkers = [];
+                let videoCache = new Map();
+                let preloadedVideos = new Set();
 
                 async function loadCities() {
                     const { data: cities, error } = await supabaseClient.from('cities').select('*');
@@ -260,6 +271,11 @@
                     if (cities.length > 0) {
                         await loadRestaurantsForCity(cities[0].id);
                         map.flyTo([cities[0].lat, cities[0].lon], 12);
+                        
+                        // Start aggressive preloading after initial load
+                        setTimeout(() => {
+                            preloadVisibleVideos();
+                        }, 1000);
                     }
                 }
                 
@@ -280,6 +296,11 @@
                     
                     // Load visible restaurants first, then others
                     displayRestaurantsOptimized(visibleRestaurants, restaurants);
+                    
+                    // Start preloading videos after a short delay
+                    setTimeout(() => {
+                        preloadVisibleVideos();
+                    }, 500);
                 }
 
                 // Optimized restaurant display with viewport-based loading
@@ -350,6 +371,65 @@
                 function displayRestaurants(restaurants) {
                     displayRestaurantsOptimized(restaurants, restaurants);
                 }
+
+                // Video preloading and caching functions
+                function preloadVideo(videoId) {
+                    if (preloadedVideos.has(videoId)) return;
+                    
+                    const preloadDiv = document.createElement('div');
+                    preloadDiv.className = 'video-preload';
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.width = '330';
+                    iframe.height = '585';
+                    iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+                    iframe.setAttribute('allowfullscreen', 'true');
+                    iframe.style.background = '#000';
+                    iframe.style.border = 'none';
+                    iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
+                    
+                    preloadDiv.appendChild(iframe);
+                    document.body.appendChild(preloadDiv);
+                    
+                    preloadedVideos.add(videoId);
+                    videoCache.set(videoId, iframe);
+                    
+                    // Clean up after 30 seconds
+                    setTimeout(() => {
+                        if (preloadDiv.parentNode) {
+                            preloadDiv.parentNode.removeChild(preloadDiv);
+                        }
+                    }, 30000);
+                }
+
+                function preloadVisibleVideos() {
+                    const bounds = map.getBounds();
+                    const visibleRestaurants = currentRestaurants.filter(restaurant => 
+                        bounds.contains([restaurant.lat, restaurant.lon])
+                    );
+                    
+                    // Preload first 3 visible videos
+                    visibleRestaurants.slice(0, 3).forEach(restaurant => {
+                        const videoId = extractVideoId(restaurant.tiktok_embed_html);
+                        if (videoId && !preloadedVideos.has(videoId)) {
+                            preloadVideo(videoId);
+                        }
+                    });
+                }
+
+                function extractVideoId(embedHtml) {
+                    if (!embedHtml) return '';
+                    
+                    try {
+                        const temp = document.createElement('div');
+                        temp.innerHTML = embedHtml;
+                        const el = temp.querySelector('.tiktok-embed');
+                        if (el) return el.getAttribute('data-video-id') || '';
+                    } catch (_) {}
+                    
+                    const m = embedHtml.match(/data-video-id=["'](\d+)["']/);
+                    return m ? m[1] : '';
+                }
                 
                 citySelect.addEventListener('change', async function() {
                     const selectedOption = citySelect.options[citySelect.selectedIndex];
@@ -369,6 +449,10 @@
                 map.on('moveend zoomend', () => {
                     if (currentRestaurants.length > 0) {
                         updateRestaurantsForCurrentView();
+                        // Preload videos for new visible restaurants
+                        setTimeout(() => {
+                            preloadVisibleVideos();
+                        }, 300);
                     }
                 });
 
@@ -558,6 +642,15 @@
                     listItem.id = `restaurant-item-${index}`;
                     listItem.className = 'bg-white p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200';
                     listItem.innerHTML = `<h3 class="text-gray-900 text-lg font-bold">${restaurant.name}</h3><p class="text-gray-600 text-sm mt-1">${restaurant.description}</p>`;
+                    
+                    // Preload video on hover for faster loading
+                    listItem.addEventListener('mouseenter', () => {
+                        const videoId = extractVideoId(restaurant.tiktok_embed_html);
+                        if (videoId && !preloadedVideos.has(videoId)) {
+                            preloadVideo(videoId);
+                        }
+                    });
+                    
                     listItem.addEventListener('click', () => {
                         showVideoFor(restaurant, index);
                         highlightListItem(index);
@@ -585,51 +678,58 @@
                     videoModal.classList.add('show');
                     highlightListItem(index);
                     
-                    // Show loading state immediately
-                    showVideoLoadingState();
+                    const videoId = extractVideoId(restaurant.tiktok_embed_html);
                     
-                    let videoId = '';
-                    const embedHtml = restaurant.tiktok_embed_html || '';
-                    try {
-                        const temp = document.createElement('div');
-                        temp.innerHTML = embedHtml;
-                        const el = temp.querySelector('.tiktok-embed');
-                        if (el) videoId = el.getAttribute('data-video-id') || '';
-                    } catch (_) {}
-                    if (!videoId) {
-                        const m = embedHtml.match(/data-video-id=["'](\d+)["']/);
-                        if (m) videoId = m[1];
-                    }
-
                     if (!videoId) {
                         showVideoErrorState();
                         return;
                     }
 
-                    // Preload the iframe
+                    // Check if video is already cached/preloaded
+                    if (videoCache.has(videoId)) {
+                        const cachedIframe = videoCache.get(videoId);
+                        const clonedIframe = cachedIframe.cloneNode(true);
+                        clonedIframe.style.opacity = '1';
+                        clonedIframe.style.transition = 'opacity 0.3s ease';
+                        videoContainer.appendChild(clonedIframe);
+                        return;
+                    }
+
+                    // Show loading state for non-cached videos
+                    showVideoLoadingState();
+                    
+                    // Create optimized iframe
                     const iframe = document.createElement('iframe');
                     iframe.width = '330';
                     iframe.height = '585';
                     iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
                     iframe.setAttribute('allowfullscreen', 'true');
-                    iframe.setAttribute('loading', 'eager'); // Changed from lazy to eager for better performance
+                    iframe.setAttribute('loading', 'eager');
                     iframe.style.background = '#000';
                     iframe.style.border = 'none';
                     iframe.style.opacity = '0';
                     iframe.style.transition = 'opacity 0.3s ease';
                     
+                    // Optimize connection with preconnect hints
+                    const link = document.createElement('link');
+                    link.rel = 'preconnect';
+                    link.href = 'https://www.tiktok.com';
+                    document.head.appendChild(link);
+                    
                     // Add load event listener
                     iframe.addEventListener('load', () => {
                         hideVideoLoadingState();
                         iframe.style.opacity = '1';
+                        // Cache the loaded iframe for future use
+                        videoCache.set(videoId, iframe.cloneNode(true));
                     });
                     
                     iframe.addEventListener('error', () => {
                         showVideoErrorState();
                     });
                     
-                    // Set source after adding event listeners
-                    iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US`;
+                    // Set source with optimized parameters
+                    iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US&autoplay=0&mute=1`;
                     
                     videoContainer.appendChild(iframe);
                 }
@@ -638,7 +738,6 @@
                     const loadingDiv = document.createElement('div');
                     loadingDiv.className = 'video-loading';
                     loadingDiv.innerHTML = `
-                        <div class="tiktok-logo">🎵</div>
                         <div class="video-loading-spinner"></div>
                         <div class="video-loading-text">Loading video...</div>
                     `;
