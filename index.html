@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>London Food Map Supabase v0.21</title>
+    <title>London Food Map Supabase v0.22</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -255,18 +255,20 @@
                 z-index: 200; 
                 border-top: 3px solid #e5e7eb;
                 box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-                padding-top: 40px;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
             }
             #drawer-handle { 
                 cursor: ns-resize; 
                 touch-action: none; 
-                position: sticky; 
-                top: 0; 
+                position: relative;
                 z-index: 5; 
                 background: linear-gradient(180deg, #e5e7eb 0%, #f3f4f6 100%);
                 border-top: 2px solid #d1d5db;
                 border-bottom: 1px solid #d1d5db;
-                position: sticky; 
+                flex-shrink: 0;
+                padding: 8px 0;
             }
             /* Expand functional hit area without changing visible size */
             #drawer-handle::before { content: ""; position: absolute; left: 50%; transform: translateX(-50%); top: -12px; width: 200px; height: 36px; }
@@ -280,11 +282,12 @@
             /* Show directions button only on mobile */
             .directions-button { display: flex !important; }
             /* Drawer content now has proper spacing from handle */
-            /* Add a fixed spacer to prevent content from reaching handle */
-            .drawer-spacer {
-                height: 50px;
-                background: transparent;
-                flex-shrink: 0;
+            /* Make restaurant list a proper scrollable container */
+            #restaurant-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 16px;
+                min-height: 0;
             }
         }
     </style>
@@ -292,7 +295,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-4 shadow flex-shrink-0 z-20 border-b border-gray-200">
-        <h1 class="text-2xl font-bold">London Food Map Supabase v0.21 🗺️</h1>
+        <h1 class="text-2xl font-bold">London Food Map Supabase v0.22 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-sm rounded px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -306,7 +309,6 @@
         </div>
         <aside class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-50 p-4 overflow-y-auto custom-scrollbar border-t border-gray-200">
             <div id="drawer-handle" class="md:hidden mx-auto mt-1 mb-3 w-12 h-1.5 rounded-full bg-gray-500/70 select-none"></div>
-            <div class="drawer-spacer md:hidden"></div>
             <div id="restaurant-list" class="space-y-4"></div>
         </aside>
             <div id="video-modal">
