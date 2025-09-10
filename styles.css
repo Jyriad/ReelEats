@@ -263,6 +263,13 @@ html, body {
         overflow-y: auto;
         padding: 16px;
         min-height: 0;
+        /* Hide scrollbar on mobile */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    #restaurant-list::-webkit-scrollbar {
+        display: none;
     }
     
     /* Mobile-specific optimizations */
