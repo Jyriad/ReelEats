@@ -142,6 +142,40 @@
             opacity: 0;
             pointer-events: none;
         }
+        .numbered-marker {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .numbered-marker:hover {
+            background: #1d4ed8;
+            transform: scale(1.1);
+        }
+        .restaurant-number {
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 11px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
         .close-video-btn {
             position: absolute;
             top: -15px;
@@ -253,6 +287,7 @@
                 let restaurantMarkers = [];
                 let videoCache = new Map();
                 let preloadedVideos = new Set();
+                let restaurantNumbering = new Map(); // Maps restaurant index to display number
 
                 async function loadCities() {
                     const { data: cities, error } = await supabaseClient.from('cities').select('*');
@@ -308,6 +343,7 @@
                     restaurantList.innerHTML = '';
                     restaurantMarkers.forEach(marker => map.removeLayer(marker));
                     restaurantMarkers = [];
+                    restaurantNumbering.clear();
 
                     // Create a map of all restaurants for quick lookup
                     const restaurantMap = new Map();
@@ -315,14 +351,18 @@
                         restaurantMap.set(`${restaurant.lat},${restaurant.lon}`, { restaurant, index });
                     });
 
-                    // Load visible restaurants immediately
+                    // Load visible restaurants immediately with numbering
                     visibleRestaurants.forEach((restaurant, i) => {
                         const originalIndex = restaurantMap.get(`${restaurant.lat},${restaurant.lon}`).index;
-                        const listItem = createListItem(restaurant, originalIndex);
+                        const displayNumber = i + 1;
+                        restaurantNumbering.set(originalIndex, displayNumber);
+                        
+                        const listItem = createListItem(restaurant, originalIndex, displayNumber);
                         listItem.id = `restaurant-item-${originalIndex}`;
                         restaurantList.appendChild(listItem);
-                        const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                        marker.on('click', () => { showVideoFor(restaurant, originalIndex); highlightListItem(originalIndex); });
+                        
+                        const marker = createNumberedMarker(restaurant, originalIndex, displayNumber);
+                        marker.addTo(map);
                         restaurantMarkers.push(marker);
                     });
 
@@ -342,8 +382,12 @@
                                     m.getLatLng().lat === restaurant.lat && 
                                     m.getLatLng().lng === restaurant.lon
                                 )) {
-                                    const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                                    marker.on('click', () => { showVideoFor(restaurant, index); highlightListItem(index); });
+                                    // Get the next available number
+                                    const displayNumber = restaurantMarkers.length + 1;
+                                    restaurantNumbering.set(index, displayNumber);
+                                    
+                                    const marker = createNumberedMarker(restaurant, index, displayNumber);
+                                    marker.addTo(map);
                                     restaurantMarkers.push(marker);
                                 }
                                 
@@ -430,6 +474,28 @@
                     const m = embedHtml.match(/data-video-id=["'](\d+)["']/);
                     return m ? m[1] : '';
                 }
+
+                function createNumberedMarker(restaurant, index, displayNumber) {
+                    const markerDiv = document.createElement('div');
+                    markerDiv.className = 'numbered-marker';
+                    markerDiv.textContent = displayNumber;
+                    markerDiv.title = restaurant.name;
+                    
+                    const icon = L.divIcon({
+                        html: markerDiv.outerHTML,
+                        className: 'custom-numbered-marker',
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    
+                    const marker = L.marker([restaurant.lat, restaurant.lon], { icon });
+                    marker.on('click', () => { 
+                        showVideoFor(restaurant, index); 
+                        highlightListItem(index); 
+                    });
+                    
+                    return marker;
+                }
                 
                 citySelect.addEventListener('change', async function() {
                     const selectedOption = citySelect.options[citySelect.selectedIndex];
@@ -481,11 +547,11 @@
                             const index = currentRestaurants.findIndex(r => 
                                 r.lat === restaurant.lat && r.lon === restaurant.lon
                             );
-                            const marker = L.marker([restaurant.lat, restaurant.lon]).addTo(map);
-                            marker.on('click', () => { 
-                                showVideoFor(restaurant, index); 
-                                highlightListItem(index); 
-                            });
+                            const displayNumber = restaurantMarkers.length + 1;
+                            restaurantNumbering.set(index, displayNumber);
+                            
+                            const marker = createNumberedMarker(restaurant, index, displayNumber);
+                            marker.addTo(map);
                             restaurantMarkers.push(marker);
                         }
                     });
@@ -519,12 +585,21 @@
                     restaurantList.innerHTML = '';
                     const withDistances = currentRestaurants.map((r, idx) => ({ idx, r, m: haversineDistanceMeters(lat, lon, r.lat, r.lon) }));
                     withDistances.sort((a, b) => a.m - b.m);
-                    withDistances.forEach(({ idx, r, m }) => {
+                    withDistances.forEach(({ idx, r, m }, displayIndex) => {
+                        const displayNumber = displayIndex + 1;
+                        restaurantNumbering.set(idx, displayNumber);
+                        
                         const item = document.createElement('div');
                         item.setAttribute('data-index', idx);
                         item.id = `restaurant-item-${idx}`;
-                        item.className = 'bg-white p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200';
-                        item.innerHTML = `<h3 class="text-gray-900 text-lg font-bold">${r.name} <span class="text-gray-500 text-sm">• ${formatDistanceMeters(m)}</span></h3><p class="text-gray-600 text-sm mt-1">${r.description || ''}</p>`;
+                        item.className = 'bg-white p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start';
+                        item.innerHTML = `
+                            <div class="restaurant-number">${displayNumber}</div>
+                            <div class="flex-1">
+                                <h3 class="text-gray-900 text-lg font-bold">${r.name} <span class="text-gray-500 text-sm">• ${formatDistanceMeters(m)}</span></h3>
+                                <p class="text-gray-600 text-sm mt-1">${r.description || ''}</p>
+                            </div>
+                        `;
                         item.addEventListener('click', () => { showVideoFor(r, idx); highlightListItem(idx); map.flyTo([r.lat, r.lon], 15); });
                         restaurantList.appendChild(item);
                     });
@@ -636,12 +711,24 @@
                     enableHandleIfMobile();
                 });
                 
-                function createListItem(restaurant, index) {
+                function createListItem(restaurant, index, displayNumber = null) {
                     const listItem = document.createElement('div');
                     listItem.setAttribute('data-index', index);
                     listItem.id = `restaurant-item-${index}`;
-                    listItem.className = 'bg-white p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200';
-                    listItem.innerHTML = `<h3 class="text-gray-900 text-lg font-bold">${restaurant.name}</h3><p class="text-gray-600 text-sm mt-1">${restaurant.description}</p>`;
+                    listItem.className = 'bg-white p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start';
+                    
+                    // Get display number if not provided
+                    if (displayNumber === null) {
+                        displayNumber = restaurantNumbering.get(index) || (restaurantMarkers.length + 1);
+                    }
+                    
+                    listItem.innerHTML = `
+                        <div class="restaurant-number">${displayNumber}</div>
+                        <div class="flex-1">
+                            <h3 class="text-gray-900 text-lg font-bold">${restaurant.name}</h3>
+                            <p class="text-gray-600 text-sm mt-1">${restaurant.description}</p>
+                        </div>
+                    `;
                     
                     // Preload video on hover for faster loading
                     listItem.addEventListener('mouseenter', () => {
