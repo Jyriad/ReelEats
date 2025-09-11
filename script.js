@@ -120,21 +120,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // The data now comes in a nested format (e.g., { name: 'Bunsik', tiktoks: [{...}] }).
             // We need to flatten it to the structure the rest of the app expects.
-            currentRestaurants = restaurants.map(r => {
-                const tiktok_embed_html = r.tiktoks.length > 0 ? r.tiktoks[0].embed_html : null;
-                
-                // Debug logging to see what we're getting
-                console.log(`Restaurant: ${r.name}`);
-                console.log(`Tiktoks array length: ${r.tiktoks.length}`);
-                console.log(`Tiktok embed HTML:`, tiktok_embed_html);
-                
-                return {
-                    ...r,
-                    // Create the 'tiktok_embed_html' property the app uses.
-                    // If a restaurant has no featured video, this will correctly be null.
-                    tiktok_embed_html: tiktok_embed_html
-                };
-            });
+            currentRestaurants = restaurants.map(r => ({
+                ...r,
+                // Create the 'tiktok_embed_html' property the app uses.
+                // If a restaurant has no featured video, this will correctly be null.
+                tiktok_embed_html: r.tiktoks.length > 0 ? r.tiktoks[0].embed_html : null
+            }));
 
             // The rest of this function can now proceed exactly as it did before,
             // as we have prepared the data in the format it understands.
@@ -625,10 +616,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function showVideoFor(restaurant, index) {
-            // Debug logging
-            console.log('showVideoFor called with restaurant:', restaurant);
-            console.log('tiktok_embed_html:', restaurant.tiktok_embed_html);
-            
             // 1. Setup the modal and show the spinner
             videoContainer.innerHTML = '<div class="loading-spinner"></div>';
             if (videoTitleEl) {
@@ -640,7 +627,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // 2. Check if there is embed HTML
             if (!restaurant.tiktok_embed_html) {
-                console.log('No tiktok_embed_html found for restaurant:', restaurant.name);
                 showVideoErrorState("No video available for this location.");
                 return;
             }
