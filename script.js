@@ -616,8 +616,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function showVideoFor(restaurant, index) {
-            // 1. Setup the modal and show the spinner
-            videoContainer.innerHTML = '<div class="loading-spinner"></div>';
+            // 1. Setup the modal and show the old loading animation
+            videoContainer.innerHTML = '<div class="video-loading"><div class="tiktok-loading-spinner"></div></div>';
             if (videoTitleEl) {
                 videoTitleEl.textContent = restaurant.name || '';
                 videoTitleEl.classList.remove('hidden');
@@ -638,7 +638,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const observer = new MutationObserver((mutations, obs) => {
                 if (videoContainer.querySelector('iframe')) {
-                    if (spinner) spinner.style.display = 'none';
+                    const loadingDiv = videoContainer.querySelector('.video-loading');
+                    if (loadingDiv) loadingDiv.style.display = 'none';
                     if (blockquote) blockquote.style.visibility = 'visible';
                     obs.disconnect(); // Stop observing once the iframe is loaded
                 }
@@ -647,19 +648,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // 4. Load TikTok embed after a short delay to ensure DOM is ready
             setTimeout(() => {
-                console.log('Attempting to load TikTok embed...');
-                console.log('window.tiktokEmbed exists:', !!window.tiktokEmbed);
-                
                 if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    console.log('Calling window.tiktokEmbed.load()');
                     window.tiktokEmbed.load();
                 } else {
-                    console.log('TikTok embed not available, loading script...');
                     // Fallback: try to load the script if it's not available
                     const script = document.createElement('script');
                     script.src = 'https://www.tiktok.com/embed.js';
                     script.onload = () => {
-                        console.log('TikTok script loaded, calling load()');
                         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                             window.tiktokEmbed.load();
                         }
