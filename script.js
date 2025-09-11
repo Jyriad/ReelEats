@@ -98,24 +98,45 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         async function loadRestaurantsForCity(cityId) {
             console.time('Supabase restaurants query');
+            // This new query fetches all restaurants for a given city.
+            // For each restaurant, it also fetches the 'embed_html' from the linked 'tiktoks' table,
+            // but only for the specific video that is marked as 'is_featured'.
             const { data: restaurants, error } = await supabaseClient
                 .from('restaurants')
-                .select('name, lat, lon, description, tiktok_embed_html, city_id')
-                .eq('city_id', cityId);
+                .select(`
+                    *,
+                    tiktoks (
+                        embed_html
+                    )
+                `)
+                .eq('city_id', cityId)
+                .eq('tiktoks.is_featured', true);
             console.timeEnd('Supabase restaurants query');
 
-            if (error) throw error;
+            if (error) {
+                console.error("Error fetching restaurants:", error);
+                throw error;
+            }
             
-            currentRestaurants = restaurants;
-            // Filter restaurants based on current map bounds for initial load
+            // The data now comes in a nested format (e.g., { name: 'Bunsik', tiktoks: [{...}] }).
+            // We need to flatten it to the structure the rest of the app expects.
+            currentRestaurants = restaurants.map(r => ({
+                ...r,
+                // Create the 'tiktok_embed_html' property the app uses.
+                // If a restaurant has no featured video, this will correctly be null.
+                tiktok_embed_html: r.tiktoks.length > 0 ? r.tiktoks[0].embed_html : null
+            }));
+
+            // The rest of this function can now proceed exactly as it did before,
+            // as we have prepared the data in the format it understands.
             const bounds = map.getBounds();
-            const visibleRestaurants = restaurants.filter(restaurant => 
+            const visibleRestaurants = currentRestaurants.filter(restaurant => 
                 bounds.contains([restaurant.lat, restaurant.lon])
             );
             
             console.time('Display restaurants');
             // Load visible restaurants first, then others
-            displayRestaurantsOptimized(visibleRestaurants, restaurants);
+            displayRestaurantsOptimized(visibleRestaurants, currentRestaurants);
             console.timeEnd('Display restaurants');
             
             // Start preloading videos after a short delay
