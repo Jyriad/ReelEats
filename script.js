@@ -29,6 +29,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Skeleton loading functions
         function showSkeletonLoading() {
+            console.log('Showing skeleton loading...');
+            if (!restaurantList) {
+                console.error('restaurantList element not found!');
+                return;
+            }
+            
             restaurantList.innerHTML = '';
             
             // Create 6 skeleton items for a realistic loading state
@@ -46,17 +52,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                 `;
                 restaurantList.appendChild(skeletonItem);
             }
+            console.log('Skeleton items added:', restaurantList.children.length);
         }
 
         function hideSkeletonLoading() {
+            console.log('Hiding skeleton loading...');
             // Remove any remaining skeleton items
             const skeletonItems = restaurantList.querySelectorAll('.skeleton-item');
+            console.log('Found skeleton items to remove:', skeletonItems.length);
             skeletonItems.forEach(item => item.remove());
         }
 
         async function loadCities() {
             // Show skeleton loading immediately
             showSkeletonLoading();
+            
+            // Add a small delay to ensure skeleton is visible
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             const { data: cities, error } = await supabaseClient.from('cities').select('*');
             if (error) throw error;
@@ -83,6 +95,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         async function loadRestaurantsForCity(cityId) {
+            const startTime = Date.now();
+            
             const { data: restaurants, error } = await supabaseClient
                 .from('restaurants')
                 .select('name, lat, lon, description, tiktok_embed_html, city_id')
@@ -96,6 +110,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const visibleRestaurants = restaurants.filter(restaurant => 
                 bounds.contains([restaurant.lat, restaurant.lon])
             );
+            
+            // Ensure skeleton is visible for at least 800ms for better UX
+            const elapsed = Date.now() - startTime;
+            const minDisplayTime = 800;
+            if (elapsed < minDisplayTime) {
+                await new Promise(resolve => setTimeout(resolve, minDisplayTime - elapsed));
+            }
             
             // Load visible restaurants first, then others
             displayRestaurantsOptimized(visibleRestaurants, restaurants);
