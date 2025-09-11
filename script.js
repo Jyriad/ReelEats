@@ -4,9 +4,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Warm up the database connection
-supabaseClient.from('cities').select('id').limit(1);
-
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         const map = L.map('map', { preferCanvas: true }).setView([51.5074, -0.1278], 13);
