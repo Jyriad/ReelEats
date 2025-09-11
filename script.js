@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function showVideoFor(restaurant, index) {
             // 1. Setup the modal and show the old loading animation
-            videoContainer.innerHTML = '<div class="video-loading"><div class="tiktok-loading-spinner"></div></div>';
+            videoContainer.innerHTML = '<div class="video-loading"><div class="video-loading-spinner"></div><div class="video-loading-text">Loading video...</div></div>';
             if (videoTitleEl) {
                 videoTitleEl.textContent = restaurant.name || '';
                 videoTitleEl.classList.remove('hidden');
