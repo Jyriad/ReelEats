@@ -27,8 +27,46 @@ document.addEventListener('DOMContentLoaded', async function() {
         let preloadedVideos = new Set();
         let restaurantNumbering = new Map(); // Maps restaurant index to display number
 
+        // Skeleton loading functions
+        function showSkeletonLoading() {
+            if (!restaurantList) {
+                console.error('restaurantList element not found!');
+                return;
+            }
+            
+            restaurantList.innerHTML = '';
+            
+            // Create 6 skeleton items for a realistic loading state
+            for (let i = 0; i < 6; i++) {
+                const skeletonItem = document.createElement('div');
+                skeletonItem.className = 'skeleton-item';
+                skeletonItem.innerHTML = `
+                    <div class="skeleton-number"></div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-description"></div>
+                        <div class="skeleton-description"></div>
+                        <div class="skeleton-button"></div>
+                    </div>
+                `;
+                restaurantList.appendChild(skeletonItem);
+            }
+        }
+
+        function hideSkeletonLoading() {
+            // Remove any remaining skeleton items
+            const skeletonItems = restaurantList.querySelectorAll('.skeleton-item');
+            skeletonItems.forEach(item => item.remove());
+        }
+
         async function loadCities() {
+            console.time('Total load time');
+            // Show skeleton loading immediately
+            showSkeletonLoading();
+            
+            console.time('Cities query');
             const { data: cities, error } = await supabaseClient.from('cities').select('*');
+            console.timeEnd('Cities query');
             if (error) throw error;
             
             citySelect.innerHTML = '';
@@ -42,33 +80,64 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             if (cities.length > 0) {
+                console.time('Restaurants query');
                 await loadRestaurantsForCity(cities[0].id);
+                console.timeEnd('Restaurants query');
+                
+                console.time('Map flyTo');
                 map.flyTo([cities[0].lat, cities[0].lon], 12);
+                console.timeEnd('Map flyTo');
                 
                 // Start aggressive preloading after initial load
                 setTimeout(() => {
                     preloadVisibleVideos();
                 }, 1000);
             }
+            console.timeEnd('Total load time');
         }
         
         async function loadRestaurantsForCity(cityId) {
+            console.time('Supabase restaurants query');
+            // This new query fetches all restaurants for a given city.
+            // For each restaurant, it also fetches the 'embed_html' from the linked 'tiktoks' table,
+            // but only for the specific video that is marked as 'is_featured'.
             const { data: restaurants, error } = await supabaseClient
                 .from('restaurants')
-                .select('name, lat, lon, description, tiktok_embed_html, city_id')
-                .eq('city_id', cityId);
+                .select(`
+                    *,
+                    tiktoks (
+                        embed_html
+                    )
+                `)
+                .eq('city_id', cityId)
+                .eq('tiktoks.is_featured', true);
+            console.timeEnd('Supabase restaurants query');
 
-            if (error) throw error;
+            if (error) {
+                console.error("Error fetching restaurants:", error);
+                throw error;
+            }
             
-            currentRestaurants = restaurants;
-            // Filter restaurants based on current map bounds for initial load
+            // The data now comes in a nested format (e.g., { name: 'Bunsik', tiktoks: [{...}] }).
+            // We need to flatten it to the structure the rest of the app expects.
+            currentRestaurants = restaurants.map(r => ({
+                ...r,
+                // Create the 'tiktok_embed_html' property the app uses.
+                // If a restaurant has no featured video, this will correctly be null.
+                tiktok_embed_html: r.tiktoks.length > 0 ? r.tiktoks[0].embed_html : null
+            }));
+
+            // The rest of this function can now proceed exactly as it did before,
+            // as we have prepared the data in the format it understands.
             const bounds = map.getBounds();
-            const visibleRestaurants = restaurants.filter(restaurant => 
+            const visibleRestaurants = currentRestaurants.filter(restaurant => 
                 bounds.contains([restaurant.lat, restaurant.lon])
             );
             
+            console.time('Display restaurants');
             // Load visible restaurants first, then others
-            displayRestaurantsOptimized(visibleRestaurants, restaurants);
+            displayRestaurantsOptimized(visibleRestaurants, currentRestaurants);
+            console.timeEnd('Display restaurants');
             
             // Start preloading videos after a short delay
             setTimeout(() => {
@@ -78,6 +147,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Optimized restaurant display with viewport-based loading
         function displayRestaurantsOptimized(visibleRestaurants, allRestaurants) {
+            // Hide skeleton loading and clear existing content
+            hideSkeletonLoading();
             restaurantList.innerHTML = '';
             restaurantMarkers.forEach(marker => map.removeLayer(marker));
             restaurantMarkers = [];
@@ -269,6 +340,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const lon = selectedOption.dataset.lon;
             
             if (cityId) {
+                // Show skeleton loading when switching cities
+                showSkeletonLoading();
                 await loadRestaurantsForCity(cityId);
                 map.flyTo([lat, lon], 12);
             }
@@ -543,68 +616,56 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function showVideoFor(restaurant, index) {
-            videoContainer.innerHTML = '';
+            // 1. Setup the modal and show the old loading animation
+            videoContainer.innerHTML = '<div class="video-loading"><div class="video-loading-spinner"></div><div class="video-loading-text">Loading video...</div></div>';
             if (videoTitleEl) {
                 videoTitleEl.textContent = restaurant.name || '';
                 videoTitleEl.classList.remove('hidden');
             }
             videoModal.classList.add('show');
             highlightListItem(index);
-            
-            const videoId = extractVideoId(restaurant.tiktok_embed_html);
-            
-            if (!videoId) {
-                showVideoErrorState();
+
+            // 2. Check if there is embed HTML
+            if (!restaurant.tiktok_embed_html) {
+                showVideoErrorState("No video available for this location.");
                 return;
             }
 
-            // Check if video is already cached/preloaded
-            if (videoCache.has(videoId)) {
-                const cachedIframe = videoCache.get(videoId);
-                const clonedIframe = cachedIframe.cloneNode(true);
-                clonedIframe.style.opacity = '1';
-                clonedIframe.style.transition = 'opacity 0.3s ease';
-                videoContainer.appendChild(clonedIframe);
-                return;
-            }
+            // 3. Set up observer first, then insert TikTok embed
+            const observer = new MutationObserver((mutations, obs) => {
+                if (videoContainer.querySelector('iframe')) {
+                    const loadingDiv = videoContainer.querySelector('.video-loading');
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    const blockquote = videoContainer.querySelector('.tiktok-embed');
+                    if (blockquote) blockquote.style.display = 'block';
+                    obs.disconnect(); // Stop observing once the iframe is loaded
+                }
+            });
+            observer.observe(videoContainer, { childList: true, subtree: true });
 
-            // Show loading state for non-cached videos
-            showVideoLoadingState();
-            
-            // Create optimized iframe
-            const iframe = document.createElement('iframe');
-            iframe.width = '330';
-            iframe.height = '585';
-            iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.setAttribute('loading', 'eager');
-            iframe.style.background = '#000';
-            iframe.style.border = 'none';
-            iframe.style.opacity = '0';
-            iframe.style.transition = 'opacity 0.3s ease';
-            
-            // Optimize connection with preconnect hints
-            const link = document.createElement('link');
-            link.rel = 'preconnect';
-            link.href = 'https://www.tiktok.com';
-            document.head.appendChild(link);
-            
-            // Add load event listener
-            iframe.addEventListener('load', () => {
-                hideVideoLoadingState();
-                iframe.style.opacity = '1';
-                // Cache the loaded iframe for future use
-                videoCache.set(videoId, iframe.cloneNode(true));
-            });
-            
-            iframe.addEventListener('error', () => {
-                showVideoErrorState();
-            });
-            
-            // Set source with optimized parameters
-            iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US&autoplay=0&mute=1`;
-            
-            videoContainer.appendChild(iframe);
+            // 4. Insert TikTok embed with immediate hiding
+            setTimeout(() => {
+                videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
+                const blockquote = videoContainer.querySelector('.tiktok-embed');
+                if (blockquote) {
+                    blockquote.style.display = 'none'; // Hide immediately
+                }
+
+                // Load TikTok embed
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    window.tiktokEmbed.load();
+                } else {
+                    // Fallback: try to load the script if it's not available
+                    const script = document.createElement('script');
+                    script.src = 'https://www.tiktok.com/embed.js';
+                    script.onload = () => {
+                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            window.tiktokEmbed.load();
+                        }
+                    };
+                    document.head.appendChild(script);
+                }
+            }, 100);
         }
 
         function showVideoLoadingState() {
@@ -624,13 +685,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
-        function showVideoErrorState() {
+        function showVideoErrorState(message = "Failed to load video") {
             hideVideoLoadingState();
             const errorDiv = document.createElement('div');
             errorDiv.className = 'video-loading';
             errorDiv.innerHTML = `
                 <div class="tiktok-logo">⚠️</div>
-                <div class="video-loading-text">Failed to load video</div>
+                <div class="video-loading-text">${message}</div>
             `;
             videoContainer.appendChild(errorDiv);
         }

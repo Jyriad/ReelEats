@@ -234,28 +234,122 @@ html, body {
         display: flex;
         flex-direction: column;
     }
-    /* Mobile drawer handle - clean rebuild */
-    #drawer-handle { 
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 8px 0;
-        cursor: ns-resize;
-        touch-action: none;
-        position: relative;
-        z-index: 5;
-        flex-shrink: 0;
-        background: transparent;
+/* Mobile drawer handle - clean rebuild */
+#drawer-handle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 0;
+    cursor: ns-resize;
+    touch-action: none;
+    position: relative;
+    z-index: 5;
+    flex-shrink: 0;
+    background: transparent;
+}
+
+#drawer-handle::after {
+    content: '';
+    width: 40px;
+    height: 4px;
+    background: #9ca3af;
+    border-radius: 2px;
+    display: block;
+}
+
+/* Skeleton loading styles */
+.skeleton-item {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    margin-bottom: 16px;
+    min-height: 80px;
+}
+
+.skeleton-number {
+    width: 24px;
+    height: 24px;
+    background: #e5e7eb;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.skeleton-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.skeleton-title {
+    height: 20px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    width: 70%;
+}
+
+.skeleton-description {
+    height: 14px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    width: 90%;
+}
+
+.skeleton-description:last-of-type {
+    width: 60%;
+    margin-bottom: 8px;
+}
+
+.skeleton-button {
+    height: 28px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    width: 100px;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Mobile skeleton adjustments */
+@media (max-width: 767px) {
+    .skeleton-item {
+        padding: 8px 2px;
+        min-height: 60px;
     }
     
-    #drawer-handle::after {
-        content: '';
-        width: 40px;
-        height: 4px;
-        background: #9ca3af;
-        border-radius: 2px;
-        display: block;
+    .skeleton-number {
+        width: 20px;
+        height: 20px;
+        margin-right: 6px;
     }
+    
+    .skeleton-title {
+        height: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .skeleton-description {
+        height: 10px;
+        margin-bottom: 6px;
+    }
+    
+    .skeleton-button {
+        height: 20px;
+        width: 60px;
+        margin-top: 4px;
+    }
+}
     /* Center modal content with better mobile positioning */
     .modal-content-wrapper { top: -60px; }
     #video-modal { padding-bottom: 0; padding-top: 40px; }
