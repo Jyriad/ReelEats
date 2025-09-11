@@ -260,18 +260,22 @@ html, body {
 /* Skeleton loading styles */
 .skeleton-item {
     background: white;
-    padding: 8px 4px;
+    padding: 16px;
     border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    border: 2px solid #e5e7eb;
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
     animation: skeleton-pulse 1.5s ease-in-out infinite;
+    margin-bottom: 16px;
+    min-height: 80px;
+    /* Temporary bright border for debugging */
+    border-color: #3b82f6;
 }
 
 .skeleton-number {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     background: #e5e7eb;
     border-radius: 50%;
     flex-shrink: 0;
@@ -283,15 +287,15 @@ html, body {
 }
 
 .skeleton-title {
-    height: 16px;
+    height: 20px;
     background: #e5e7eb;
     border-radius: 4px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     width: 70%;
 }
 
 .skeleton-description {
-    height: 12px;
+    height: 14px;
     background: #e5e7eb;
     border-radius: 4px;
     margin-bottom: 8px;
@@ -304,10 +308,10 @@ html, body {
 }
 
 .skeleton-button {
-    height: 24px;
+    height: 28px;
     background: #e5e7eb;
     border-radius: 4px;
-    width: 80px;
+    width: 100px;
 }
 
 @keyframes skeleton-pulse {

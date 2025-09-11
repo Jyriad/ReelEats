@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
             
+            console.log('Restaurant list element found:', restaurantList);
+            console.log('Restaurant list current content:', restaurantList.innerHTML);
+            
             restaurantList.innerHTML = '';
             
             // Create 6 skeleton items for a realistic loading state
@@ -53,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 restaurantList.appendChild(skeletonItem);
             }
             console.log('Skeleton items added:', restaurantList.children.length);
+            console.log('Restaurant list after adding skeletons:', restaurantList.innerHTML.substring(0, 200) + '...');
         }
 
         function hideSkeletonLoading() {
