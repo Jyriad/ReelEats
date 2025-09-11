@@ -616,68 +616,44 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function showVideoFor(restaurant, index) {
-            videoContainer.innerHTML = '';
+            // 1. Setup the modal and show the spinner
+            videoContainer.innerHTML = '<div class="loading-spinner"></div>';
             if (videoTitleEl) {
                 videoTitleEl.textContent = restaurant.name || '';
                 videoTitleEl.classList.remove('hidden');
             }
             videoModal.classList.add('show');
             highlightListItem(index);
-            
-            const videoId = extractVideoId(restaurant.tiktok_embed_html);
-            
-            if (!videoId) {
-                showVideoErrorState();
+
+            // 2. Check if there is embed HTML
+            if (!restaurant.tiktok_embed_html) {
+                showVideoErrorState("No video available for this location.");
                 return;
             }
 
-            // Check if video is already cached/preloaded
-            if (videoCache.has(videoId)) {
-                const cachedIframe = videoCache.get(videoId);
-                const clonedIframe = cachedIframe.cloneNode(true);
-                clonedIframe.style.opacity = '1';
-                clonedIframe.style.transition = 'opacity 0.3s ease';
-                videoContainer.appendChild(clonedIframe);
-                return;
-            }
+            // 3. Insert the blockquote and start observing
+            videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
+            const spinner = videoContainer.querySelector('.loading-spinner');
+            const blockquote = videoContainer.querySelector('.tiktok-embed');
 
-            // Show loading state for non-cached videos
-            showVideoLoadingState();
-            
-            // Create optimized iframe
-            const iframe = document.createElement('iframe');
-            iframe.width = '330';
-            iframe.height = '585';
-            iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.setAttribute('loading', 'eager');
-            iframe.style.background = '#000';
-            iframe.style.border = 'none';
-            iframe.style.opacity = '0';
-            iframe.style.transition = 'opacity 0.3s ease';
-            
-            // Optimize connection with preconnect hints
-            const link = document.createElement('link');
-            link.rel = 'preconnect';
-            link.href = 'https://www.tiktok.com';
-            document.head.appendChild(link);
-            
-            // Add load event listener
-            iframe.addEventListener('load', () => {
-                hideVideoLoadingState();
-                iframe.style.opacity = '1';
-                // Cache the loaded iframe for future use
-                videoCache.set(videoId, iframe.cloneNode(true));
+            const observer = new MutationObserver((mutations, obs) => {
+                if (videoContainer.querySelector('iframe')) {
+                    if (spinner) spinner.style.display = 'none';
+                    if (blockquote) blockquote.style.visibility = 'visible';
+                    obs.disconnect(); // Stop observing once the iframe is loaded
+                }
             });
-            
-            iframe.addEventListener('error', () => {
-                showVideoErrorState();
+            observer.observe(videoContainer, { childList: true, subtree: true });
+
+            // 4. Use the reliable script loading manager to process the embed
+            tiktokScriptManager.onReady(() => {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    // Use a timeout to ensure the DOM has updated before the script runs
+                    setTimeout(() => {
+                        window.tiktokEmbed.load();
+                    }, 0);
+                }
             });
-            
-            // Set source with optimized parameters
-            iframe.src = `https://www.tiktok.com/embed/${videoId}?lang=en-US&autoplay=0&mute=1`;
-            
-            videoContainer.appendChild(iframe);
         }
 
         function showVideoLoadingState() {
@@ -697,13 +673,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
-        function showVideoErrorState() {
+        function showVideoErrorState(message = "Failed to load video") {
             hideVideoLoadingState();
             const errorDiv = document.createElement('div');
             errorDiv.className = 'video-loading';
             errorDiv.innerHTML = `
                 <div class="tiktok-logo">⚠️</div>
-                <div class="video-loading-text">Failed to load video</div>
+                <div class="video-loading-text">${message}</div>
             `;
             videoContainer.appendChild(errorDiv);
         }
