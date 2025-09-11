@@ -63,10 +63,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         async function loadCities() {
+            console.time('Total load time');
             // Show skeleton loading immediately
             showSkeletonLoading();
             
+            console.time('Cities query');
             const { data: cities, error } = await supabaseClient.from('cities').select('*');
+            console.timeEnd('Cities query');
             if (error) throw error;
             
             citySelect.innerHTML = '';
@@ -80,21 +83,29 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             if (cities.length > 0) {
+                console.time('Restaurants query');
                 await loadRestaurantsForCity(cities[0].id);
+                console.timeEnd('Restaurants query');
+                
+                console.time('Map flyTo');
                 map.flyTo([cities[0].lat, cities[0].lon], 12);
+                console.timeEnd('Map flyTo');
                 
                 // Start aggressive preloading after initial load
                 setTimeout(() => {
                     preloadVisibleVideos();
                 }, 1000);
             }
+            console.timeEnd('Total load time');
         }
         
         async function loadRestaurantsForCity(cityId) {
+            console.time('Supabase restaurants query');
             const { data: restaurants, error } = await supabaseClient
                 .from('restaurants')
                 .select('name, lat, lon, description, tiktok_embed_html, city_id')
                 .eq('city_id', cityId);
+            console.timeEnd('Supabase restaurants query');
 
             if (error) throw error;
             
@@ -105,8 +116,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 bounds.contains([restaurant.lat, restaurant.lon])
             );
             
+            console.time('Display restaurants');
             // Load visible restaurants first, then others
             displayRestaurantsOptimized(visibleRestaurants, restaurants);
+            console.timeEnd('Display restaurants');
             
             // Start preloading videos after a short delay
             setTimeout(() => {
