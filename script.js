@@ -631,16 +631,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            // 3. Insert the blockquote and start observing
+            // 3. Insert the blockquote (hidden initially) and start observing
             videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
-            const spinner = videoContainer.querySelector('.loading-spinner');
             const blockquote = videoContainer.querySelector('.tiktok-embed');
+            if (blockquote) {
+                blockquote.style.display = 'none'; // Hide the TikTok embed initially
+            }
 
             const observer = new MutationObserver((mutations, obs) => {
                 if (videoContainer.querySelector('iframe')) {
                     const loadingDiv = videoContainer.querySelector('.video-loading');
                     if (loadingDiv) loadingDiv.style.display = 'none';
-                    if (blockquote) blockquote.style.visibility = 'visible';
+                    if (blockquote) blockquote.style.display = 'block'; // Show the TikTok embed
                     obs.disconnect(); // Stop observing once the iframe is loaded
                 }
             });
