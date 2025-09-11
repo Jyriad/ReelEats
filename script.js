@@ -95,25 +95,49 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         async function loadRestaurantsForCity(cityId) {
-            const { data: restaurants, error } = await supabaseClient
-                .from('restaurants')
-                .select(`
-                    *,
-                    tiktoks (
-                        embed_html
-                    )
-                `)
-                .eq('city_id', cityId)
-                .eq('tiktoks.is_featured', true);
+            // --- FIX: Use a more robust two-query approach ---
 
-            if (error) {
-                console.error("Error fetching restaurants:", error);
-                throw error;
+            // 1. Fetch all restaurants for the selected city.
+            const { data: restaurants, error: restaurantsError } = await supabaseClient
+                .from('restaurants')
+                .select('*')
+                .eq('city_id', cityId);
+
+            if (restaurantsError) {
+                console.error("Error fetching restaurants:", restaurantsError);
+                throw restaurantsError;
             }
-            
+
+            if (!restaurants || restaurants.length === 0) {
+                currentRestaurants = [];
+                displayRestaurants([]);
+                return;
+            }
+
+            // 2. Fetch only the featured TikToks for those specific restaurants.
+            const restaurantIds = restaurants.map(r => r.id);
+            const { data: tiktoks, error: tiktoksError } = await supabaseClient
+                .from('tiktoks')
+                .select('restaurant_id, embed_html')
+                .in('restaurant_id', restaurantIds)
+                .eq('is_featured', true);
+
+            if (tiktoksError) {
+                // Log the error but don't stop execution, so restaurants still display.
+                console.error("Error fetching tiktoks:", tiktoksError);
+            }
+
+            // 3. Join the data together in JavaScript.
+            const tiktokMap = new Map();
+            if (tiktoks) {
+                tiktoks.forEach(t => {
+                    tiktokMap.set(t.restaurant_id, t.embed_html);
+                });
+            }
+
             currentRestaurants = restaurants.map(r => ({
                 ...r,
-                tiktok_embed_html: r.tiktoks.length > 0 ? r.tiktoks[0].embed_html : null
+                tiktok_embed_html: tiktokMap.get(r.id) || null
             }));
             
             displayRestaurants(currentRestaurants);
@@ -123,6 +147,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             restaurantList.innerHTML = '';
             restaurantMarkers.forEach(marker => map.removeLayer(marker));
             restaurantMarkers = [];
+
+            if (restaurants.length === 0) {
+                restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
+                return;
+            }
 
             restaurants.forEach((restaurant, index) => {
                 const listItem = createListItem(restaurant, index);
@@ -158,7 +187,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function showVideoFor(restaurant) {
             if (!restaurant.tiktok_embed_html) {
-                // Handle case where there's no video
                 videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
                 videoModal.classList.add('show');
                 return;
@@ -183,6 +211,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                 setTimeout(() => window.tiktokEmbed.load(), 0);
+            } else {
+                 const script = document.createElement('script');
+                 script.src = 'https://www.tiktok.com/embed.js';
+                 script.async = true;
+                 document.body.appendChild(script);
             }
         }
 
@@ -205,3 +238,4 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
     }
 });
+
