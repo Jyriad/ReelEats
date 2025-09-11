@@ -631,25 +631,27 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            // 3. Insert the blockquote (hidden initially) and start observing
-            videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
-            const blockquote = videoContainer.querySelector('.tiktok-embed');
-            if (blockquote) {
-                blockquote.style.display = 'none'; // Hide the TikTok embed initially
-            }
-
+            // 3. Set up observer first, then insert TikTok embed
             const observer = new MutationObserver((mutations, obs) => {
                 if (videoContainer.querySelector('iframe')) {
                     const loadingDiv = videoContainer.querySelector('.video-loading');
                     if (loadingDiv) loadingDiv.style.display = 'none';
-                    if (blockquote) blockquote.style.display = 'block'; // Show the TikTok embed
+                    const blockquote = videoContainer.querySelector('.tiktok-embed');
+                    if (blockquote) blockquote.style.display = 'block';
                     obs.disconnect(); // Stop observing once the iframe is loaded
                 }
             });
             observer.observe(videoContainer, { childList: true, subtree: true });
 
-            // 4. Load TikTok embed after a short delay to ensure DOM is ready
+            // 4. Insert TikTok embed with immediate hiding
             setTimeout(() => {
+                videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
+                const blockquote = videoContainer.querySelector('.tiktok-embed');
+                if (blockquote) {
+                    blockquote.style.display = 'none'; // Hide immediately
+                }
+
+                // Load TikTok embed
                 if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                     window.tiktokEmbed.load();
                 } else {
