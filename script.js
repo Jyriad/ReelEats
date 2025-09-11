@@ -647,13 +647,19 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // 4. Load TikTok embed after a short delay to ensure DOM is ready
             setTimeout(() => {
+                console.log('Attempting to load TikTok embed...');
+                console.log('window.tiktokEmbed exists:', !!window.tiktokEmbed);
+                
                 if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    console.log('Calling window.tiktokEmbed.load()');
                     window.tiktokEmbed.load();
                 } else {
+                    console.log('TikTok embed not available, loading script...');
                     // Fallback: try to load the script if it's not available
                     const script = document.createElement('script');
                     script.src = 'https://www.tiktok.com/embed.js';
                     script.onload = () => {
+                        console.log('TikTok script loaded, calling load()');
                         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                             window.tiktokEmbed.load();
                         }
