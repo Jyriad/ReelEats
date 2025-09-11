@@ -27,7 +27,37 @@ document.addEventListener('DOMContentLoaded', async function() {
         let preloadedVideos = new Set();
         let restaurantNumbering = new Map(); // Maps restaurant index to display number
 
+        // Skeleton loading functions
+        function showSkeletonLoading() {
+            restaurantList.innerHTML = '';
+            
+            // Create 6 skeleton items for a realistic loading state
+            for (let i = 0; i < 6; i++) {
+                const skeletonItem = document.createElement('div');
+                skeletonItem.className = 'skeleton-item';
+                skeletonItem.innerHTML = `
+                    <div class="skeleton-number"></div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-description"></div>
+                        <div class="skeleton-description"></div>
+                        <div class="skeleton-button"></div>
+                    </div>
+                `;
+                restaurantList.appendChild(skeletonItem);
+            }
+        }
+
+        function hideSkeletonLoading() {
+            // Remove any remaining skeleton items
+            const skeletonItems = restaurantList.querySelectorAll('.skeleton-item');
+            skeletonItems.forEach(item => item.remove());
+        }
+
         async function loadCities() {
+            // Show skeleton loading immediately
+            showSkeletonLoading();
+            
             const { data: cities, error } = await supabaseClient.from('cities').select('*');
             if (error) throw error;
             
@@ -78,6 +108,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Optimized restaurant display with viewport-based loading
         function displayRestaurantsOptimized(visibleRestaurants, allRestaurants) {
+            // Hide skeleton loading and clear existing content
+            hideSkeletonLoading();
             restaurantList.innerHTML = '';
             restaurantMarkers.forEach(marker => map.removeLayer(marker));
             restaurantMarkers = [];
@@ -269,6 +301,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const lon = selectedOption.dataset.lon;
             
             if (cityId) {
+                // Show skeleton loading when switching cities
+                showSkeletonLoading();
                 await loadRestaurantsForCity(cityId);
                 map.flyTo([lat, lon], 12);
             }
