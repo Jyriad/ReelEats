@@ -645,15 +645,22 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             observer.observe(videoContainer, { childList: true, subtree: true });
 
-            // 4. Use the reliable script loading manager to process the embed
-            tiktokScriptManager.onReady(() => {
+            // 4. Load TikTok embed after a short delay to ensure DOM is ready
+            setTimeout(() => {
                 if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    // Use a timeout to ensure the DOM has updated before the script runs
-                    setTimeout(() => {
-                        window.tiktokEmbed.load();
-                    }, 0);
+                    window.tiktokEmbed.load();
+                } else {
+                    // Fallback: try to load the script if it's not available
+                    const script = document.createElement('script');
+                    script.src = 'https://www.tiktok.com/embed.js';
+                    script.onload = () => {
+                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            window.tiktokEmbed.load();
+                        }
+                    };
+                    document.head.appendChild(script);
                 }
-            });
+            }, 100);
         }
 
         function showVideoLoadingState() {
