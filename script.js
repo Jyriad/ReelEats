@@ -188,23 +188,41 @@ document.addEventListener('DOMContentLoaded', async function() {
         // script.js
 
 function showVideoFor(restaurant) {
+    console.log('Video function called for:', restaurant.name);
+    console.log('Embed HTML exists:', !!restaurant.tiktok_embed_html);
+    
     if (!restaurant.tiktok_embed_html) {
         videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
         videoModal.classList.add('show');
         return;
     }
 
-    // Show modal and inject TikTok embed
+    console.log('Embed HTML content:', restaurant.tiktok_embed_html);
+    
+    // Show modal and inject the exact embed HTML
     videoModal.classList.add('show');
     videoContainer.innerHTML = restaurant.tiktok_embed_html;
     
-    // Simple timeout to remove loading after TikTok has had time to process
+    console.log('Modal shown, HTML injected');
+    console.log('Container content after injection:', videoContainer.innerHTML);
+    
+    // Give TikTok script time to process
     setTimeout(() => {
-        // Trigger TikTok script if available
+        console.log('Checking for tiktokEmbed:', !!window.tiktokEmbed);
         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+            console.log('Calling tiktokEmbed.load()');
             window.tiktokEmbed.load();
+        } else {
+            console.log('tiktokEmbed not available or no load function');
         }
-    }, 100);
+        
+        // Check what elements exist after processing
+        setTimeout(() => {
+            const iframes = videoContainer.querySelectorAll('iframe');
+            const blockquotes = videoContainer.querySelectorAll('blockquote');
+            console.log(`Found ${iframes.length} iframes and ${blockquotes.length} blockquotes`);
+        }, 1000);
+    }, 500);
 }
 
         function closeVideo() {
