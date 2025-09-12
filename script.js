@@ -258,6 +258,19 @@ function showVideoFor(restaurant) {
         } else if (tiktokEmbed && tiktokEmbed.querySelector('iframe, video')) {
             console.log('✅ TikTok embed with content detected');
             finishLoading();
+        } else if (tiktokEmbed && tiktokEmbed.getAttribute('data-video-id')) {
+            // TikTok blockquote is present and has video ID - this means it's ready for processing
+            console.log('✅ TikTok blockquote with video ID detected - considering ready');
+            // Give TikTok script a moment to process, then finish loading
+            setTimeout(() => {
+                const updatedIframe = videoContainer.querySelector('iframe');
+                if (updatedIframe) {
+                    console.log('✅ TikTok script created iframe');
+                } else {
+                    console.log('⚠️ TikTok script hasn\'t created iframe yet, but blockquote is valid');
+                }
+                finishLoading();
+            }, 2000);
         }
     };
     
@@ -304,10 +317,27 @@ function showVideoFor(restaurant) {
                 console.error('❌ Error reloading TikTok embed:', error);
             }
         } else {
-            console.log('📥 TikTok embed not available, loading script...');
+            console.log('📥 TikTok embed not available, checking for script...');
             // Check if script already exists
             const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
-            if (!existingScript) {
+            if (existingScript) {
+                console.log('ℹ️ TikTok script already exists, waiting for it to be ready...');
+                // Script exists but window.tiktokEmbed might not be ready yet
+                let retryCount = 0;
+                const waitForTikTok = () => {
+                    retryCount++;
+                    console.log(`🔄 Attempt #${retryCount} - Checking for tiktokEmbed...`);
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        console.log('✅ TikTok embed now available, calling load()');
+                        window.tiktokEmbed.load();
+                    } else if (retryCount < 10) {
+                        setTimeout(waitForTikTok, 500);
+                    } else {
+                        console.log('⚠️ Gave up waiting for tiktokEmbed after 10 attempts');
+                    }
+                };
+                setTimeout(waitForTikTok, 500);
+            } else {
                 const script = document.createElement('script');
                 script.src = 'https://www.tiktok.com/embed.js';
                 script.async = true;
@@ -327,8 +357,6 @@ function showVideoFor(restaurant) {
                 };
                 document.body.appendChild(script);
                 console.log('📝 TikTok script tag added to body');
-            } else {
-                console.log('ℹ️ TikTok script already exists');
             }
         }
     };
