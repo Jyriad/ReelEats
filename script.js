@@ -212,30 +212,22 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // script.js
 
-function showVideoFor(restaurant) {
-    if (!restaurant.tiktok_embed_html) {
-        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
-        videoModal.classList.add('show');
-        return;
-    }
-
-    // Show modal and inject embed HTML
-    videoModal.classList.add('show');
-    videoContainer.innerHTML = restaurant.tiktok_embed_html;
-    
-    // Make blockquote visible immediately (remove visibility: hidden)
-    const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-    blockquotes.forEach(bq => {
-        bq.style.visibility = 'visible';
-    });
-    
-    // Trigger TikTok script after a brief delay
-    setTimeout(() => {
-        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-            window.tiktokEmbed.load();
+        function showVideoFor(restaurant) {
+            if (!restaurant.tiktok_embed_html) {
+                videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
+            } else {
+                // Just add the embed HTML. The TikTok script will handle the rest.
+                videoContainer.innerHTML = restaurant.tiktok_embed_html;
+            }
+        
+            // Show the modal
+            videoModal.classList.add('show');
+        
+            // Optional: Let TikTok's script find the new embed.
+            if (restaurant.tiktok_embed_html && window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                window.tiktokEmbed.load();
+            }
         }
-    }, 100);
-}
 
         function closeVideo() {
             videoModal.classList.remove('show');
