@@ -188,7 +188,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // script.js
 
 function showVideoFor(restaurant) {
+    console.log('🎬 showVideoFor called for restaurant:', restaurant.name);
+    console.log('🔍 Embed HTML:', restaurant.tiktok_embed_html);
+    
     if (!restaurant.tiktok_embed_html) {
+        console.log('❌ No embed HTML found for restaurant');
         videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
         videoModal.classList.add('show');
         return;
@@ -205,34 +209,60 @@ function showVideoFor(restaurant) {
 
     // 2. Add the loading class BEFORE injecting the TikTok HTML
     videoContainer.classList.add('loading-video');
+    console.log('🔄 Loading state initiated');
     
     // 3. Inject the embed HTML (it will be transparent due to our new CSS)
     videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
+    console.log('📝 Embed HTML injected');
+    console.log('🔍 Container after injection:', videoContainer.innerHTML);
     
     // 4. Enhanced detection for when the video is ready
     let loadingTimeout;
     let checkInterval;
+    let checkCount = 0;
     
     const checkVideoReady = () => {
+        checkCount++;
+        console.log(`🔍 Check #${checkCount} - Looking for video elements`);
+        
         // Look for various indicators that the TikTok embed is ready
         const iframe = videoContainer.querySelector('iframe');
         const tiktokEmbed = videoContainer.querySelector('.tiktok-embed, blockquote[data-video-id], blockquote[cite*="tiktok"]');
         const video = videoContainer.querySelector('video');
+        const allElements = videoContainer.querySelectorAll('*');
+        
+        console.log('📊 Found elements:', {
+            iframe: !!iframe,
+            tiktokEmbed: !!tiktokEmbed, 
+            video: !!video,
+            totalElements: allElements.length
+        });
+        
+        if (iframe) {
+            console.log('🎯 Iframe found:', iframe.src);
+        }
+        if (tiktokEmbed) {
+            console.log('🎯 TikTok embed found:', tiktokEmbed);
+        }
+        if (video) {
+            console.log('🎯 Video element found:', video);
+        }
         
         // Check if iframe has loaded content or video element exists
-        if (iframe && (iframe.contentDocument || iframe.src)) {
-            console.log('TikTok iframe detected and ready');
+        if (iframe && iframe.src) {
+            console.log('✅ TikTok iframe detected and ready');
             finishLoading();
         } else if (video) {
-            console.log('TikTok video element detected');
+            console.log('✅ TikTok video element detected');
             finishLoading();
         } else if (tiktokEmbed && tiktokEmbed.querySelector('iframe, video')) {
-            console.log('TikTok embed with content detected');
+            console.log('✅ TikTok embed with content detected');
             finishLoading();
         }
     };
     
     const finishLoading = () => {
+        console.log('🎉 Finishing loading - removing loading state');
         videoContainer.classList.remove('loading-video');
         if (loadingTimeout) clearTimeout(loadingTimeout);
         if (checkInterval) clearInterval(checkInterval);
@@ -240,6 +270,7 @@ function showVideoFor(restaurant) {
     
     // Use MutationObserver for immediate detection
     const observer = new MutationObserver((mutations, obs) => {
+        console.log('🔄 DOM mutation detected');
         checkVideoReady();
     });
     observer.observe(videoContainer, { 
@@ -250,25 +281,30 @@ function showVideoFor(restaurant) {
     });
 
     // Also check periodically in case MutationObserver misses something
-    checkInterval = setInterval(checkVideoReady, 500);
+    checkInterval = setInterval(checkVideoReady, 1000);
     
-    // Fallback: Remove loading after 10 seconds regardless
+    // Fallback: Remove loading after 15 seconds regardless
     loadingTimeout = setTimeout(() => {
-        console.log('TikTok embed loading timeout - removing loading state');
+        console.log('⏰ TikTok embed loading timeout - removing loading state');
         finishLoading();
         observer.disconnect();
-    }, 10000);
+    }, 15000);
+
+    // Do initial check
+    setTimeout(checkVideoReady, 100);
 
     // 5. Enhanced TikTok script loading
     const loadTikTokScript = () => {
+        console.log('🚀 Loading TikTok script...');
         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
             try {
                 window.tiktokEmbed.load();
-                console.log('TikTok embed script reloaded');
+                console.log('✅ TikTok embed script reloaded');
             } catch (error) {
-                console.error('Error reloading TikTok embed:', error);
+                console.error('❌ Error reloading TikTok embed:', error);
             }
         } else {
+            console.log('📥 TikTok embed not available, loading script...');
             // Check if script already exists
             const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
             if (!existingScript) {
@@ -276,23 +312,29 @@ function showVideoFor(restaurant) {
                 script.src = 'https://www.tiktok.com/embed.js';
                 script.async = true;
                 script.onload = () => {
-                    console.log('TikTok embed script loaded');
+                    console.log('✅ TikTok embed script loaded successfully');
                     setTimeout(() => {
                         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            console.log('🔄 Calling tiktokEmbed.load()');
                             window.tiktokEmbed.load();
+                        } else {
+                            console.log('⚠️ tiktokEmbed.load still not available after script load');
                         }
                     }, 100);
                 };
                 script.onerror = () => {
-                    console.error('Failed to load TikTok embed script');
+                    console.error('❌ Failed to load TikTok embed script');
                 };
                 document.body.appendChild(script);
+                console.log('📝 TikTok script tag added to body');
+            } else {
+                console.log('ℹ️ TikTok script already exists');
             }
         }
     };
     
     // Load TikTok script after a brief delay to ensure DOM is ready
-    setTimeout(loadTikTokScript, 100);
+    setTimeout(loadTikTokScript, 200);
 }
 
         function closeVideo() {
