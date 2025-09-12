@@ -213,91 +213,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         // script.js
 
 function showVideoFor(restaurant) {
-    try {
-        console.log('🎬 Video function called for:', restaurant.name, '- ENHANCED VERSION v0.76');
-    console.log('Embed HTML exists:', !!restaurant.tiktok_embed_html);
-    
     if (!restaurant.tiktok_embed_html) {
         videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
         videoModal.classList.add('show');
         return;
     }
 
-    console.log('Embed HTML content:', restaurant.tiktok_embed_html);
-    
-    // Show modal and inject the exact embed HTML
+    // Show modal and inject embed HTML
     videoModal.classList.add('show');
     videoContainer.innerHTML = restaurant.tiktok_embed_html;
     
-    console.log('Modal shown, HTML injected');
-    console.log('Container content after injection:', videoContainer.innerHTML);
+    // Make blockquote visible immediately (remove visibility: hidden)
+    const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+    blockquotes.forEach(bq => {
+        bq.style.visibility = 'visible';
+    });
     
-    // Give TikTok script time to process
+    // Trigger TikTok script after a brief delay
     setTimeout(() => {
-        console.log('Checking for tiktokEmbed:', !!window.tiktokEmbed);
-        
-        if (window.tiktokEmbed) {
-            console.log('tiktokEmbed object:', window.tiktokEmbed);
-            console.log('Available methods:', Object.keys(window.tiktokEmbed));
-            
-            // Try different possible method names
-            if (typeof window.tiktokEmbed.load === 'function') {
-                console.log('Calling tiktokEmbed.load()');
-                window.tiktokEmbed.load();
-            } else if (typeof window.tiktokEmbed.init === 'function') {
-                console.log('Calling tiktokEmbed.init()');
-                window.tiktokEmbed.init();
-            } else if (typeof window.tiktokEmbed.process === 'function') {
-                console.log('Calling tiktokEmbed.process()');
-                window.tiktokEmbed.process();
-            } else if (typeof window.tiktokEmbed.render === 'function') {
-                console.log('Calling tiktokEmbed.render()');
-                window.tiktokEmbed.render();
-            } else {
-                console.log('No recognized methods found, trying to trigger manually');
-                // Try dispatching a custom event that TikTok might listen for
-                const event = new Event('DOMContentLoaded');
-                document.dispatchEvent(event);
-                
-                // Also try calling any function that exists
-                const methods = Object.keys(window.tiktokEmbed).filter(key => 
-                    typeof window.tiktokEmbed[key] === 'function'
-                );
-                console.log('Available function methods:', methods);
-                if (methods.length > 0) {
-                    console.log(`Trying to call ${methods[0]}()`);
-                    try {
-                        window.tiktokEmbed[methods[0]]();
-                    } catch (e) {
-                        console.log('Method call failed:', e);
-                    }
-                }
-            }
-        } else {
-            console.log('tiktokEmbed not available');
+        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+            window.tiktokEmbed.load();
         }
-        
-        // Check what elements exist after processing
-        setTimeout(() => {
-            const iframes = videoContainer.querySelectorAll('iframe');
-            const blockquotes = videoContainer.querySelectorAll('blockquote');
-            console.log(`After processing: Found ${iframes.length} iframes and ${blockquotes.length} blockquotes`);
-            
-            // If still no iframe, try removing the visibility:hidden style
-            if (iframes.length === 0 && blockquotes.length > 0) {
-                console.log('No iframe created, trying to show blockquote by removing visibility:hidden');
-                blockquotes.forEach(bq => {
-                    bq.style.visibility = 'visible';
-                    console.log('Made blockquote visible');
-                });
-            }
-        }, 2000);
-    }, 500);
-    } catch (error) {
-        console.error('Error in showVideoFor:', error);
-        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">Error loading video</div>`;
-        videoModal.classList.add('show');
-    }
+    }, 100);
 }
 
         function closeVideo() {
