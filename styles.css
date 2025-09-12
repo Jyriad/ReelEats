@@ -12,6 +12,10 @@ html, body {
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
 }
+
+.video-container .tiktok-embed {
+    visibility: hidden; /* Hide the blockquote until the iframe is ready */
+}
 .custom-scrollbar::-webkit-scrollbar-track {
     background: #f3f4f6;
 }
@@ -64,6 +68,30 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* styles.css */
+
+/* Keep your existing .video-loading styles, but add these new rules */
+
+/* This new class will be added via JS to the video container */
+.loading-video .video-loading {
+    display: flex; /* Show the spinner when loading */
+    z-index: 2; /* Ensure it's on top */
+}
+
+.loading-video .tiktok-embed {
+    opacity: 0; /* Make the embed fully transparent while loading */
+}
+
+/* When the video is ready, we'll hide the spinner and show the embed */
+.video-loading {
+    display: none; /* Hide spinner by default */
+}
+
+.tiktok-embed {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out; /* Optional: Nice fade-in effect */
 }
 .video-loading {
     position: absolute;

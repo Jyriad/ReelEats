@@ -185,39 +185,51 @@ document.addEventListener('DOMContentLoaded', async function() {
             return marker;
         }
 
-        function showVideoFor(restaurant) {
-            if (!restaurant.tiktok_embed_html) {
-                videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
-                videoModal.classList.add('show');
-                return;
-            }
+        // script.js
 
-            videoContainer.innerHTML = '<div class="loading-spinner"></div>';
-            videoModal.classList.add('show');
-            
-            videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
-            
-            const spinner = videoContainer.querySelector('.loading-spinner');
-            const blockquote = videoContainer.querySelector('.tiktok-embed');
+function showVideoFor(restaurant) {
+    if (!restaurant.tiktok_embed_html) {
+        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
+        videoModal.classList.add('show');
+        return;
+    }
 
-            const observer = new MutationObserver((mutations, obs) => {
-                if (videoContainer.querySelector('iframe')) {
-                    if (spinner) spinner.style.display = 'none';
-                    if (blockquote) blockquote.style.visibility = 'visible';
-                    obs.disconnect();
-                }
-            });
-            observer.observe(videoContainer, { childList: true, subtree: true });
+    // 1. Show the modal and prepare the loading HTML
+    videoModal.classList.add('show');
+    videoContainer.innerHTML = `
+        <div class="video-loading">
+            <div class="video-loading-spinner"></div>
+            <div class="video-loading-text">Loading Reel...</div>
+        </div>
+    `;
 
-            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                setTimeout(() => window.tiktokEmbed.load(), 0);
-            } else {
-                 const script = document.createElement('script');
-                 script.src = 'https://www.tiktok.com/embed.js';
-                 script.async = true;
-                 document.body.appendChild(script);
-            }
+    // 2. Add the loading class BEFORE injecting the TikTok HTML
+    videoContainer.classList.add('loading-video');
+    
+    // 3. Inject the embed HTML (it will be transparent due to our new CSS)
+    videoContainer.insertAdjacentHTML('beforeend', restaurant.tiktok_embed_html);
+    
+    const observer = new MutationObserver((mutations, obs) => {
+        const iframe = videoContainer.querySelector('iframe');
+        if (iframe) {
+            // 4. Once the iframe is ready, remove the loading class.
+            //    CSS will handle the transition to show the video.
+            videoContainer.classList.remove('loading-video');
+            obs.disconnect();
         }
+    });
+    observer.observe(videoContainer, { childList: true, subtree: true });
+
+    // 5. Trigger the TikTok script to process the embed
+    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+        setTimeout(() => window.tiktokEmbed.load(), 0);
+    } else {
+        const script = document.createElement('script');
+        script.src = 'https://www.tiktok.com/embed.js';
+        script.async = true;
+        document.body.appendChild(script);
+    }
+}
 
         function closeVideo() {
             videoModal.classList.remove('show');
@@ -238,5 +250,4 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
     }
 });
-
 
