@@ -213,20 +213,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         // script.js
 
         function showVideoFor(restaurant) {
+            // First, clear any previous video content to ensure a clean slate.
+            videoContainer.innerHTML = '';
+        
             if (!restaurant.tiktok_embed_html) {
                 videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
-            } else {
-                // Just add the embed HTML. The TikTok script will handle the rest.
-                videoContainer.innerHTML = restaurant.tiktok_embed_html;
+                videoModal.classList.add('show');
+                return;
             }
         
-            // Show the modal
+            // 1. Inject the TikTok embed HTML into the container while the modal is still hidden.
+            videoContainer.innerHTML = restaurant.tiktok_embed_html;
+        
+            // 2. Make the modal visible. This starts the CSS transition.
             videoModal.classList.add('show');
         
-            // Optional: Let TikTok's script find the new embed.
-            if (restaurant.tiktok_embed_html && window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                window.tiktokEmbed.load();
-            }
+            // 3. Use a short delay. This waits for the modal to become fully visible before
+            //    telling the TikTok script to find and load the video.
+            setTimeout(() => {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    window.tiktokEmbed.load();
+                }
+            }, 150); // A 150ms delay is usually enough time for the modal to render.
         }
 
         function closeVideo() {
