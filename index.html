@@ -3,16 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CSP temporarily disabled for TikTok embed testing -->
-    <!-- <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' https: data:;
-    style-src 'self' 'unsafe-inline' https: data:;
-    img-src 'self' data: https:;
-    frame-src 'self' https:;
-    connect-src 'self' https: data:;
-    "> -->
-    <title>London Food Map Supabase v0.72</title>
+    <!-- Completely permissive CSP for TikTok embed testing -->
+    <meta http-equiv="Content-Security-Policy" content="default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; frame-src *; connect-src * data: blob:; font-src *; object-src *; media-src *; child-src *;">
+    <title>London Food Map Supabase v0.73</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -38,7 +31,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-2 md:px-4 shadow flex-shrink-0 z-20 border-b border-gray-200">
-        <h1 class="text-lg md:text-2xl font-bold truncate">London Food Map v0.72 🗺️</h1>
+        <h1 class="text-lg md:text-2xl font-bold truncate">London Food Map v0.73 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
