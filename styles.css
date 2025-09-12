@@ -13,9 +13,7 @@ html, body {
     width: 8px;
 }
 
-.video-container .tiktok-embed {
-    visibility: hidden; /* Hide the blockquote until the iframe is ready */
-}
+
 .custom-scrollbar::-webkit-scrollbar-track {
     background: #f3f4f6;
 }
@@ -435,3 +433,4 @@ html, body {
         min-height: 60px;
     }
 }
+
