@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let currentRestaurants = [];
         let restaurantMarkers = [];
         let map; // Define map in a broader scope
+        let mapInitialized = false; // Prevent double initialization
 
         // --- Initialization ---
         initializeMap();
@@ -26,27 +27,35 @@ document.addEventListener('DOMContentLoaded', async function() {
         // --- Core Functions ---
 
         function initializeMap() {
+            if (mapInitialized) {
+                console.log('Map already initialized, skipping...');
+                return;
+            }
+            
             try {
+                console.log('Initializing map...');
                 // Check if map is already initialized
                 if (map) {
                     map.remove();
+                    map = null;
                 }
+                
+                // Clear any existing content
+                mapElement.innerHTML = '';
+                mapElement._leaflet_id = null;
+                
                 map = L.map(mapElement, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap &copy; CARTO',
                     subdomains: 'abcd',
                     maxZoom: 20
                 }).addTo(map);
+                
+                mapInitialized = true;
+                console.log('Map initialized successfully');
             } catch (error) {
                 console.error('Map initialization error:', error);
-                // Try to clear the map element and reinitialize
-                mapElement.innerHTML = '';
-                map = L.map(mapElement, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; OpenStreetMap &copy; CARTO',
-                    subdomains: 'abcd',
-                    maxZoom: 20
-                }).addTo(map);
+                mapInitialized = false;
             }
         }
 
