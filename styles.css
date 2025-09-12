@@ -68,28 +68,13 @@ html, body {
     justify-content: center;
 }
 
-/* styles.css */
-
-/* Keep your existing .video-loading styles, but add these new rules */
-
-/* This new class will be added via JS to the video container */
-.loading-video .video-loading {
-    display: flex; /* Show the spinner when loading */
-    z-index: 2; /* Ensure it's on top */
-}
-
-.loading-video .tiktok-embed {
-    opacity: 0; /* Make the embed fully transparent while loading */
-}
-
-/* When the video is ready, we'll hide the spinner and show the embed */
+/* Simplified video loading styles */
 .video-loading {
-    display: none; /* Hide spinner by default */
+    display: none; /* Hide spinner by default - let TikTok handle loading */
 }
 
 .tiktok-embed {
     opacity: 1;
-    transition: opacity 0.3s ease-in-out; /* Optional: Nice fade-in effect */
 }
 .video-loading {
     position: absolute;
