@@ -26,12 +26,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         // --- Core Functions ---
 
         function initializeMap() {
-            map = L.map(mapElement, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
+            try {
+                // Check if map is already initialized
+                if (map) {
+                    map.remove();
+                }
+                map = L.map(mapElement, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }).addTo(map);
+            } catch (error) {
+                console.error('Map initialization error:', error);
+                // Try to clear the map element and reinitialize
+                mapElement.innerHTML = '';
+                map = L.map(mapElement, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }).addTo(map);
+            }
         }
 
         async function loadCitiesAndInitialRestaurants() {
@@ -188,7 +204,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // script.js
 
 function showVideoFor(restaurant) {
-    console.log('Video function called for:', restaurant.name);
+    try {
+        console.log('🎬 Video function called for:', restaurant.name, '- ENHANCED VERSION v0.76');
     console.log('Embed HTML exists:', !!restaurant.tiktok_embed_html);
     
     if (!restaurant.tiktok_embed_html) {
@@ -267,6 +284,11 @@ function showVideoFor(restaurant) {
             }
         }, 2000);
     }, 500);
+    } catch (error) {
+        console.error('Error in showVideoFor:', error);
+        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">Error loading video</div>`;
+        videoModal.classList.add('show');
+    }
 }
 
         function closeVideo() {
