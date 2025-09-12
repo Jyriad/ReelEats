@@ -212,30 +212,89 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // script.js
 
-        function showVideoFor(restaurant) {
-            if (!restaurant.tiktok_embed_html) {
-                videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
-                videoModal.classList.add('show');
-                return;
-            }
+function showVideoFor(restaurant) {
+    if (!restaurant.tiktok_embed_html) {
+        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
+        videoModal.classList.add('show');
+        return;
+    }
+
+    // Extract video ID from embed HTML
+    const videoIdMatch = restaurant.tiktok_embed_html.match(/data-video-id="(\d+)"/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+    
+    console.log('🎬 Loading video:', videoId);
+
+    // Show modal
+    videoModal.classList.add('show');
+    
+    if (videoId) {
+        // Try direct iframe approach first
+        console.log('Trying direct iframe approach...');
+        videoContainer.innerHTML = `
+            <iframe 
+                src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
+                width="330" 
+                height="585" 
+                frameborder="0" 
+                allowfullscreen
+                allow="encrypted-media"
+                style="border: none; background: white;">
+            </iframe>
+        `;
         
-            // Show modal and inject embed HTML
-            videoModal.classList.add('show');
-            videoContainer.innerHTML = restaurant.tiktok_embed_html;
-            
-            // Make blockquote visible immediately (remove visibility: hidden)
-            const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-            blockquotes.forEach(bq => {
-                bq.style.visibility = 'visible';
-            });
-            
-            // Trigger TikTok script after a brief delay
-            setTimeout(() => {
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    window.tiktokEmbed.load();
-                }
-            }, 100);
-        }
+        // If iframe doesn't work after 3 seconds, try blockquote approach
+        setTimeout(() => {
+            const iframe = videoContainer.querySelector('iframe');
+            if (iframe) {
+                iframe.onload = () => {
+                    console.log('✅ Direct iframe loaded');
+                };
+                iframe.onerror = () => {
+                    console.log('❌ Direct iframe failed, trying blockquote...');
+                    fallbackToBlockquote();
+                };
+                
+                // Also check if iframe content is loading after 3 seconds
+                setTimeout(() => {
+                    try {
+                        // Check if iframe has content
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        if (!iframeDoc || iframeDoc.body.children.length === 0) {
+                            console.log('⚠️ Iframe appears empty, trying blockquote...');
+                            fallbackToBlockquote();
+                        }
+                    } catch (e) {
+                        // Cross-origin, which is expected - iframe is probably working
+                        console.log('✅ Iframe cross-origin (likely working)');
+                    }
+                }, 3000);
+            }
+        }, 100);
+    } else {
+        console.log('No video ID found, using blockquote...');
+        fallbackToBlockquote();
+    }
+    
+    function fallbackToBlockquote() {
+        console.log('🔄 Falling back to blockquote approach...');
+        videoContainer.innerHTML = restaurant.tiktok_embed_html;
+        
+        // Make blockquote visible
+        const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+        blockquotes.forEach(bq => {
+            bq.style.visibility = 'visible';
+            bq.style.display = 'block';
+        });
+        
+        // Trigger TikTok script
+        setTimeout(() => {
+            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                window.tiktokEmbed.load();
+            }
+        }, 100);
+    }
+}
 
         function closeVideo() {
             videoModal.classList.remove('show');
