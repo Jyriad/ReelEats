@@ -260,25 +260,23 @@
 
                     <!-- Recent Items Section -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Recent Restaurants -->
+                        <!-- Recent Restaurants (Collapsible) -->
                         <div class="bg-white shadow rounded-lg">
                             <div class="px-4 py-5 sm:p-6">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Recent Restaurants</h3>
-                                <div id="recent-restaurants" class="space-y-2 max-h-64 overflow-y-auto">
-                                    <div class="text-sm text-gray-500">Loading...</div>
+                                <div class="flex items-center justify-between cursor-pointer" onclick="toggleRecentRestaurants()">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Restaurants</h3>
+                                    <svg id="recent-restaurants-arrow" class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                                <div id="recent-restaurants-content" class="hidden mt-4">
+                                    <div id="recent-restaurants" class="space-y-2 max-h-64 overflow-y-auto">
+                                        <div class="text-sm text-gray-500">Loading...</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Recent TikTok Videos -->
-                        <div class="bg-white shadow rounded-lg">
-                            <div class="px-4 py-5 sm:p-6">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Recent TikTok Videos</h3>
-                                <div id="recent-tiktoks" class="space-y-2 max-h-64 overflow-y-auto">
-                                    <div class="text-sm text-gray-500">Loading...</div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Restaurants Without Videos -->
@@ -342,6 +340,6 @@
         </div>
     </div>
 
-    <script src="admin.js?v=97"></script>
+    <script src="admin.js?v=99"></script>
 </body>
 </html>

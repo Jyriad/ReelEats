@@ -64,7 +64,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadDashboardData();
     await loadCitiesForSelect();
     await loadRecentRestaurants();
-    await loadRecentTikToks();
     await loadRestaurantsWithoutVideos();
     
     // Set up event listeners
@@ -181,55 +180,47 @@ async function loadRecentRestaurants() {
     }
 }
 
-// Load recent TikTok videos
-async function loadRecentTikToks() {
-    try {
-        const { data: tiktoks, error } = await supabaseClient
-            .from('tiktoks')
-            .select('id, embed_html, is_featured, created_at, restaurant_id')
-            .order('created_at', { ascending: false })
-            .limit(10);
-        
-        if (error) throw error;
-        
-        const container = document.getElementById('recent-tiktoks');
-        
-        if (tiktoks.length === 0) {
-            container.innerHTML = '<div class="text-sm text-gray-500">No TikTok videos found</div>';
-            return;
-        }
-        
-        container.innerHTML = tiktoks.map(tiktok => `
-            <div class="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
-                <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Restaurant ID: ${tiktok.restaurant_id || 'Unknown'}</h5>
-                    <p class="text-sm text-gray-600 truncate">${tiktok.embed_html ? 'Has embed code' : 'No embed'}</p>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="text-xs text-gray-500">${new Date(tiktok.created_at).toLocaleDateString()}</span>
-                        ${tiktok.is_featured ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Featured</span>' : ''}
-                    </div>
-                </div>
-                <button onclick="deleteTikTok(${tiktok.id})" 
-                        class="text-red-600 hover:text-red-800 text-sm ml-2">
-                    Delete
-                </button>
-            </div>
-        `).join('');
-        
-    } catch (error) {
-        console.error('🚨 Error loading recent TikToks:', error);
-        console.error('🚨 Full error object:', JSON.stringify(error, null, 2));
-        console.error('🚨 Error message:', error.message);
-        console.error('🚨 Error code:', error.code);
-        console.error('🚨 Error details:', error.details);
-        console.error('🚨 Error hint:', error.hint);
-        
-        // Update the container to show error instead of loading
-        const container = document.getElementById('recent-tiktoks');
-        container.innerHTML = `<div class="text-sm text-red-500">Error: ${error.message || 'Unknown error'}</div>`;
-        
-        showStatus(`Error loading TikTok videos: ${error.message}`, 'error');
+// Toggle recent restaurants section
+function toggleRecentRestaurants() {
+    const content = document.getElementById('recent-restaurants-content');
+    const arrow = document.getElementById('recent-restaurants-arrow');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
     }
+}
+
+// Select restaurant from "Restaurants Without Videos" to pre-fill TikTok form
+function selectRestaurantForTikTok(restaurantId, restaurantName) {
+    console.log('🎯 Selecting restaurant for TikTok:', { restaurantId, restaurantName });
+    
+    // Pre-fill the TikTok form
+    document.getElementById('selected-restaurant-id').value = restaurantId;
+    document.getElementById('selected-restaurant-name').textContent = restaurantName;
+    
+    // Show the selected restaurant section
+    document.getElementById('selected-restaurant').classList.remove('hidden');
+    
+    // Enable the submit button
+    document.querySelector('#add-tiktok-form button[type="submit"]').disabled = false;
+    
+    // Scroll to the TikTok form section
+    document.getElementById('add-tiktok-form').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+    
+    // Focus on the TikTok URL input
+    setTimeout(() => {
+        document.getElementById('tiktok-url').focus();
+    }, 500);
+    
+    // Show success message
+    showStatus(`Selected "${restaurantName}" - ready to add TikTok video!`, 'success');
 }
 
 // Load restaurants without TikTok videos
@@ -265,7 +256,8 @@ async function loadRestaurantsWithoutVideos() {
         }
         
         container.innerHTML = restaurantsWithoutVideos.map(restaurant => `
-            <div class="flex justify-between items-start p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex justify-between items-start p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors duration-200" 
+                 onclick="selectRestaurantForTikTok(${restaurant.id}, '${restaurant.name.replace(/'/g, "\\'")}')">
                 <div class="flex-1">
                     <h5 class="font-medium text-gray-900">${restaurant.name}</h5>
                     <p class="text-sm text-gray-600">City ID: ${restaurant.city_id || 'Unknown'}</p>
@@ -273,7 +265,7 @@ async function loadRestaurantsWithoutVideos() {
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                        No Video
+                        Click to Add Video
                     </span>
                 </div>
             </div>
@@ -327,7 +319,6 @@ function setupEventListeners() {
         showStatus('Refreshing data...', 'info');
         await loadDashboardData();
         await loadRecentRestaurants();
-        await loadRecentTikToks();
         await loadRestaurantsWithoutVideos();
         showStatus('Data refreshed successfully!', 'success');
     });
@@ -961,7 +952,6 @@ async function handleAddTikTok(e) {
         
         // Refresh data
         await loadDashboardData();
-        await loadRecentTikToks();
         await loadRestaurantsWithoutVideos();
         
         showStatus('TikTok video added successfully!', 'success');
