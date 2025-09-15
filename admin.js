@@ -265,6 +265,17 @@ function setupEventListeners() {
 async function handleAddRestaurant(e) {
     e.preventDefault();
     
+    // Debug: Check current authentication status
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    console.log('🔐 Current session:', session);
+    console.log('🔐 User ID:', session?.user?.id);
+    console.log('🔐 User email:', session?.user?.email);
+    
+    if (!session) {
+        showStatus('Not authenticated! Please refresh and log in again.', 'error');
+        return;
+    }
+    
     const lat = document.getElementById('restaurant-lat').value;
     const lon = document.getElementById('restaurant-lon').value;
     
@@ -282,6 +293,8 @@ async function handleAddRestaurant(e) {
         google_place_id: document.getElementById('google-place-id').value || null
     };
     
+    console.log('📝 Form data to insert:', formData);
+    
     try {
         // Add restaurant
         const { data: restaurant, error: restaurantError } = await supabaseClient
@@ -290,7 +303,15 @@ async function handleAddRestaurant(e) {
             .select()
             .single();
         
-        if (restaurantError) throw restaurantError;
+        if (restaurantError) {
+            console.error('🚨 Restaurant insert error details:', restaurantError);
+            console.error('🚨 Error code:', restaurantError.code);
+            console.error('🚨 Error message:', restaurantError.message);
+            console.error('🚨 Error details:', restaurantError.details);
+            throw restaurantError;
+        }
+        
+        console.log('✅ Restaurant added successfully:', restaurant);
         
         // Reset form
         resetRestaurantForm();
@@ -302,7 +323,8 @@ async function handleAddRestaurant(e) {
         showStatus('Restaurant added successfully!', 'success');
         
     } catch (error) {
-        console.error('Error adding restaurant:', error);
+        console.error('🚨 Complete error object:', error);
+        console.error('🚨 Error adding restaurant:', error);
         showStatus('Error adding restaurant: ' + error.message, 'error');
     }
 }
