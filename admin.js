@@ -134,13 +134,7 @@ async function loadRecentRestaurants() {
     try {
         const { data: restaurants, error } = await supabaseClient
             .from('restaurants')
-            .select(`
-                id,
-                name,
-                description,
-                created_at,
-                cities (name)
-            `)
+            .select('id, name, description, created_at, city_id')
             .order('created_at', { ascending: false })
             .limit(10);
         
@@ -157,7 +151,7 @@ async function loadRecentRestaurants() {
             <div class="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
                 <div class="flex-1">
                     <h5 class="font-medium text-gray-900">${restaurant.name}</h5>
-                    <p class="text-sm text-gray-600">${restaurant.cities?.name || 'Unknown City'}</p>
+                    <p class="text-sm text-gray-600">City ID: ${restaurant.city_id || 'Unknown'}</p>
                     <p class="text-xs text-gray-500 mt-1">${new Date(restaurant.created_at).toLocaleDateString()}</p>
                 </div>
                 <button onclick="deleteRestaurant(${restaurant.id})" 
@@ -178,14 +172,7 @@ async function loadRecentTikToks() {
     try {
         const { data: tiktoks, error } = await supabaseClient
             .from('tiktoks')
-            .select(`
-                id,
-                video_url,
-                title,
-                is_featured,
-                created_at,
-                restaurants (name, id)
-            `)
+            .select('id, video_url, title, is_featured, created_at, restaurant_id')
             .order('created_at', { ascending: false })
             .limit(10);
         
@@ -201,7 +188,7 @@ async function loadRecentTikToks() {
         container.innerHTML = tiktoks.map(tiktok => `
             <div class="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
                 <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">${tiktok.restaurants?.name || 'Unknown Restaurant'}</h5>
+                    <h5 class="font-medium text-gray-900">Restaurant ID: ${tiktok.restaurant_id || 'Unknown'}</h5>
                     <p class="text-sm text-gray-600">${tiktok.title || 'No title'}</p>
                     <div class="flex items-center gap-2 mt-1">
                         <span class="text-xs text-gray-500">${new Date(tiktok.created_at).toLocaleDateString()}</span>
@@ -359,10 +346,9 @@ async function handleFindOnMap() {
     statusEl.textContent = 'Searching...';
     statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
     
-    try {
-        // Try new Places API (New) first, fall back to legacy if not available
-        const useNewAPI = true; // Set to true to use the new REST API
-        
+    const useNewAPI = false; // Set to false temporarily to use legacy API while fixing issues
+    
+    try {        
         if (useNewAPI) {
             // Use new Places API (New) - REST API
             await searchWithNewAPI(restaurantName, statusEl);
@@ -686,17 +672,27 @@ function displayLocationOptions(places) {
     const resultsDiv = document.getElementById('location-results');
     const optionsDiv = document.getElementById('location-options');
     
-    optionsDiv.innerHTML = places.map((place, index) => `
-        <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors" 
-             onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')})">
-            <div class="font-medium text-gray-900">${place.name}</div>
-            <div class="text-sm text-gray-600">${place.formatted_address}</div>
-            <div class="text-xs text-gray-500 mt-1">
-                Lat: ${place.geometry.location.lat().toFixed(6)}, 
-                Lng: ${place.geometry.location.lng().toFixed(6)}
+    optionsDiv.innerHTML = places.map((place, index) => {
+        // Handle both new API format (direct values) and legacy API format (functions)
+        const lat = typeof place.geometry.location.lat === 'function' 
+            ? place.geometry.location.lat() 
+            : place.geometry.location.lat;
+        const lng = typeof place.geometry.location.lng === 'function' 
+            ? place.geometry.location.lng() 
+            : place.geometry.location.lng;
+            
+        return `
+            <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors" 
+                 onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')})">
+                <div class="font-medium text-gray-900">${place.name}</div>
+                <div class="text-sm text-gray-600">${place.formatted_address}</div>
+                <div class="text-xs text-gray-500 mt-1">
+                    Lat: ${lat.toFixed(6)}, 
+                    Lng: ${lng.toFixed(6)}
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
     
     resultsDiv.classList.remove('hidden');
 }
