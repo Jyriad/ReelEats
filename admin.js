@@ -163,6 +163,7 @@ async function loadRecentRestaurants() {
         
     } catch (error) {
         console.error('Error loading recent restaurants:', error);
+        console.error('Restaurant query error details:', error.message, error.details, error);
         showStatus('Error loading restaurants', 'error');
     }
 }
@@ -204,6 +205,7 @@ async function loadRecentTikToks() {
         
     } catch (error) {
         console.error('Error loading recent TikToks:', error);
+        console.error('TikTok query error details:', error.message, error.details, error);
         showStatus('Error loading TikTok videos', 'error');
     }
 }
@@ -348,11 +350,15 @@ async function handleFindOnMap() {
     
     const useNewAPI = false; // Set to false temporarily to use legacy API while fixing issues
     
+    console.log('🔍 useNewAPI flag:', useNewAPI);
+    
     try {        
         if (useNewAPI) {
+            console.log('🆕 Using NEW Places API...');
             // Use new Places API (New) - REST API
             await searchWithNewAPI(restaurantName, statusEl);
         } else {
+            console.log('🔄 Using LEGACY Places API...');
             // Fallback to legacy Places API
             await searchWithLegacyAPI(restaurantName, statusEl);
         }
