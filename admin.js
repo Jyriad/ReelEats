@@ -163,14 +163,18 @@ async function loadRecentRestaurants() {
         `).join('');
         
     } catch (error) {
-        console.error('Error loading recent restaurants:', error);
-        console.error('Restaurant query error details:', error.message, error.details, error);
+        console.error('🚨 Error loading recent restaurants:', error);
+        console.error('🚨 Full error object:', JSON.stringify(error, null, 2));
+        console.error('🚨 Error message:', error.message);
+        console.error('🚨 Error code:', error.code);
+        console.error('🚨 Error details:', error.details);
+        console.error('🚨 Error hint:', error.hint);
         
         // Update the container to show error instead of loading
         const container = document.getElementById('recent-restaurants');
-        container.innerHTML = '<div class="text-sm text-red-500">Error loading restaurants</div>';
+        container.innerHTML = `<div class="text-sm text-red-500">Error: ${error.message || 'Unknown error'}</div>`;
         
-        showStatus('Error loading restaurants', 'error');
+        showStatus(`Error loading restaurants: ${error.message}`, 'error');
     }
 }
 
@@ -179,7 +183,7 @@ async function loadRecentTikToks() {
     try {
         const { data: tiktoks, error } = await supabaseClient
             .from('tiktoks')
-            .select('id, video_url, title, is_featured, created_at, restaurant_id')
+            .select('id, video_url, is_featured, created_at, restaurant_id')
             .order('created_at', { ascending: false })
             .limit(10);
         
@@ -196,7 +200,7 @@ async function loadRecentTikToks() {
             <div class="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
                 <div class="flex-1">
                     <h5 class="font-medium text-gray-900">Restaurant ID: ${tiktok.restaurant_id || 'Unknown'}</h5>
-                    <p class="text-sm text-gray-600">${tiktok.title || 'No title'}</p>
+                    <p class="text-sm text-gray-600">${tiktok.video_url || 'No URL'}</p>
                     <div class="flex items-center gap-2 mt-1">
                         <span class="text-xs text-gray-500">${new Date(tiktok.created_at).toLocaleDateString()}</span>
                         ${tiktok.is_featured ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Featured</span>' : ''}
@@ -210,14 +214,18 @@ async function loadRecentTikToks() {
         `).join('');
         
     } catch (error) {
-        console.error('Error loading recent TikToks:', error);
-        console.error('TikTok query error details:', error.message, error.details, error);
+        console.error('🚨 Error loading recent TikToks:', error);
+        console.error('🚨 Full error object:', JSON.stringify(error, null, 2));
+        console.error('🚨 Error message:', error.message);
+        console.error('🚨 Error code:', error.code);
+        console.error('🚨 Error details:', error.details);
+        console.error('🚨 Error hint:', error.hint);
         
         // Update the container to show error instead of loading
         const container = document.getElementById('recent-tiktoks');
-        container.innerHTML = '<div class="text-sm text-red-500">Error loading TikTok videos</div>';
+        container.innerHTML = `<div class="text-sm text-red-500">Error: ${error.message || 'Unknown error'}</div>`;
         
-        showStatus('Error loading TikTok videos', 'error');
+        showStatus(`Error loading TikTok videos: ${error.message}`, 'error');
     }
 }
 
@@ -272,14 +280,18 @@ async function loadRestaurantsWithoutVideos() {
         document.getElementById('restaurants-without-videos-count').textContent = restaurantsWithoutVideos.length;
         
     } catch (error) {
-        console.error('Error loading restaurants without videos:', error);
-        console.error('Query error details:', error.message, error.details, error);
+        console.error('🚨 Error loading restaurants without videos:', error);
+        console.error('🚨 Full error object:', JSON.stringify(error, null, 2));
+        console.error('🚨 Error message:', error.message);
+        console.error('🚨 Error code:', error.code);
+        console.error('🚨 Error details:', error.details);
+        console.error('🚨 Error hint:', error.hint);
         
         // Update the container to show error instead of loading
         const container = document.getElementById('restaurants-without-videos');
-        container.innerHTML = '<div class="text-sm text-red-500">Error loading restaurants without videos</div>';
+        container.innerHTML = `<div class="text-sm text-red-500">Error: ${error.message || 'Unknown error'}</div>`;
         
-        showStatus('Error loading restaurants without videos', 'error');
+        showStatus(`Error loading restaurants without videos: ${error.message}`, 'error');
     }
 }
 
@@ -906,7 +918,6 @@ async function handleAddTikTok(e) {
     
     const restaurantId = document.getElementById('selected-restaurant-id').value;
     const tiktokUrl = document.getElementById('tiktok-url').value;
-    const title = document.getElementById('tiktok-title').value;
     const isFeatured = document.getElementById('is-featured').checked;
     
     if (!restaurantId) {
@@ -929,7 +940,6 @@ async function handleAddTikTok(e) {
                 restaurant_id: parseInt(restaurantId),
                 video_url: tiktokUrl,
                 embed_html: embedHtml,
-                title: title || null,
                 is_featured: isFeatured
             }]);
         
@@ -1079,14 +1089,43 @@ async function deleteTikTok(tiktokId) {
 // Check database connection status
 async function checkDatabaseStatus() {
     try {
-        const { data, error } = await supabaseClient
+        console.log('🔍 Testing database connection and table structure...');
+        
+        // Test restaurants table structure
+        console.log('🏪 Testing restaurants table...');
+        const { data: restaurantTest, error: restaurantError } = await supabaseClient
             .from('restaurants')
-            .select('id')
+            .select('*')
             .limit(1);
+            
+        if (restaurantError) {
+            console.error('❌ Restaurants table error:', restaurantError);
+        } else {
+            console.log('✅ Restaurants table accessible');
+            if (restaurantTest.length > 0) {
+                console.log('📊 Restaurant columns available:', Object.keys(restaurantTest[0]));
+            }
+        }
+        
+        // Test tiktoks table structure
+        console.log('🎬 Testing tiktoks table...');
+        const { data: tiktokTest, error: tiktokError } = await supabaseClient
+            .from('tiktoks')
+            .select('*')
+            .limit(1);
+            
+        if (tiktokError) {
+            console.error('❌ TikToks table error:', tiktokError);
+        } else {
+            console.log('✅ TikToks table accessible');
+            if (tiktokTest.length > 0) {
+                console.log('📊 TikTok columns available:', Object.keys(tiktokTest[0]));
+            }
+        }
         
         const statusEl = document.getElementById('db-status');
         
-        if (error) {
+        if (restaurantError || tiktokError) {
             statusEl.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Error</span>';
         } else {
             statusEl.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Connected</span>';
