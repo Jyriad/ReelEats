@@ -432,29 +432,108 @@ async function searchWithNewAPI(restaurantName, statusEl) {
 
 // Search using legacy Places API (fallback)
 async function searchWithLegacyAPI(restaurantName, statusEl) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const service = new google.maps.places.PlacesService(document.createElement('div'));
         
+        // First search with broader parameters
         const request = {
             query: restaurantName + ' restaurant',
             fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types']
         };
         
+        console.log('🔍 Searching for:', request.query);
+        
+        // Perform multiple searches for better coverage
+        let allResults = [];
+        let searchesCompleted = 0;
+        const totalSearches = 3;
+        
+        // Search 1: Standard search
         service.textSearch(request, (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
-                console.log('🔄 Legacy Places API response:', results);
-                displayLocationOptions(results);
-                statusEl.textContent = `Found ${results.length} location(s) (Legacy API)`;
-                statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
-                resolve(results);
-            } else {
-                statusEl.textContent = 'No locations found (Legacy API)';
-                statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
-                const error = new Error('No locations found for "' + restaurantName + '"');
-                showStatus(error.message, 'error');
-                reject(error);
+            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                console.log('🔄 Standard search results:', results.length);
+                allResults = allResults.concat(results);
             }
+            searchesCompleted++;
+            checkAndDisplayResults();
         });
+        
+        // Search 2: Search with UK bias
+        const ukRequest = {
+            ...request,
+            region: 'uk',
+            location: new google.maps.LatLng(54.7023545, -3.2765753), // Center of UK
+            radius: 500000 // 500km radius
+        };
+        
+        setTimeout(() => {
+            service.textSearch(ukRequest, (results, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                    console.log('🇬🇧 UK-biased search results:', results.length);
+                    allResults = allResults.concat(results);
+                }
+                searchesCompleted++;
+                checkAndDisplayResults();
+            });
+        }, 100);
+        
+        // Search 3: Search without "restaurant" term for chains
+        const chainRequest = {
+            query: restaurantName,
+            fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types'],
+            type: 'restaurant'
+        };
+        
+        setTimeout(() => {
+            service.textSearch(chainRequest, (results, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                    console.log('🏪 Chain search results:', results.length);
+                    allResults = allResults.concat(results);
+                }
+                searchesCompleted++;
+                checkAndDisplayResults();
+            });
+        }, 200);
+        
+        function checkAndDisplayResults() {
+            if (searchesCompleted === totalSearches) {
+                // Remove duplicates based on place_id
+                const uniqueResults = [];
+                const seenPlaceIds = new Set();
+                
+                allResults.forEach(result => {
+                    if (!seenPlaceIds.has(result.place_id)) {
+                        seenPlaceIds.add(result.place_id);
+                        uniqueResults.push(result);
+                    }
+                });
+                
+                console.log('🎯 Total unique results found:', uniqueResults.length);
+                
+                if (uniqueResults.length > 0) {
+                    // Sort by name similarity and distance
+                    const sortedResults = uniqueResults.sort((a, b) => {
+                        const aNameMatch = a.name.toLowerCase().includes(restaurantName.toLowerCase());
+                        const bNameMatch = b.name.toLowerCase().includes(restaurantName.toLowerCase());
+                        
+                        if (aNameMatch && !bNameMatch) return -1;
+                        if (!aNameMatch && bNameMatch) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                    
+                    displayLocationOptions(sortedResults.slice(0, 15)); // Show top 15 results
+                    statusEl.textContent = `Found ${sortedResults.length} location(s) (Enhanced Search)`;
+                    statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+                    resolve(sortedResults);
+                } else {
+                    statusEl.textContent = 'No locations found';
+                    statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+                    const error = new Error('No locations found for "' + restaurantName + '"');
+                    showStatus(error.message, 'error');
+                    reject(error);
+                }
+            }
+        }
     });
 }
 
