@@ -133,11 +133,14 @@ async function loadCitiesForSelect() {
 // Load recent restaurants
 async function loadRecentRestaurants() {
     try {
+        console.log('🏪 Loading recent restaurants...');
         const { data: restaurants, error } = await supabaseClient
             .from('restaurants')
             .select('id, name, description, created_at, city_id')
             .order('created_at', { ascending: false })
             .limit(10);
+            
+        console.log('🏪 Restaurants query result:', { restaurants, error });
         
         if (error) throw error;
         
@@ -183,7 +186,7 @@ async function loadRecentTikToks() {
     try {
         const { data: tiktoks, error } = await supabaseClient
             .from('tiktoks')
-            .select('id, video_url, is_featured, created_at, restaurant_id')
+            .select('id, embed_html, is_featured, created_at, restaurant_id')
             .order('created_at', { ascending: false })
             .limit(10);
         
@@ -200,7 +203,7 @@ async function loadRecentTikToks() {
             <div class="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
                 <div class="flex-1">
                     <h5 class="font-medium text-gray-900">Restaurant ID: ${tiktok.restaurant_id || 'Unknown'}</h5>
-                    <p class="text-sm text-gray-600">${tiktok.video_url || 'No URL'}</p>
+                    <p class="text-sm text-gray-600 truncate">${tiktok.embed_html ? 'Has embed code' : 'No embed'}</p>
                     <div class="flex items-center gap-2 mt-1">
                         <span class="text-xs text-gray-500">${new Date(tiktok.created_at).toLocaleDateString()}</span>
                         ${tiktok.is_featured ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Featured</span>' : ''}
@@ -934,11 +937,16 @@ async function handleAddTikTok(e) {
         
         const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`;
         
+        console.log('🎬 Attempting to insert TikTok with data:', {
+            restaurant_id: parseInt(restaurantId),
+            embed_html: embedHtml,
+            is_featured: isFeatured
+        });
+
         const { error } = await supabaseClient
             .from('tiktoks')
             .insert([{
                 restaurant_id: parseInt(restaurantId),
-                video_url: tiktokUrl,
                 embed_html: embedHtml,
                 is_featured: isFeatured
             }]);
