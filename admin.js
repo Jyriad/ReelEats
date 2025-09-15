@@ -173,6 +173,10 @@ function setupEventListeners() {
     // Add TikTok form
     document.getElementById('add-tiktok-form').addEventListener('submit', handleAddTikTok);
     
+    // Location finding buttons
+    document.getElementById('find-on-map-btn').addEventListener('click', handleFindOnMap);
+    document.getElementById('extract-from-url-btn').addEventListener('click', handleExtractFromUrl);
+    
     // Restaurant search functionality
     const searchInput = document.getElementById('restaurant-search');
     searchInput.addEventListener('input', handleRestaurantSearch);
@@ -205,16 +209,25 @@ function setupEventListeners() {
 async function handleAddRestaurant(e) {
     e.preventDefault();
     
+    const lat = document.getElementById('restaurant-lat').value;
+    const lon = document.getElementById('restaurant-lon').value;
+    
+    if (!lat || !lon) {
+        showStatus('Please find the restaurant location on the map first', 'error');
+        return;
+    }
+    
     const formData = {
         name: document.getElementById('restaurant-name').value,
         description: document.getElementById('restaurant-description').value,
-        lat: parseFloat(document.getElementById('restaurant-lat').value),
-        lon: parseFloat(document.getElementById('restaurant-lon').value),
-        city_id: parseInt(document.getElementById('restaurant-city').value)
+        lat: parseFloat(lat),
+        lon: parseFloat(lon),
+        city_id: parseInt(document.getElementById('restaurant-city').value),
+        google_place_id: document.getElementById('google-place-id').value || null
     };
     
     try {
-        // Add restaurant (no TikTok video here anymore)
+        // Add restaurant
         const { data: restaurant, error: restaurantError } = await supabaseClient
             .from('restaurants')
             .insert([formData])
@@ -224,7 +237,7 @@ async function handleAddRestaurant(e) {
         if (restaurantError) throw restaurantError;
         
         // Reset form
-        document.getElementById('add-restaurant-form').reset();
+        resetRestaurantForm();
         
         // Refresh data
         await loadDashboardData();
@@ -236,6 +249,177 @@ async function handleAddRestaurant(e) {
         console.error('Error adding restaurant:', error);
         showStatus('Error adding restaurant: ' + error.message, 'error');
     }
+}
+
+// Reset restaurant form to initial state
+function resetRestaurantForm() {
+    document.getElementById('add-restaurant-form').reset();
+    document.getElementById('location-results').classList.add('hidden');
+    document.getElementById('selected-location').classList.add('hidden');
+    document.getElementById('location-status').textContent = 'Location not found yet';
+    document.getElementById('location-status').className = 'px-3 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-300 rounded-md';
+    document.getElementById('submit-restaurant-btn').disabled = true;
+}
+
+// Handle Find on Map button click
+async function handleFindOnMap() {
+    const restaurantName = document.getElementById('restaurant-name').value.trim();
+    
+    if (!restaurantName) {
+        showStatus('Please enter a restaurant name first', 'error');
+        return;
+    }
+    
+    // Check if Google Maps API is loaded
+    if (typeof google === 'undefined' || !google.maps) {
+        showStatus('Google Maps API not loaded. Please check your API key.', 'error');
+        return;
+    }
+    
+    const statusEl = document.getElementById('location-status');
+    statusEl.textContent = 'Searching...';
+    statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
+    
+    try {
+        const service = new google.maps.places.PlacesService(document.createElement('div'));
+        
+        const request = {
+            query: restaurantName + ' restaurant',
+            fields: ['place_id', 'name', 'formatted_address', 'geometry']
+        };
+        
+        service.textSearch(request, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
+                displayLocationOptions(results);
+                statusEl.textContent = `Found ${results.length} location(s)`;
+                statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+            } else {
+                statusEl.textContent = 'No locations found';
+                statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+                showStatus('No locations found for "' + restaurantName + '"', 'error');
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error searching for location:', error);
+        statusEl.textContent = 'Search failed';
+        statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+        showStatus('Error searching for location: ' + error.message, 'error');
+    }
+}
+
+// Handle Extract from URL button click
+async function handleExtractFromUrl() {
+    const url = document.getElementById('google-maps-url').value.trim();
+    
+    if (!url) {
+        showStatus('Please enter a Google Maps URL first', 'error');
+        return;
+    }
+    
+    const statusEl = document.getElementById('location-status');
+    statusEl.textContent = 'Extracting from URL...';
+    statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
+    
+    try {
+        // Try to extract coordinates from URL
+        let lat, lng;
+        
+        // Pattern 1: @lat,lng,zoom
+        const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (coordMatch) {
+            lat = parseFloat(coordMatch[1]);
+            lng = parseFloat(coordMatch[2]);
+        }
+        
+        // Pattern 2: ll=lat,lng
+        const llMatch = url.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (!lat && llMatch) {
+            lat = parseFloat(llMatch[1]);
+            lng = parseFloat(llMatch[2]);
+        }
+        
+        if (lat && lng) {
+            // Use reverse geocoding to get place info
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    selectLocation({
+                        place_id: results[0].place_id,
+                        name: results[0].formatted_address,
+                        formatted_address: results[0].formatted_address,
+                        geometry: {
+                            location: { lat: () => lat, lng: () => lng }
+                        }
+                    });
+                    statusEl.textContent = 'Location extracted successfully';
+                    statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+                } else {
+                    throw new Error('Could not reverse geocode the coordinates');
+                }
+            });
+        } else {
+            throw new Error('Could not extract coordinates from URL');
+        }
+        
+    } catch (error) {
+        console.error('Error extracting from URL:', error);
+        statusEl.textContent = 'URL extraction failed';
+        statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+        showStatus('Error extracting from URL: ' + error.message, 'error');
+    }
+}
+
+// Display location options for user to choose from
+function displayLocationOptions(places) {
+    const resultsDiv = document.getElementById('location-results');
+    const optionsDiv = document.getElementById('location-options');
+    
+    optionsDiv.innerHTML = places.map((place, index) => `
+        <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors" 
+             onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')})">
+            <div class="font-medium text-gray-900">${place.name}</div>
+            <div class="text-sm text-gray-600">${place.formatted_address}</div>
+            <div class="text-xs text-gray-500 mt-1">
+                Lat: ${place.geometry.location.lat().toFixed(6)}, 
+                Lng: ${place.geometry.location.lng().toFixed(6)}
+            </div>
+        </div>
+    `).join('');
+    
+    resultsDiv.classList.remove('hidden');
+}
+
+// Select a location from the options
+function selectLocation(place) {
+    const lat = typeof place.geometry.location.lat === 'function' 
+        ? place.geometry.location.lat() 
+        : place.geometry.location.lat;
+    const lng = typeof place.geometry.location.lng === 'function' 
+        ? place.geometry.location.lng() 
+        : place.geometry.location.lng;
+    
+    // Fill hidden form fields
+    document.getElementById('restaurant-lat').value = lat;
+    document.getElementById('restaurant-lon').value = lng;
+    document.getElementById('google-place-id').value = place.place_id || '';
+    
+    // Update selected location display
+    document.getElementById('selected-name').textContent = place.name;
+    document.getElementById('selected-address').textContent = place.formatted_address;
+    document.getElementById('selected-coordinates').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    
+    // Show selected location info
+    document.getElementById('selected-location').classList.remove('hidden');
+    document.getElementById('location-results').classList.add('hidden');
+    
+    // Enable submit button
+    document.getElementById('submit-restaurant-btn').disabled = false;
+    
+    // Update status
+    const statusEl = document.getElementById('location-status');
+    statusEl.textContent = 'Location selected ✓';
+    statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
 }
 
 // Handle add TikTok form submission
