@@ -3,8 +3,64 @@ const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Check if user is authenticated
+async function checkAuth() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session;
+}
+
+// Simple admin login
+async function adminLogin() {
+    const email = prompt('Enter admin email:');
+    const password = prompt('Enter admin password:');
+    
+    if (!email || !password) return false;
+    
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+        
+        if (error) throw error;
+        
+        showStatus('Successfully logged in!', 'success');
+        return true;
+    } catch (error) {
+        console.error('Login error:', error);
+        showStatus('Login failed: ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Admin logout
+async function adminLogout() {
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) throw error;
+        
+        showStatus('Logged out successfully', 'success');
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    } catch (error) {
+        console.error('Logout error:', error);
+        showStatus('Logout failed: ' + error.message, 'error');
+    }
+}
+
 // Initialize admin panel
 document.addEventListener('DOMContentLoaded', async function() {
+    // Check if user is authenticated
+    const session = await checkAuth();
+    if (!session) {
+        const loginSuccess = await adminLogin();
+        if (!loginSuccess) {
+            document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Authentication required for admin panel.</p></div>';
+            return;
+        }
+    }
+    
     await loadDashboardData();
     await loadCitiesForSelect();
     await loadRecentRestaurants();
