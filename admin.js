@@ -290,7 +290,8 @@ async function handleAddRestaurant(e) {
         lat: parseFloat(lat),
         lon: parseFloat(lon),
         city_id: parseInt(document.getElementById('restaurant-city').value),
-        google_place_id: document.getElementById('google-place-id').value || null
+        google_place_id: document.getElementById('google-place-id').value || null,
+        google_maps_url: document.getElementById('google-maps-url').value || null
     };
     
     console.log('📝 Form data to insert:', formData);
@@ -359,31 +360,110 @@ async function handleFindOnMap() {
     statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
     
     try {
-        const service = new google.maps.places.PlacesService(document.createElement('div'));
+        // Try new Places API (New) first, fall back to legacy if not available
+        const useNewAPI = true; // Set to true to use the new REST API
         
-        const request = {
-            query: restaurantName + ' restaurant',
-            fields: ['place_id', 'name', 'formatted_address', 'geometry']
-        };
-        
-        service.textSearch(request, (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
-                displayLocationOptions(results);
-                statusEl.textContent = `Found ${results.length} location(s)`;
-                statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
-            } else {
-                statusEl.textContent = 'No locations found';
-                statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
-                showStatus('No locations found for "' + restaurantName + '"', 'error');
-            }
-        });
+        if (useNewAPI) {
+            // Use new Places API (New) - REST API
+            await searchWithNewAPI(restaurantName, statusEl);
+        } else {
+            // Fallback to legacy Places API
+            await searchWithLegacyAPI(restaurantName, statusEl);
+        }
         
     } catch (error) {
         console.error('Error searching for location:', error);
         statusEl.textContent = 'Search failed';
         statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
         showStatus('Error searching for location: ' + error.message, 'error');
+        
+        // If new API fails, try legacy as fallback
+        if (useNewAPI) {
+            console.log('New API failed, trying legacy API...');
+            try {
+                await searchWithLegacyAPI(restaurantName, statusEl);
+            } catch (legacyError) {
+                console.error('Legacy API also failed:', legacyError);
+            }
+        }
     }
+}
+
+// Search using new Places API (New) - REST API
+async function searchWithNewAPI(restaurantName, statusEl) {
+    const API_KEY = 'AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU';
+    
+    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types'
+        },
+        body: JSON.stringify({
+            textQuery: restaurantName + ' restaurant',
+            maxResultCount: 10
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error(`New Places API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('🆕 New Places API response:', data);
+    
+    if (data.places && data.places.length > 0) {
+        // Convert new API format to legacy format for compatibility
+        const convertedResults = data.places.map(place => ({
+            place_id: place.id,
+            name: place.displayName?.text || place.displayName,
+            formatted_address: place.formattedAddress,
+            geometry: {
+                location: {
+                    lat: place.location?.latitude,
+                    lng: place.location?.longitude
+                }
+            },
+            types: place.types || []
+        }));
+        
+        displayLocationOptions(convertedResults);
+        statusEl.textContent = `Found ${convertedResults.length} location(s) (New API)`;
+        statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+    } else {
+        statusEl.textContent = 'No locations found (New API)';
+        statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+        showStatus('No locations found for "' + restaurantName + '"', 'error');
+    }
+}
+
+// Search using legacy Places API (fallback)
+async function searchWithLegacyAPI(restaurantName, statusEl) {
+    return new Promise((resolve, reject) => {
+        const service = new google.maps.places.PlacesService(document.createElement('div'));
+        
+        const request = {
+            query: restaurantName + ' restaurant',
+            fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types']
+        };
+        
+        service.textSearch(request, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
+                console.log('🔄 Legacy Places API response:', results);
+                displayLocationOptions(results);
+                statusEl.textContent = `Found ${results.length} location(s) (Legacy API)`;
+                statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+                resolve(results);
+            } else {
+                statusEl.textContent = 'No locations found (Legacy API)';
+                statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+                const error = new Error('No locations found for "' + restaurantName + '"');
+                showStatus(error.message, 'error');
+                reject(error);
+            }
+        });
+    });
 }
 
 // Handle Extract from URL button click
@@ -514,23 +594,67 @@ async function handleShareLink(shareUrl, statusEl) {
 
 // Get place details from Place ID
 async function getPlaceFromId(placeId, statusEl) {
-    return new Promise((resolve, reject) => {
-        const service = new google.maps.places.PlacesService(document.createElement('div'));
+    try {
+        // Try new Places API first
+        const API_KEY = 'AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU';
         
-        service.getDetails({
-            placeId: placeId,
-            fields: ['place_id', 'name', 'formatted_address', 'geometry']
-        }, (place, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-                selectLocation(place);
-                statusEl.textContent = 'Location extracted successfully';
-                statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
-                resolve();
-            } else {
-                reject(new Error('Could not get place details for Place ID: ' + placeId));
+        const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+            method: 'GET',
+            headers: {
+                'X-Goog-Api-Key': API_KEY,
+                'X-Goog-FieldMask': 'id,displayName,formattedAddress,location'
             }
         });
-    });
+        
+        if (response.ok) {
+            const place = await response.json();
+            console.log('🆕 New Places API place details:', place);
+            
+            // Convert to legacy format
+            const convertedPlace = {
+                place_id: place.id,
+                name: place.displayName?.text || place.displayName,
+                formatted_address: place.formattedAddress,
+                geometry: {
+                    location: {
+                        lat: place.location?.latitude,
+                        lng: place.location?.longitude
+                    }
+                }
+            };
+            
+            selectLocation(convertedPlace);
+            statusEl.textContent = 'Location extracted successfully (New API)';
+            statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+            return;
+        }
+        
+        // Fallback to legacy API
+        throw new Error('New API failed, trying legacy...');
+        
+    } catch (error) {
+        console.log('🔄 Falling back to legacy Places API for place details...');
+        
+        // Fallback to legacy API
+        return new Promise((resolve, reject) => {
+            const service = new google.maps.places.PlacesService(document.createElement('div'));
+            
+            service.getDetails({
+                placeId: placeId,
+                fields: ['place_id', 'name', 'formatted_address', 'geometry']
+            }, (place, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                    console.log('🔄 Legacy API place details:', place);
+                    selectLocation(place);
+                    statusEl.textContent = 'Location extracted successfully (Legacy API)';
+                    statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+                    resolve();
+                } else {
+                    reject(new Error('Could not get place details for Place ID: ' + placeId));
+                }
+            });
+        });
+    }
 }
 
 // Reverse geocode coordinates to get place information
@@ -590,6 +714,17 @@ function selectLocation(place) {
     document.getElementById('restaurant-lat').value = lat;
     document.getElementById('restaurant-lon').value = lng;
     document.getElementById('google-place-id').value = place.place_id || '';
+    
+    // Fill Google Maps URL field
+    if (place.place_id) {
+        // Use Google Maps Place URL format
+        const googleMapsUrl = `https://maps.google.com/?cid=${place.place_id}`;
+        document.getElementById('google-maps-url').value = googleMapsUrl;
+    } else {
+        // Fallback to coordinates-based URL
+        const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+        document.getElementById('google-maps-url').value = googleMapsUrl;
+    }
     
     // Update selected location display
     document.getElementById('selected-name').textContent = place.name;
