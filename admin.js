@@ -387,6 +387,46 @@ async function handleAddRestaurant(e) {
         
         console.log('✅ Restaurant added successfully:', restaurant);
         
+        // Check if TikTok URL was provided
+        const tiktokUrl = document.getElementById('restaurant-tiktok-url').value.trim();
+        if (tiktokUrl) {
+            console.log('🎬 TikTok URL provided, adding video for restaurant:', restaurant.id);
+            
+            try {
+                // Extract video ID from TikTok URL
+                const videoId = extractTikTokVideoId(tiktokUrl);
+                if (!videoId) {
+                    console.warn('⚠️ Could not extract video ID from TikTok URL, skipping video creation');
+                    showStatus('Restaurant added, but TikTok URL was invalid. You can add the video manually.', 'warning');
+                } else {
+                    // Create embed HTML
+                    const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`;
+                    
+                    // Insert TikTok video
+                    const { error: tiktokError } = await supabaseClient
+                        .from('tiktoks')
+                        .insert([{
+                            restaurant_id: restaurant.id,
+                            embed_html: embedHtml,
+                            is_featured: true // Always featured when added via restaurant form
+                        }]);
+                    
+                    if (tiktokError) {
+                        console.error('🚨 Error adding TikTok video:', tiktokError);
+                        showStatus('Restaurant added successfully, but failed to add TikTok video. You can add it manually.', 'warning');
+                    } else {
+                        console.log('✅ TikTok video added successfully as featured');
+                        showStatus('Restaurant and featured TikTok video added successfully!', 'success');
+                    }
+                }
+            } catch (tiktokError) {
+                console.error('🚨 Error processing TikTok video:', tiktokError);
+                showStatus('Restaurant added successfully, but failed to add TikTok video. You can add it manually.', 'warning');
+            }
+        } else {
+            showStatus('Restaurant added successfully!', 'success');
+        }
+        
         // Reset form
         resetRestaurantForm();
         
@@ -394,8 +434,6 @@ async function handleAddRestaurant(e) {
         await loadDashboardData();
         await loadRecentRestaurants();
         await loadRestaurantsWithoutVideos();
-        
-        showStatus('Restaurant added successfully!', 'success');
         
     } catch (error) {
         console.error('🚨 Complete error object:', error);
@@ -1153,6 +1191,7 @@ function showStatus(message, type = 'success') {
     const messageDiv = statusDiv.querySelector('div');
     messageDiv.className = `px-4 py-2 rounded-md shadow-lg ${
         type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-white' :
         type === 'info' ? 'bg-blue-500 text-white' :
         'bg-green-500 text-white'
     }`;
