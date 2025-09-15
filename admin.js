@@ -322,45 +322,12 @@ async function handleExtractFromUrl() {
     statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
     
     try {
-        // Try to extract coordinates from URL
-        let lat, lng;
-        
-        // Pattern 1: @lat,lng,zoom
-        const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-        if (coordMatch) {
-            lat = parseFloat(coordMatch[1]);
-            lng = parseFloat(coordMatch[2]);
+        // Check if Google Maps API is loaded
+        if (typeof google === 'undefined' || !google.maps) {
+            throw new Error('Google Maps API not loaded. Please check your API key.');
         }
         
-        // Pattern 2: ll=lat,lng
-        const llMatch = url.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
-        if (!lat && llMatch) {
-            lat = parseFloat(llMatch[1]);
-            lng = parseFloat(llMatch[2]);
-        }
-        
-        if (lat && lng) {
-            // Use reverse geocoding to get place info
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    selectLocation({
-                        place_id: results[0].place_id,
-                        name: results[0].formatted_address,
-                        formatted_address: results[0].formatted_address,
-                        geometry: {
-                            location: { lat: () => lat, lng: () => lng }
-                        }
-                    });
-                    statusEl.textContent = 'Location extracted successfully';
-                    statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
-                } else {
-                    throw new Error('Could not reverse geocode the coordinates');
-                }
-            });
-        } else {
-            throw new Error('Could not extract coordinates from URL');
-        }
+        await extractLocationFromUrl(url, statusEl);
         
     } catch (error) {
         console.error('Error extracting from URL:', error);
@@ -368,6 +335,148 @@ async function handleExtractFromUrl() {
         statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
         showStatus('Error extracting from URL: ' + error.message, 'error');
     }
+}
+
+// Extract location from various Google Maps URL formats
+async function extractLocationFromUrl(url, statusEl) {
+    // Handle Google Share links (like share.google/...)
+    if (url.includes('share.google') || url.includes('goo.gl') || url.includes('maps.app.goo.gl')) {
+        console.log('Detected Google Share link, following redirect...');
+        await handleShareLink(url, statusEl);
+        return;
+    }
+    
+    // Try to extract coordinates from direct Google Maps URLs
+    let lat, lng, placeId;
+    
+    // Pattern 1: @lat,lng,zoom (most common)
+    const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (coordMatch) {
+        lat = parseFloat(coordMatch[1]);
+        lng = parseFloat(coordMatch[2]);
+        console.log('Extracted coordinates from @ pattern:', lat, lng);
+    }
+    
+    // Pattern 2: ll=lat,lng
+    const llMatch = url.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (!lat && llMatch) {
+        lat = parseFloat(llMatch[1]);
+        lng = parseFloat(llMatch[2]);
+        console.log('Extracted coordinates from ll pattern:', lat, lng);
+    }
+    
+    // Pattern 3: q=lat,lng
+    const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (!lat && qMatch) {
+        lat = parseFloat(qMatch[1]);
+        lng = parseFloat(qMatch[2]);
+        console.log('Extracted coordinates from q pattern:', lat, lng);
+    }
+    
+    // Pattern 4: Place ID in URL
+    const placeIdMatch = url.match(/place_id=([A-Za-z0-9_-]+)/);
+    if (placeIdMatch) {
+        placeId = placeIdMatch[1];
+        console.log('Extracted place ID:', placeId);
+    }
+    
+    // Pattern 5: data parameter with coordinates
+    const dataMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if (!lat && dataMatch) {
+        lat = parseFloat(dataMatch[1]);
+        lng = parseFloat(dataMatch[2]);
+        console.log('Extracted coordinates from data pattern:', lat, lng);
+    }
+    
+    if (placeId) {
+        // Use Place ID to get location details
+        await getPlaceFromId(placeId, statusEl);
+    } else if (lat && lng) {
+        // Use coordinates for reverse geocoding
+        await reverseGeocode(lat, lng, statusEl);
+    } else {
+        throw new Error('Could not extract coordinates or place ID from URL. Please try using the "Find on Map" button instead.');
+    }
+}
+
+// Handle Google Share links by following redirects
+async function handleShareLink(shareUrl, statusEl) {
+    try {
+        // Try to follow the redirect to get the actual Google Maps URL
+        const response = await fetch(shareUrl, { 
+            method: 'HEAD',
+            redirect: 'follow'
+        });
+        
+        const finalUrl = response.url;
+        console.log('Share link redirected to:', finalUrl);
+        
+        if (finalUrl && finalUrl !== shareUrl) {
+            // Extract from the final URL
+            await extractLocationFromUrl(finalUrl, statusEl);
+        } else {
+            // If redirect doesn't work, try alternative approach
+            throw new Error('Could not follow share link redirect');
+        }
+    } catch (error) {
+        console.log('Share link redirect failed, trying alternative method...');
+        
+        // Alternative: Try to extract any place name from the URL and search for it
+        const urlParts = shareUrl.split('/');
+        const shareId = urlParts[urlParts.length - 1];
+        
+        if (shareId && shareId.length > 5) {
+            // If we can't extract directly, ask user to use "Find on Map" instead
+            throw new Error(`Cannot extract from share link directly. Please copy the restaurant name and use the "Find on Map" button instead.`);
+        } else {
+            throw new Error('Invalid share link format');
+        }
+    }
+}
+
+// Get place details from Place ID
+async function getPlaceFromId(placeId, statusEl) {
+    return new Promise((resolve, reject) => {
+        const service = new google.maps.places.PlacesService(document.createElement('div'));
+        
+        service.getDetails({
+            placeId: placeId,
+            fields: ['place_id', 'name', 'formatted_address', 'geometry']
+        }, (place, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                selectLocation(place);
+                statusEl.textContent = 'Location extracted successfully';
+                statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+                resolve();
+            } else {
+                reject(new Error('Could not get place details for Place ID: ' + placeId));
+            }
+        });
+    });
+}
+
+// Reverse geocode coordinates to get place information
+async function reverseGeocode(lat, lng, statusEl) {
+    return new Promise((resolve, reject) => {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                selectLocation({
+                    place_id: results[0].place_id,
+                    name: results[0].formatted_address,
+                    formatted_address: results[0].formatted_address,
+                    geometry: {
+                        location: { lat: () => lat, lng: () => lng }
+                    }
+                });
+                statusEl.textContent = 'Location extracted successfully';
+                statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+                resolve();
+            } else {
+                reject(new Error('Could not reverse geocode the coordinates'));
+            }
+        });
+    });
 }
 
 // Display location options for user to choose from
