@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadCitiesForSelect();
     await loadRecentRestaurants();
     await loadRecentTikToks();
+    await loadRestaurantsWithoutVideos();
     
     // Set up event listeners
     setupEventListeners();
@@ -164,6 +165,11 @@ async function loadRecentRestaurants() {
     } catch (error) {
         console.error('Error loading recent restaurants:', error);
         console.error('Restaurant query error details:', error.message, error.details, error);
+        
+        // Update the container to show error instead of loading
+        const container = document.getElementById('recent-restaurants');
+        container.innerHTML = '<div class="text-sm text-red-500">Error loading restaurants</div>';
+        
         showStatus('Error loading restaurants', 'error');
     }
 }
@@ -206,7 +212,74 @@ async function loadRecentTikToks() {
     } catch (error) {
         console.error('Error loading recent TikToks:', error);
         console.error('TikTok query error details:', error.message, error.details, error);
+        
+        // Update the container to show error instead of loading
+        const container = document.getElementById('recent-tiktoks');
+        container.innerHTML = '<div class="text-sm text-red-500">Error loading TikTok videos</div>';
+        
         showStatus('Error loading TikTok videos', 'error');
+    }
+}
+
+// Load restaurants without TikTok videos
+async function loadRestaurantsWithoutVideos() {
+    try {
+        const { data: restaurants, error } = await supabaseClient
+            .from('restaurants')
+            .select('id, name, description, created_at, city_id')
+            .order('name', { ascending: true });
+        
+        if (error) throw error;
+        
+        // Get all restaurant IDs that have TikTok videos
+        const { data: tiktoks, error: tiktokError } = await supabaseClient
+            .from('tiktoks')
+            .select('restaurant_id');
+            
+        if (tiktokError) throw tiktokError;
+        
+        // Create set of restaurant IDs that have videos
+        const restaurantIdsWithVideos = new Set(tiktoks.map(t => t.restaurant_id));
+        
+        // Filter restaurants that don't have videos
+        const restaurantsWithoutVideos = restaurants.filter(restaurant => 
+            !restaurantIdsWithVideos.has(restaurant.id)
+        );
+        
+        const container = document.getElementById('restaurants-without-videos');
+        
+        if (restaurantsWithoutVideos.length === 0) {
+            container.innerHTML = '<div class="text-sm text-gray-500">All restaurants have TikTok videos!</div>';
+            return;
+        }
+        
+        container.innerHTML = restaurantsWithoutVideos.map(restaurant => `
+            <div class="flex justify-between items-start p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex-1">
+                    <h5 class="font-medium text-gray-900">${restaurant.name}</h5>
+                    <p class="text-sm text-gray-600">City ID: ${restaurant.city_id || 'Unknown'}</p>
+                    <p class="text-xs text-gray-500 mt-1">Added: ${new Date(restaurant.created_at).toLocaleDateString()}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                        No Video
+                    </span>
+                </div>
+            </div>
+        `).join('');
+        
+        // Update dashboard count
+        document.getElementById('restaurants-without-videos-count').textContent = restaurantsWithoutVideos.length;
+        
+    } catch (error) {
+        console.error('Error loading restaurants without videos:', error);
+        console.error('Query error details:', error.message, error.details, error);
+        
+        // Update the container to show error instead of loading
+        const container = document.getElementById('restaurants-without-videos');
+        container.innerHTML = '<div class="text-sm text-red-500">Error loading restaurants without videos</div>';
+        
+        showStatus('Error loading restaurants without videos', 'error');
     }
 }
 
@@ -240,6 +313,7 @@ function setupEventListeners() {
         await loadDashboardData();
         await loadRecentRestaurants();
         await loadRecentTikToks();
+        await loadRestaurantsWithoutVideos();
         showStatus('Data refreshed successfully!', 'success');
     });
     
@@ -309,6 +383,7 @@ async function handleAddRestaurant(e) {
         // Refresh data
         await loadDashboardData();
         await loadRecentRestaurants();
+        await loadRestaurantsWithoutVideos();
         
         showStatus('Restaurant added successfully!', 'success');
         
@@ -869,6 +944,7 @@ async function handleAddTikTok(e) {
         // Refresh data
         await loadDashboardData();
         await loadRecentTikToks();
+        await loadRestaurantsWithoutVideos();
         
         showStatus('TikTok video added successfully!', 'success');
         

@@ -34,7 +34,7 @@
         <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div class="px-4 py-6 sm:px-0">
                 <!-- Dashboard Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <!-- Total Restaurants -->
                     <div class="bg-white overflow-hidden shadow rounded-lg">
                         <div class="p-5">
@@ -86,6 +86,25 @@
                                     <dl>
                                         <dt class="text-sm font-medium text-gray-500 truncate">Featured Videos</dt>
                                         <dd class="text-lg font-medium text-gray-900" id="total-videos">-</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Restaurants Without Videos -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                                        <span class="text-white text-lg">⚠️</span>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">No Videos</dt>
+                                        <dd class="text-lg font-medium text-gray-900" id="restaurants-without-videos-count">-</dd>
                                     </dl>
                                 </div>
                             </div>
@@ -266,6 +285,16 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Restaurants Without Videos -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Restaurants Without Videos</h3>
+                            <div id="restaurants-without-videos" class="space-y-2 max-h-64 overflow-y-auto">
+                                <div class="text-sm text-gray-500">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- System Information in separate row -->
@@ -318,6 +347,6 @@
         </div>
     </div>
 
-    <script src="admin.js?v=93"></script>
+    <script src="admin.js?v=94"></script>
 </body>
 </html>
