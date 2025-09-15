@@ -255,6 +255,8 @@ async function loadRestaurantsWithoutVideos() {
             return;
         }
         
+        console.log('🎯 Restaurants without videos:', restaurantsWithoutVideos);
+        
         container.innerHTML = restaurantsWithoutVideos.map(restaurant => `
             <div class="flex justify-between items-start p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors duration-200" 
                  onclick="selectRestaurantForTikTok(${restaurant.id}, '${restaurant.name.replace(/'/g, "\\'")}')">
@@ -265,11 +267,13 @@ async function loadRestaurantsWithoutVideos() {
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Click to Add Video
+                        🎬 Click to Add Video
                     </span>
                 </div>
             </div>
         `).join('');
+        
+        console.log('✅ Updated restaurants without videos display');
         
         // Update dashboard count
         document.getElementById('restaurants-without-videos-count').textContent = restaurantsWithoutVideos.length;
