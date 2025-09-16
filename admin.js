@@ -444,7 +444,8 @@ async function handleAddRestaurant(e) {
         lon: parseFloat(lon),
         city_id: parseInt(document.getElementById('restaurant-city').value),
         google_place_id: document.getElementById('google-place-id').value || null,
-        google_maps_url: document.getElementById('google-maps-url').value || null
+        google_maps_url: document.getElementById('google-maps-url').value || null,
+        created_at: new Date().toISOString()
     };
     
     console.log('📝 Form data to insert:', formData);
