@@ -71,6 +71,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Check database status
     checkDatabaseStatus();
+    
+    // Set up cuisine selection
+    setupCuisineSelection();
 });
 
 // Load dashboard statistics
@@ -221,6 +224,83 @@ function selectRestaurantForTikTok(restaurantId, restaurantName) {
     
     // Show success message
     showStatus(`Selected "${restaurantName}" - ready to add TikTok video!`, 'success');
+}
+
+// Set up cuisine selection functionality
+function setupCuisineSelection() {
+    const cuisineButtons = document.querySelectorAll('.cuisine-btn');
+    
+    cuisineButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Toggle selection
+            if (button.classList.contains('selected')) {
+                // Deselect
+                button.classList.remove('selected');
+                button.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+                button.classList.add('border-gray-300', 'hover:bg-gray-50');
+            } else {
+                // Select
+                button.classList.add('selected');
+                button.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
+                button.classList.remove('border-gray-300', 'hover:bg-gray-50');
+            }
+        });
+    });
+}
+
+// Get selected cuisines
+function getSelectedCuisines() {
+    const selectedButtons = document.querySelectorAll('.cuisine-btn.selected');
+    return Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
+}
+
+// Reset cuisine selection
+function resetCuisineSelection() {
+    const cuisineButtons = document.querySelectorAll('.cuisine-btn');
+    cuisineButtons.forEach(button => {
+        button.classList.remove('selected', 'bg-blue-500', 'text-white', 'border-blue-500');
+        button.classList.add('border-gray-300', 'hover:bg-gray-50');
+    });
+}
+
+// Add cuisine relationships to restaurant_cuisines table
+async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
+    try {
+        // First, get cuisine IDs from cuisine names
+        const { data: cuisines, error: cuisineError } = await supabaseClient
+            .from('cuisines')
+            .select('id, name')
+            .in('name', selectedCuisineNames);
+            
+        if (cuisineError) {
+            console.error('Error fetching cuisines:', cuisineError);
+            showStatus('Restaurant added, but failed to add cuisines. Please add them manually.', 'warning');
+            return;
+        }
+        
+        console.log('🍽️ Found cuisine IDs:', cuisines);
+        
+        // Create restaurant_cuisine relationships
+        const relationshipData = cuisines.map(cuisine => ({
+            restaurant_id: restaurantId,
+            cuisine_id: cuisine.id
+        }));
+        
+        const { error: relationshipError } = await supabaseClient
+            .from('restaurant_cuisines')
+            .insert(relationshipData);
+            
+        if (relationshipError) {
+            console.error('Error adding restaurant cuisines:', relationshipError);
+            showStatus('Restaurant added, but failed to link cuisines. Please add them manually.', 'warning');
+        } else {
+            console.log('✅ Successfully added cuisine relationships');
+        }
+        
+    } catch (error) {
+        console.error('Error in addRestaurantCuisines:', error);
+        showStatus('Restaurant added, but failed to process cuisines. Please add them manually.', 'warning');
+    }
 }
 
 // Load restaurants without TikTok videos
@@ -427,6 +507,13 @@ async function handleAddRestaurant(e) {
             showStatus('Restaurant added successfully!', 'success');
         }
         
+        // Add cuisine relationships
+        const selectedCuisines = getSelectedCuisines();
+        if (selectedCuisines.length > 0) {
+            console.log('🍽️ Adding cuisine relationships:', selectedCuisines);
+            await addRestaurantCuisines(restaurant.id, selectedCuisines);
+        }
+        
         // Reset form
         resetRestaurantForm();
         
@@ -450,6 +537,9 @@ function resetRestaurantForm() {
     document.getElementById('location-status').textContent = 'Location not found yet';
     document.getElementById('location-status').className = 'px-3 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-300 rounded-md';
     document.getElementById('submit-restaurant-btn').disabled = true;
+    
+    // Reset cuisine selection
+    resetCuisineSelection();
 }
 
 // Handle Find on Map button click

@@ -180,6 +180,53 @@
                                     <p class="text-xs text-gray-500 mt-1">If provided, this TikTok video will be automatically added as a featured video for this restaurant</p>
                                 </div>
 
+                                <!-- Cuisine Selection -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cuisines (Select all that apply)</label>
+                                    <div id="cuisine-selection" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="American">American</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Asian">Asian</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Bakery">Bakery</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="BBQ">BBQ</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Breakfast">Breakfast</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Bubble tea">Bubble tea</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Burgers">Burgers</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Caribbean">Caribbean</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Chinese">Chinese</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Coffee">Coffee</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Comfort food">Comfort food</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Desserts">Desserts</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Fast food">Fast food</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Greek">Greek</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Halal">Halal</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Hawaiian">Hawaiian</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Healthy">Healthy</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Ice cream">Ice cream</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Indian">Indian</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Italian">Italian</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Japanese">Japanese</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Korean">Korean</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Kosher">Kosher</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Mexican">Mexican</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Pizza">Pizza</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Poke">Poke</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Salads">Salads</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Sandwich">Sandwich</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Seafood">Seafood</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Smoothies">Smoothies</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Soul food">Soul food</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Soup">Soup</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Street food">Street food</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Sushi">Sushi</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Taiwanese">Taiwanese</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Thai">Thai</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Vegan">Vegan</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Vietnamese">Vietnamese</button>
+                                        <button type="button" class="cuisine-btn px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-50 transition-colors" data-cuisine="Wings">Wings</button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Click cuisines to select/deselect. Selected cuisines will be highlighted in blue.</p>
+                                </div>
+
                                 <!-- Location Results (Initially Hidden) -->
                                 <div id="location-results" class="hidden">
                                     <h4 class="text-sm font-medium text-gray-700 mb-2">Found Locations (Click to Select):</h4>
@@ -348,6 +395,6 @@
         </div>
     </div>
 
-    <script src="admin.js?v=101"></script>
+    <script src="admin.js?v=102"></script>
 </body>
 </html>
