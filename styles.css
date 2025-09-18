@@ -237,7 +237,7 @@ html, body {
         left: 0; 
         right: 0; 
         bottom: 0; 
-        height: var(--drawer-height) !important; 
+        height: var(--drawer-height); 
         z-index: 200; 
         border-top: 3px solid #e5e7eb;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);

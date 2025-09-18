@@ -377,10 +377,11 @@ function showVideoFor(restaurant) {
             function drag(e) {
                 if (!isDragging) return;
                 
-                console.log('Drag event');
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 const deltaY = startY - clientY; // Inverted because we want to drag up to expand
                 const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
+                
+                console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
                 
                 aside.style.height = `${newHeight}px`;
                 e.preventDefault();
