@@ -343,6 +343,74 @@
                         </div>
                     </div>
 
+                     <!-- Manage Restaurants Section -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage Restaurants</h3>
+                            
+                            <!-- Search and Filter -->
+                            <div class="mb-6 space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Search Restaurants</label>
+                                        <input type="text" id="restaurant-search-manage" placeholder="Search by name..." 
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Filter by City</label>
+                                        <select id="city-filter-manage" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="">All Cities</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button id="refresh-restaurants" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                            🔄 Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Restaurants List -->
+                            <div id="restaurants-list" class="space-y-4">
+                                <!-- Restaurant cards will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manage TikTok Videos Section -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage TikTok Videos</h3>
+                            
+                            <!-- Video Search and Filter -->
+                            <div class="mb-6 space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Search Videos</label>
+                                        <input type="text" id="video-search-manage" placeholder="Search by restaurant name..." 
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Filter by City</label>
+                                        <select id="video-city-filter-manage" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="">All Cities</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button id="refresh-videos" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                            🔄 Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Videos List -->
+                            <div id="videos-list" class="space-y-4">
+                                <!-- Video cards will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Add TikTok Video Section -->
                     <div class="bg-white shadow rounded-lg">
                         <div class="px-4 py-5 sm:p-6">

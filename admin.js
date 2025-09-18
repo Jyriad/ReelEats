@@ -65,6 +65,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadCitiesForSelect();
     await loadRecentRestaurants();
     await loadRestaurantsWithoutVideos();
+    await loadRestaurantsForManagement();
+    await loadVideosForManagement();
     
     // Set up event listeners
     setupEventListeners();
@@ -406,6 +408,48 @@ function setupEventListeners() {
         await loadRestaurantsWithoutVideos();
         showStatus('Data refreshed successfully!', 'success');
     });
+    
+    // Restaurant management search and filter
+    const searchManageInput = document.getElementById('restaurant-search-manage');
+    const cityFilterSelect = document.getElementById('city-filter-manage');
+    const refreshRestaurantsBtn = document.getElementById('refresh-restaurants');
+    
+    if (searchManageInput) {
+        searchManageInput.addEventListener('input', filterRestaurants);
+    }
+    
+    if (cityFilterSelect) {
+        cityFilterSelect.addEventListener('change', filterRestaurants);
+    }
+    
+    if (refreshRestaurantsBtn) {
+        refreshRestaurantsBtn.addEventListener('click', async () => {
+            showStatus('Refreshing restaurants...', 'info');
+            await loadRestaurantsForManagement();
+            showStatus('Restaurants refreshed successfully!', 'success');
+        });
+    }
+    
+    // Video management search and filter
+    const searchVideoInput = document.getElementById('video-search-manage');
+    const videoCityFilterSelect = document.getElementById('video-city-filter-manage');
+    const refreshVideosBtn = document.getElementById('refresh-videos');
+    
+    if (searchVideoInput) {
+        searchVideoInput.addEventListener('input', filterVideos);
+    }
+    
+    if (videoCityFilterSelect) {
+        videoCityFilterSelect.addEventListener('change', filterVideos);
+    }
+    
+    if (refreshVideosBtn) {
+        refreshVideosBtn.addEventListener('click', async () => {
+            showStatus('Refreshing videos...', 'info');
+            await loadVideosForManagement();
+            showStatus('Videos refreshed successfully!', 'success');
+        });
+    }
     
     // Clear cache button
     document.getElementById('clear-cache').addEventListener('click', () => {
@@ -1294,4 +1338,570 @@ function showStatus(message, type = 'success') {
     setTimeout(() => {
         statusDiv.classList.add('hidden');
     }, 3000);
+}
+
+// Restaurant Management Functions
+
+// Load restaurants for management
+async function loadRestaurantsForManagement() {
+    try {
+        const { data: restaurants, error } = await supabaseClient
+            .from('restaurants')
+            .select(`
+                *,
+                cities (name),
+                restaurant_cuisines (
+                    cuisines (name)
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Populate city filter
+        const cityFilter = document.getElementById('city-filter-manage');
+        if (cityFilter) {
+            const cities = [...new Set(restaurants.map(r => r.cities.name))];
+            cityFilter.innerHTML = '<option value="">All Cities</option>' + 
+                cities.map(city => `<option value="${city}">${city}</option>`).join('');
+        }
+
+        displayRestaurantsForManagement(restaurants);
+    } catch (error) {
+        console.error('Error loading restaurants:', error);
+        showStatus('Failed to load restaurants: ' + error.message, 'error');
+    }
+}
+
+// Display restaurants in management interface
+function displayRestaurantsForManagement(restaurants) {
+    const container = document.getElementById('restaurants-list');
+    if (!container) return;
+
+    if (restaurants.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No restaurants found</p>';
+        return;
+    }
+
+    container.innerHTML = restaurants.map(restaurant => {
+        const cuisines = restaurant.restaurant_cuisines?.map(rc => rc.cuisines.name).join(', ') || 'No cuisines';
+        const createdDate = new Date(restaurant.created_at).toLocaleDateString();
+        
+        return `
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow" data-restaurant-id="${restaurant.id}">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h4 class="text-lg font-semibold text-gray-900">${restaurant.name}</h4>
+                        <p class="text-sm text-gray-600 mt-1">${restaurant.description || 'No description'}</p>
+                        <div class="mt-2 space-y-1">
+                            <p class="text-xs text-gray-500"><strong>City:</strong> ${restaurant.cities.name}</p>
+                            <p class="text-xs text-gray-500"><strong>Cuisines:</strong> ${cuisines}</p>
+                            <p class="text-xs text-gray-500"><strong>Location:</strong> ${restaurant.lat.toFixed(4)}, ${restaurant.lon.toFixed(4)}</p>
+                            <p class="text-xs text-gray-500"><strong>Added:</strong> ${createdDate}</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 ml-4">
+                        <button onclick="editRestaurant(${restaurant.id})" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="deleteRestaurant(${restaurant.id}, '${restaurant.name}')" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Edit restaurant function
+async function editRestaurant(restaurantId) {
+    try {
+        // Fetch restaurant details
+        const { data: restaurant, error } = await supabaseClient
+            .from('restaurants')
+            .select(`
+                *,
+                cities (name),
+                restaurant_cuisines (
+                    cuisines (name)
+                )
+            `)
+            .eq('id', restaurantId)
+            .single();
+
+        if (error) throw error;
+
+        // Create edit modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.innerHTML = `
+            <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Restaurant</h3>
+                    
+                    <form id="edit-restaurant-form" class="space-y-4">
+                        <input type="hidden" id="edit-restaurant-id" value="${restaurant.id}">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
+                            <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="edit-restaurant-description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${restaurant.description || ''}</textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                                <input type="number" id="edit-restaurant-lat" value="${restaurant.lat}" step="any" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                                <input type="number" id="edit-restaurant-lon" value="${restaurant.lon}" step="any" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                            <select id="edit-restaurant-city" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Select City</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Place ID</label>
+                            <input type="text" id="edit-google-place-id" value="${restaurant.google_place_id || ''}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Maps URL</label>
+                            <input type="url" id="edit-google-maps-url" value="${restaurant.google_maps_url || ''}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button type="button" onclick="closeEditModal()" 
+                                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Populate city dropdown
+        await populateCityDropdown('edit-restaurant-city', restaurant.city_id);
+        
+        // Set up form submission
+        document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveRestaurantChanges(restaurantId);
+        });
+        
+    } catch (error) {
+        console.error('Error editing restaurant:', error);
+        showStatus('Failed to load restaurant details: ' + error.message, 'error');
+    }
+}
+
+// Save restaurant changes
+async function saveRestaurantChanges(restaurantId) {
+    try {
+        const formData = {
+            name: document.getElementById('edit-restaurant-name').value,
+            description: document.getElementById('edit-restaurant-description').value,
+            lat: parseFloat(document.getElementById('edit-restaurant-lat').value),
+            lon: parseFloat(document.getElementById('edit-restaurant-lon').value),
+            city_id: parseInt(document.getElementById('edit-restaurant-city').value),
+            google_place_id: document.getElementById('edit-google-place-id').value || null,
+            google_maps_url: document.getElementById('edit-google-maps-url').value || null
+        };
+
+        const { error } = await supabaseClient
+            .from('restaurants')
+            .update(formData)
+            .eq('id', restaurantId);
+
+        if (error) throw error;
+
+        showStatus('Restaurant updated successfully!', 'success');
+        closeEditModal();
+        await loadRestaurantsForManagement();
+        
+    } catch (error) {
+        console.error('Error updating restaurant:', error);
+        showStatus('Failed to update restaurant: ' + error.message, 'error');
+    }
+}
+
+// Delete restaurant function
+async function deleteRestaurant(restaurantId, restaurantName) {
+    if (!confirm(`Are you sure you want to delete "${restaurantName}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        // First delete related records
+        await supabaseClient
+            .from('restaurant_cuisines')
+            .delete()
+            .eq('restaurant_id', restaurantId);
+
+        await supabaseClient
+            .from('tiktoks')
+            .delete()
+            .eq('restaurant_id', restaurantId);
+
+        // Then delete the restaurant
+        const { error } = await supabaseClient
+            .from('restaurants')
+            .delete()
+            .eq('id', restaurantId);
+
+        if (error) throw error;
+
+        showStatus('Restaurant deleted successfully!', 'success');
+        await loadRestaurantsForManagement();
+        
+    } catch (error) {
+        console.error('Error deleting restaurant:', error);
+        showStatus('Failed to delete restaurant: ' + error.message, 'error');
+    }
+}
+
+// Close edit modal
+function closeEditModal() {
+    const modal = document.querySelector('.fixed.inset-0');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Populate city dropdown for edit form
+async function populateCityDropdown(selectId, selectedCityId = null) {
+    try {
+        const { data: cities, error } = await supabaseClient
+            .from('cities')
+            .select('id, name')
+            .order('name');
+
+        if (error) throw error;
+
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Select City</option>' + 
+            cities.map(city => 
+                `<option value="${city.id}" ${city.id === selectedCityId ? 'selected' : ''}>${city.name}</option>`
+            ).join('');
+    } catch (error) {
+        console.error('Error loading cities:', error);
+    }
+}
+
+// Filter restaurants based on search and city filter
+function filterRestaurants() {
+    const searchTerm = document.getElementById('restaurant-search-manage').value.toLowerCase();
+    const cityFilter = document.getElementById('city-filter-manage').value;
+    
+    const restaurantCards = document.querySelectorAll('[data-restaurant-id]');
+    
+    restaurantCards.forEach(card => {
+        const restaurantName = card.querySelector('h4').textContent.toLowerCase();
+        const cityName = card.querySelector('p:last-of-type').textContent.toLowerCase();
+        
+        const matchesSearch = restaurantName.includes(searchTerm);
+        const matchesCity = !cityFilter || cityName.includes(cityFilter.toLowerCase());
+        
+        if (matchesSearch && matchesCity) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Video Management Functions
+
+// Load videos for management
+async function loadVideosForManagement() {
+    try {
+        const { data: videos, error } = await supabaseClient
+            .from('tiktoks')
+            .select(`
+                *,
+                restaurants (
+                    name,
+                    cities (name)
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Populate city filter for videos
+        const cityFilter = document.getElementById('video-city-filter-manage');
+        if (cityFilter) {
+            const cities = [...new Set(videos.map(v => v.restaurants.cities.name))];
+            cityFilter.innerHTML = '<option value="">All Cities</option>' + 
+                cities.map(city => `<option value="${city}">${city}</option>`).join('');
+        }
+
+        displayVideosForManagement(videos);
+    } catch (error) {
+        console.error('Error loading videos:', error);
+        showStatus('Failed to load videos: ' + error.message, 'error');
+    }
+}
+
+// Display videos in management interface
+function displayVideosForManagement(videos) {
+    const container = document.getElementById('videos-list');
+    if (!container) return;
+
+    if (videos.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No videos found</p>';
+        return;
+    }
+
+    container.innerHTML = videos.map(video => {
+        const createdDate = new Date(video.created_at).toLocaleDateString();
+        const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
+        
+        return `
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow" data-video-id="${video.id}">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <h4 class="text-lg font-semibold text-gray-900">${video.restaurants.name}</h4>
+                            <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">${isFeatured}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">${video.restaurants.cities.name}</p>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><strong>Added:</strong> ${createdDate}</p>
+                            <p><strong>Video ID:</strong> ${video.tiktok_id || 'N/A'}</p>
+                        </div>
+                        <div class="mt-3 p-3 bg-gray-50 rounded-md">
+                            <div class="text-xs text-gray-600 mb-2">Video Preview:</div>
+                            <div class="text-xs text-gray-500 font-mono break-all max-h-20 overflow-y-auto">
+                                ${video.embed_html ? video.embed_html.substring(0, 200) + '...' : 'No embed HTML'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col space-y-2 ml-4">
+                        <button onclick="editVideo(${video.id})" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                            ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
+                        </button>
+                        <button onclick="deleteVideo(${video.id}, '${video.restaurants.name}')" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Edit video function
+async function editVideo(videoId) {
+    try {
+        // Fetch video details
+        const { data: video, error } = await supabaseClient
+            .from('tiktoks')
+            .select(`
+                *,
+                restaurants (
+                    name,
+                    cities (name)
+                )
+            `)
+            .eq('id', videoId)
+            .single();
+
+        if (error) throw error;
+
+        // Create edit modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.innerHTML = `
+            <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit TikTok Video</h3>
+                    
+                    <form id="edit-video-form" class="space-y-4">
+                        <input type="hidden" id="edit-video-id" value="${video.id}">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant</label>
+                            <input type="text" value="${video.restaurants.name} (${video.restaurants.cities.name})" disabled
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">TikTok ID</label>
+                            <input type="text" id="edit-tiktok-id" value="${video.tiktok_id || ''}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Embed HTML</label>
+                            <textarea id="edit-embed-html" rows="6"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${video.embed_html || ''}</textarea>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" id="edit-is-featured" ${video.is_featured ? 'checked' : ''}
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="edit-is-featured" class="ml-2 block text-sm text-gray-900">
+                                Featured Video
+                            </label>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button type="button" onclick="closeEditVideoModal()" 
+                                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Set up form submission
+        document.getElementById('edit-video-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveVideoChanges(videoId);
+        });
+        
+    } catch (error) {
+        console.error('Error editing video:', error);
+        showStatus('Failed to load video details: ' + error.message, 'error');
+    }
+}
+
+// Save video changes
+async function saveVideoChanges(videoId) {
+    try {
+        const formData = {
+            tiktok_id: document.getElementById('edit-tiktok-id').value || null,
+            embed_html: document.getElementById('edit-embed-html').value || null,
+            is_featured: document.getElementById('edit-is-featured').checked
+        };
+
+        const { error } = await supabaseClient
+            .from('tiktoks')
+            .update(formData)
+            .eq('id', videoId);
+
+        if (error) throw error;
+
+        showStatus('Video updated successfully!', 'success');
+        closeEditVideoModal();
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error updating video:', error);
+        showStatus('Failed to update video: ' + error.message, 'error');
+    }
+}
+
+// Toggle video featured status
+async function toggleVideoFeatured(videoId, currentStatus) {
+    try {
+        const { error } = await supabaseClient
+            .from('tiktoks')
+            .update({ is_featured: !currentStatus })
+            .eq('id', videoId);
+
+        if (error) throw error;
+
+        showStatus(`Video ${!currentStatus ? 'featured' : 'unfeatured'} successfully!`, 'success');
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error toggling video featured status:', error);
+        showStatus('Failed to update video status: ' + error.message, 'error');
+    }
+}
+
+// Delete video function
+async function deleteVideo(videoId, restaurantName) {
+    if (!confirm(`Are you sure you want to delete the video for "${restaurantName}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('tiktoks')
+            .delete()
+            .eq('id', videoId);
+
+        if (error) throw error;
+
+        showStatus('Video deleted successfully!', 'success');
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error deleting video:', error);
+        showStatus('Failed to delete video: ' + error.message, 'error');
+    }
+}
+
+// Close edit video modal
+function closeEditVideoModal() {
+    const modal = document.querySelector('.fixed.inset-0');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Filter videos based on search and city filter
+function filterVideos() {
+    const searchTerm = document.getElementById('video-search-manage').value.toLowerCase();
+    const cityFilter = document.getElementById('video-city-filter-manage').value;
+    
+    const videoCards = document.querySelectorAll('[data-video-id]');
+    
+    videoCards.forEach(card => {
+        const restaurantName = card.querySelector('h4').textContent.toLowerCase();
+        const cityName = card.querySelector('p').textContent.toLowerCase();
+        
+        const matchesSearch = restaurantName.includes(searchTerm);
+        const matchesCity = !cityFilter || cityName.includes(cityFilter.toLowerCase());
+        
+        if (matchesSearch && matchesCity) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
