@@ -116,10 +116,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         fillOpacity: 0.1
                     });
                     
-                    // Update restaurant cards with distances if on mobile
-                    if (window.innerWidth <= 768) {
-                        updateRestaurantCardsWithDistance();
-                    }
+                    // Update restaurant cards with distances
+                    updateRestaurantCardsWithDistance();
                     
                     console.log('User location marker added');
                 },
@@ -288,6 +286,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         function createListItem(restaurant, index) {
             const listItem = document.createElement('div');
             listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start';
+            listItem.dataset.restaurantId = restaurant.id;
             
             // Create cuisine tags
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
@@ -296,9 +295,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                   ).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
             
-            // Calculate distance if user location is available and on mobile
+            // Calculate distance if user location is available (both mobile and desktop)
             let distanceHtml = '';
-            if (window.userLocation && window.innerWidth <= 768) {
+            if (window.userLocation) {
                 const distance = calculateDistance(
                     window.userLocation.lat, 
                     window.userLocation.lon, 
@@ -322,6 +321,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             `;
             listItem.addEventListener('click', () => {
+                // Remove active class from all cards
+                document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {
+                    card.classList.remove('active-list-item');
+                });
+                // Add active class to clicked card
+                listItem.classList.add('active-list-item');
+                
                 showVideoFor(restaurant);
                 map.flyTo([restaurant.lat, restaurant.lon], 15);
             });
@@ -330,7 +336,19 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function createNumberedMarker(restaurant, index) {
             const marker = L.marker([restaurant.lat, restaurant.lon], { title: restaurant.name });
-            marker.on('click', () => showVideoFor(restaurant));
+            marker.on('click', () => {
+                // Remove active class from all cards
+                document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {
+                    card.classList.remove('active-list-item');
+                });
+                // Add active class to corresponding card
+                const correspondingCard = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
+                if (correspondingCard) {
+                    correspondingCard.classList.add('active-list-item');
+                }
+                
+                showVideoFor(restaurant);
+            });
             return marker;
         }
 
@@ -354,12 +372,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Update restaurant cards with distance information
         function updateRestaurantCardsWithDistance() {
-            if (!window.userLocation || window.innerWidth > 768) return;
+            if (!window.userLocation) return;
             
             const restaurantCards = document.querySelectorAll('#restaurant-list .bg-white');
             restaurantCards.forEach(card => {
-                const restaurantName = card.querySelector('h3').textContent;
-                const restaurant = currentRestaurants.find(r => r.name === restaurantName);
+                const restaurantId = card.dataset.restaurantId;
+                const restaurant = currentRestaurants.find(r => r.id == restaurantId);
                 
                 if (restaurant) {
                     const distance = calculateDistance(
@@ -376,6 +394,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         distanceDiv.className = 'mt-1 text-xs text-gray-500 flex items-center distance-info';
                         distanceDiv.innerHTML = `<span class="mr-1">📍</span><span>${distance} away</span>`;
                         card.querySelector('.flex-1').appendChild(distanceDiv);
+                    } else {
+                        // Update existing distance
+                        existingDistance.innerHTML = `<span class="mr-1">📍</span><span>${distance} away</span>`;
                     }
                 }
             });
