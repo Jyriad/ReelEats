@@ -357,35 +357,44 @@ function showVideoFor(restaurant) {
                 aside.style.height = '33vh';
             }
 
-            // Touch events for mobile
-            drawerHandle.addEventListener('touchstart', (e) => {
-                console.log('Touch start on drawer handle');
+            // Unified event handler for both touch and mouse
+            function startDrag(e) {
+                console.log('Start drag event');
                 isDragging = true;
-                startY = e.touches[0].clientY;
+                
+                // Get coordinates from either touch or mouse event
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startY = clientY;
                 startHeight = parseInt(getComputedStyle(aside).height);
+                
                 e.preventDefault();
                 e.stopPropagation();
-            }, { passive: false });
+                
+                // Visual feedback
+                drawerHandle.style.backgroundColor = '#e5e7eb';
+            }
 
-            // Use document for touchmove to ensure it works even if finger moves outside handle
-            document.addEventListener('touchmove', (e) => {
+            function drag(e) {
                 if (!isDragging) return;
                 
-                console.log('Touch move on document');
-                const currentY = e.touches[0].clientY;
-                const deltaY = startY - currentY; // Inverted because we want to drag up to expand
+                console.log('Drag event');
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const deltaY = startY - clientY; // Inverted because we want to drag up to expand
                 const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
                 
                 aside.style.height = `${newHeight}px`;
                 e.preventDefault();
                 e.stopPropagation();
-            }, { passive: false });
+            }
 
-            document.addEventListener('touchend', (e) => {
+            function endDrag(e) {
                 if (!isDragging) return;
                 
-                console.log('Touch end on document');
+                console.log('End drag event');
                 isDragging = false;
+                
+                // Visual feedback
+                drawerHandle.style.backgroundColor = '#f8fafc';
                 
                 // Double tap detection
                 const currentTime = new Date().getTime();
@@ -403,29 +412,17 @@ function showVideoFor(restaurant) {
                     }
                 }
                 lastTap = currentTime;
-            });
+            }
 
-            // Mouse events for desktop testing
-            drawerHandle.addEventListener('mousedown', (e) => {
-                console.log('Mouse down on drawer handle');
-                isDragging = true;
-                startY = e.clientY;
-                startHeight = parseInt(getComputedStyle(aside).height);
-                e.preventDefault();
-                e.stopPropagation();
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                
-                const deltaY = startY - e.clientY;
-                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
-                aside.style.height = `${newHeight}px`;
-            });
-
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
+            // Add all event listeners
+            drawerHandle.addEventListener('touchstart', startDrag, { passive: false });
+            drawerHandle.addEventListener('mousedown', startDrag);
+            
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('mousemove', drag);
+            
+            document.addEventListener('touchend', endDrag);
+            document.addEventListener('mouseup', endDrag);
 
             // Add click event as fallback
             drawerHandle.addEventListener('click', (e) => {
@@ -441,14 +438,10 @@ function showVideoFor(restaurant) {
                 }
             });
 
-            // Add visual feedback
-            drawerHandle.addEventListener('touchstart', () => {
-                drawerHandle.style.backgroundColor = '#e5e7eb';
-            });
-
-            document.addEventListener('touchend', () => {
-                drawerHandle.style.backgroundColor = '#f8fafc';
-            });
+            // Prevent default touch behavior on the handle
+            drawerHandle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            }, { passive: false });
         }
 
         // --- Event Listeners ---
