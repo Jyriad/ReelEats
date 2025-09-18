@@ -343,38 +343,76 @@ function showVideoFor(restaurant) {
             let isDragging = false;
             let startY = 0;
             let startHeight = 0;
+            let lastTap = 0;
 
-            if (!drawerHandle || !aside) return;
+            if (!drawerHandle || !aside) {
+                console.log('Drawer handle or aside not found');
+                return;
+            }
+
+            console.log('Setting up mobile drawer functionality');
+
+            // Set initial height on mobile
+            if (window.innerWidth <= 768) {
+                aside.style.height = '33vh';
+            }
 
             // Touch events for mobile
             drawerHandle.addEventListener('touchstart', (e) => {
+                console.log('Touch start on drawer handle');
                 isDragging = true;
                 startY = e.touches[0].clientY;
                 startHeight = parseInt(getComputedStyle(aside).height);
                 e.preventDefault();
-            });
+                e.stopPropagation();
+            }, { passive: false });
 
-            drawerHandle.addEventListener('touchmove', (e) => {
+            // Use document for touchmove to ensure it works even if finger moves outside handle
+            document.addEventListener('touchmove', (e) => {
                 if (!isDragging) return;
                 
+                console.log('Touch move on document');
                 const currentY = e.touches[0].clientY;
                 const deltaY = startY - currentY; // Inverted because we want to drag up to expand
                 const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
                 
                 aside.style.height = `${newHeight}px`;
                 e.preventDefault();
-            });
+                e.stopPropagation();
+            }, { passive: false });
 
-            drawerHandle.addEventListener('touchend', () => {
+            document.addEventListener('touchend', (e) => {
+                if (!isDragging) return;
+                
+                console.log('Touch end on document');
                 isDragging = false;
+                
+                // Double tap detection
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 500 && tapLength > 0) {
+                    console.log('Double tap detected');
+                    const currentHeight = parseInt(getComputedStyle(aside).height);
+                    const collapsedHeight = 150;
+                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                    
+                    if (currentHeight < expandedHeight / 2) {
+                        aside.style.height = `${expandedHeight}px`;
+                    } else {
+                        aside.style.height = `${collapsedHeight}px`;
+                    }
+                }
+                lastTap = currentTime;
             });
 
             // Mouse events for desktop testing
             drawerHandle.addEventListener('mousedown', (e) => {
+                console.log('Mouse down on drawer handle');
                 isDragging = true;
                 startY = e.clientY;
                 startHeight = parseInt(getComputedStyle(aside).height);
                 e.preventDefault();
+                e.stopPropagation();
             });
 
             document.addEventListener('mousemove', (e) => {
@@ -389,24 +427,27 @@ function showVideoFor(restaurant) {
                 isDragging = false;
             });
 
-            // Double tap to toggle between collapsed and expanded
-            let lastTap = 0;
-            drawerHandle.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 500 && tapLength > 0) {
-                    // Double tap detected
-                    const currentHeight = parseInt(getComputedStyle(aside).height);
-                    const collapsedHeight = 150;
-                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
-                    
-                    if (currentHeight < expandedHeight / 2) {
-                        aside.style.height = `${expandedHeight}px`;
-                    } else {
-                        aside.style.height = `${collapsedHeight}px`;
-                    }
+            // Add click event as fallback
+            drawerHandle.addEventListener('click', (e) => {
+                console.log('Click on drawer handle');
+                const currentHeight = parseInt(getComputedStyle(aside).height);
+                const collapsedHeight = 150;
+                const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                
+                if (currentHeight < expandedHeight / 2) {
+                    aside.style.height = `${expandedHeight}px`;
+                } else {
+                    aside.style.height = `${collapsedHeight}px`;
                 }
-                lastTap = currentTime;
+            });
+
+            // Add visual feedback
+            drawerHandle.addEventListener('touchstart', () => {
+                drawerHandle.style.backgroundColor = '#e5e7eb';
+            });
+
+            document.addEventListener('touchend', () => {
+                drawerHandle.style.backgroundColor = '#f8fafc';
             });
         }
 
