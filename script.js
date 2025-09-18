@@ -51,12 +51,71 @@ document.addEventListener('DOMContentLoaded', async function() {
                     maxZoom: 20
                 }).addTo(map);
                 
+                // Add geolocation functionality
+                addUserLocationMarker();
+                
                 mapInitialized = true;
                 console.log('Map initialized successfully');
             } catch (error) {
                 console.error('Map initialization error:', error);
                 mapInitialized = false;
             }
+        }
+
+        function addUserLocationMarker() {
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser');
+                return;
+            }
+
+            console.log('Requesting user location...');
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 5 minutes
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    
+                    console.log('User location found:', userLat, userLon);
+                    
+                    // Center map on user location
+                    map.setView([userLat, userLon], 15);
+                    
+                    // Add user location marker
+                    const userIcon = L.divIcon({
+                        className: 'user-location-icon',
+                        html: '<div class="user-icon">📍</div>',
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    });
+                    
+                    const userMarker = L.marker([userLat, userLon], { 
+                        icon: userIcon,
+                        title: 'Your Location'
+                    }).addTo(map);
+                    
+                    // Add a circle around user location for better visibility
+                    const userCircle = L.circle([userLat, userLon], {
+                        color: '#06b6d4',
+                        fillColor: '#06b6d4',
+                        fillOpacity: 0.1,
+                        radius: 100 // 100 meters
+                    }).addTo(map);
+                    
+                    console.log('User location marker added');
+                },
+                function(error) {
+                    console.log('Geolocation error:', error.message);
+                    // Fallback to default London location
+                    console.log('Using default London location');
+                },
+                options
+            );
         }
 
         async function loadCitiesAndInitialRestaurants() {
@@ -474,6 +533,15 @@ function showVideoFor(restaurant) {
         });
         closeVideoBtn.addEventListener('click', closeVideo);
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        
+        // Location button event listener
+        const locationBtn = document.getElementById('location-btn');
+        if (locationBtn) {
+            locationBtn.addEventListener('click', () => {
+                console.log('Location button clicked');
+                addUserLocationMarker();
+            });
+        }
         
         // Setup mobile drawer after DOM is ready
         setupMobileDrawer();
