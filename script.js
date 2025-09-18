@@ -152,7 +152,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.error("Error fetching tiktoks:", tiktoksError);
             }
 
-            // 3. Join the data together in JavaScript.
+            // 3. Fetch cuisine information for restaurants
+            const { data: restaurantCuisines, error: cuisineError } = await supabaseClient
+                .from('restaurant_cuisines')
+                .select(`
+                    restaurant_id,
+                    cuisines (name)
+                `)
+                .in('restaurant_id', restaurantIds);
+
+            if (cuisineError) {
+                console.error("Error fetching cuisines:", cuisineError);
+            }
+
+            // 4. Join the data together in JavaScript.
             const tiktokMap = new Map();
             if (tiktoks) {
                 tiktoks.forEach(t => {
@@ -160,9 +173,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
 
+            const cuisineMap = new Map();
+            if (restaurantCuisines) {
+                restaurantCuisines.forEach(rc => {
+                    if (!cuisineMap.has(rc.restaurant_id)) {
+                        cuisineMap.set(rc.restaurant_id, []);
+                    }
+                    cuisineMap.get(rc.restaurant_id).push(rc.cuisines.name);
+                });
+            }
+
             currentRestaurants = restaurants.map(r => ({
                 ...r,
-                tiktok_embed_html: tiktokMap.get(r.id) || null
+                tiktok_embed_html: tiktokMap.get(r.id) || null,
+                cuisines: cuisineMap.get(r.id) || []
             }));
             
             displayRestaurants(currentRestaurants);
@@ -191,10 +215,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         function createListItem(restaurant, index) {
             const listItem = document.createElement('div');
             listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start';
+            
+            // Create cuisine tags
+            const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
+                ? restaurant.cuisines.map(cuisine => 
+                    `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${cuisine}</span>`
+                  ).join('')
+                : '<span class="text-gray-400 text-xs">No cuisine info</span>';
+            
             listItem.innerHTML = `
                 <div class="flex-1 min-w-0">
                     <h3 class="text-gray-900 text-base md:text-lg font-bold truncate">${restaurant.name}</h3>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
+                    <div class="mt-2 flex flex-wrap">
+                        ${cuisineTags}
+                    </div>
                 </div>
             `;
             listItem.addEventListener('click', () => {
@@ -301,6 +336,136 @@ function showVideoFor(restaurant) {
             videoContainer.innerHTML = '';
         }
 
+        // --- Mobile Drawer Functionality ---
+        function setupMobileDrawer() {
+            const drawerHandle = document.getElementById('drawer-handle');
+            const aside = document.querySelector('aside');
+            let isDragging = false;
+            let startY = 0;
+            let startHeight = 0;
+            let lastTap = 0;
+
+            if (!drawerHandle || !aside) {
+                console.log('Drawer handle or aside not found');
+                return;
+            }
+
+            console.log('Setting up mobile drawer functionality');
+
+            // Set initial height on mobile
+            if (window.innerWidth <= 768) {
+                aside.style.height = '33vh';
+            }
+
+            // Unified event handler for both touch and mouse
+            function startDrag(e) {
+                console.log('Start drag event');
+                isDragging = true;
+                
+                // Get coordinates from either touch or mouse event
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startY = clientY;
+                startHeight = parseInt(getComputedStyle(aside).height);
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Visual feedback
+                drawerHandle.style.backgroundColor = '#e5e7eb';
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const deltaY = startY - clientY; // Inverted because we want to drag up to expand
+                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
+                
+                console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
+                
+                // Update both the style and the CSS variable
+                aside.style.height = `${newHeight}px`;
+                document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function endDrag(e) {
+                if (!isDragging) return;
+                
+                console.log('End drag event');
+                isDragging = false;
+                
+                // Visual feedback
+                drawerHandle.style.backgroundColor = '#f8fafc';
+                
+                // Persist the final height
+                const finalHeight = parseInt(getComputedStyle(aside).height);
+                document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
+                
+                // Double tap detection
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 500 && tapLength > 0) {
+                    console.log('Double tap detected');
+                    const currentHeight = parseInt(getComputedStyle(aside).height);
+                    const collapsedHeight = 150;
+                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                    
+                    if (currentHeight < expandedHeight / 2) {
+                        aside.style.height = `${expandedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
+                    } else {
+                        aside.style.height = `${collapsedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
+                    }
+                }
+                lastTap = currentTime;
+            }
+
+            // Add all event listeners
+            drawerHandle.addEventListener('touchstart', startDrag, { passive: false });
+            drawerHandle.addEventListener('mousedown', startDrag);
+            
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('mousemove', drag);
+            
+            document.addEventListener('touchend', endDrag);
+            document.addEventListener('mouseup', endDrag);
+
+            // Debug: Log all touch events on the handle
+            drawerHandle.addEventListener('touchstart', (e) => {
+                console.log('Touch start detected on handle');
+            });
+            drawerHandle.addEventListener('touchmove', (e) => {
+                console.log('Touch move detected on handle');
+            });
+            drawerHandle.addEventListener('touchend', (e) => {
+                console.log('Touch end detected on handle');
+            });
+
+            // Add click event as fallback
+            drawerHandle.addEventListener('click', (e) => {
+                console.log('Click on drawer handle');
+                const currentHeight = parseInt(getComputedStyle(aside).height);
+                const collapsedHeight = 150;
+                const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                
+                if (currentHeight < expandedHeight / 2) {
+                    aside.style.height = `${expandedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
+                } else {
+                    aside.style.height = `${collapsedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
+                }
+            });
+
+            // Prevent default touch behavior on the handle
+            drawerHandle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+        }
+
         // --- Event Listeners ---
         citySelect.addEventListener('change', async function() {
             const selectedOption = citySelect.options[citySelect.selectedIndex];
@@ -309,6 +474,9 @@ function showVideoFor(restaurant) {
         });
         closeVideoBtn.addEventListener('click', closeVideo);
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        
+        // Setup mobile drawer after DOM is ready
+        setupMobileDrawer();
     
     } catch (error) {
         console.error("An error occurred during initialization:", error);
