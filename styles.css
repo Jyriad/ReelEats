@@ -212,11 +212,21 @@ html, body {
     margin-bottom: 10px;
 }
 /* Custom user marker icon */
-.user-location-icon { background: transparent; border: none; }
+.user-location-icon { 
+    background: transparent; 
+    border: none; 
+}
 .user-icon {
-    width: 30px; height: 30px; border-radius: 9999px; background: #06b6d4; /* cyan-500 */
-    border: 2px solid #ffffff; box-shadow: 0 0 0 2px rgba(6,182,212,0.5);
-    display: flex; align-items: center; justify-content: center; color: #0f172a; font-size: 16px; line-height: 1;
+    width: 35px; height: 35px; border-radius: 9999px; background: #ef4444; /* red-500 */
+    border: 3px solid #ffffff; box-shadow: 0 0 0 3px rgba(239,68,68,0.5);
+    display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 18px; line-height: 1;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 /* Highlight for selected restaurant in list */
 .active-list-item { background-color: #eef2ff !important; border-color: #a5b4fc !important; }

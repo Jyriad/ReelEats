@@ -83,15 +83,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     console.log('User location found:', userLat, userLon);
                     
+                    // Store user location globally for distance calculations
+                    window.userLocation = { lat: userLat, lon: userLon };
+                    
                     // Center map on user location
                     map.setView([userLat, userLon], 15);
                     
-                    // Add user location marker
+                    // Add user location marker with distinct styling
                     const userIcon = L.divIcon({
                         className: 'user-location-icon',
                         html: '<div class="user-icon">📍</div>',
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15]
+                        iconSize: [35, 35],
+                        iconAnchor: [17, 17]
                     });
                     
                     const userMarker = L.marker([userLat, userLon], { 
@@ -99,13 +102,24 @@ document.addEventListener('DOMContentLoaded', async function() {
                         title: 'Your Location'
                     }).addTo(map);
                     
-                    // Add a circle around user location for better visibility
+                    // Add a pulsing circle around user location for better visibility
                     const userCircle = L.circle([userLat, userLon], {
-                        color: '#06b6d4',
-                        fillColor: '#06b6d4',
-                        fillOpacity: 0.1,
-                        radius: 100 // 100 meters
+                        color: '#ef4444',
+                        fillColor: '#ef4444',
+                        fillOpacity: 0.2,
+                        radius: 150, // 150 meters
+                        weight: 3
                     }).addTo(map);
+                    
+                    // Add pulsing animation
+                    userCircle.setStyle({
+                        fillOpacity: 0.1
+                    });
+                    
+                    // Update restaurant cards with distances if on mobile
+                    if (window.innerWidth <= 768) {
+                        updateRestaurantCardsWithDistance();
+                    }
                     
                     console.log('User location marker added');
                 },
@@ -282,6 +296,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                   ).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
             
+            // Calculate distance if user location is available and on mobile
+            let distanceHtml = '';
+            if (window.userLocation && window.innerWidth <= 768) {
+                const distance = calculateDistance(
+                    window.userLocation.lat, 
+                    window.userLocation.lon, 
+                    restaurant.lat, 
+                    restaurant.lon
+                );
+                distanceHtml = `<div class="mt-1 text-xs text-gray-500 flex items-center">
+                    <span class="mr-1">📍</span>
+                    <span>${distance} away</span>
+                </div>`;
+            }
+            
             listItem.innerHTML = `
                 <div class="flex-1 min-w-0">
                     <h3 class="text-gray-900 text-base md:text-lg font-bold truncate">${restaurant.name}</h3>
@@ -289,6 +318,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <div class="mt-2 flex flex-wrap">
                         ${cuisineTags}
                     </div>
+                    ${distanceHtml}
                 </div>
             `;
             listItem.addEventListener('click', () => {
@@ -302,6 +332,53 @@ document.addEventListener('DOMContentLoaded', async function() {
             const marker = L.marker([restaurant.lat, restaurant.lon], { title: restaurant.name });
             marker.on('click', () => showVideoFor(restaurant));
             return marker;
+        }
+
+        // Calculate distance between two coordinates using Haversine formula
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c; // Distance in kilometers
+            
+            if (distance < 1) {
+                return Math.round(distance * 1000) + 'm';
+            } else {
+                return Math.round(distance * 10) / 10 + 'km';
+            }
+        }
+
+        // Update restaurant cards with distance information
+        function updateRestaurantCardsWithDistance() {
+            if (!window.userLocation || window.innerWidth > 768) return;
+            
+            const restaurantCards = document.querySelectorAll('#restaurant-list .bg-white');
+            restaurantCards.forEach(card => {
+                const restaurantName = card.querySelector('h3').textContent;
+                const restaurant = currentRestaurants.find(r => r.name === restaurantName);
+                
+                if (restaurant) {
+                    const distance = calculateDistance(
+                        window.userLocation.lat, 
+                        window.userLocation.lon, 
+                        restaurant.lat, 
+                        restaurant.lon
+                    );
+                    
+                    // Check if distance is already shown
+                    const existingDistance = card.querySelector('.distance-info');
+                    if (!existingDistance) {
+                        const distanceDiv = document.createElement('div');
+                        distanceDiv.className = 'mt-1 text-xs text-gray-500 flex items-center distance-info';
+                        distanceDiv.innerHTML = `<span class="mr-1">📍</span><span>${distance} away</span>`;
+                        card.querySelector('.flex-1').appendChild(distanceDiv);
+                    }
+                }
+            });
         }
 
         // script.js
