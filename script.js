@@ -383,7 +383,9 @@ function showVideoFor(restaurant) {
                 
                 console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
                 
+                // Update both the style and the CSS variable
                 aside.style.height = `${newHeight}px`;
+                document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
                 e.preventDefault();
                 e.stopPropagation();
             }
@@ -397,6 +399,10 @@ function showVideoFor(restaurant) {
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';
                 
+                // Persist the final height
+                const finalHeight = parseInt(getComputedStyle(aside).height);
+                document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
+                
                 // Double tap detection
                 const currentTime = new Date().getTime();
                 const tapLength = currentTime - lastTap;
@@ -408,8 +414,10 @@ function showVideoFor(restaurant) {
                     
                     if (currentHeight < expandedHeight / 2) {
                         aside.style.height = `${expandedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
                     } else {
                         aside.style.height = `${collapsedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
                     }
                 }
                 lastTap = currentTime;
@@ -425,6 +433,17 @@ function showVideoFor(restaurant) {
             document.addEventListener('touchend', endDrag);
             document.addEventListener('mouseup', endDrag);
 
+            // Debug: Log all touch events on the handle
+            drawerHandle.addEventListener('touchstart', (e) => {
+                console.log('Touch start detected on handle');
+            });
+            drawerHandle.addEventListener('touchmove', (e) => {
+                console.log('Touch move detected on handle');
+            });
+            drawerHandle.addEventListener('touchend', (e) => {
+                console.log('Touch end detected on handle');
+            });
+
             // Add click event as fallback
             drawerHandle.addEventListener('click', (e) => {
                 console.log('Click on drawer handle');
@@ -434,8 +453,10 @@ function showVideoFor(restaurant) {
                 
                 if (currentHeight < expandedHeight / 2) {
                     aside.style.height = `${expandedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
                 } else {
                     aside.style.height = `${collapsedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
                 }
             });
 
