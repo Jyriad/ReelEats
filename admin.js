@@ -1498,37 +1498,82 @@ function displayRestaurantVideoGroups(restaurantGroups) {
                 videoDiv.className = 'border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow';
                 videoDiv.setAttribute('data-video-id', video.id);
                 
-                videoDiv.innerHTML = `
-                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                                <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit">${isFeatured}</span>
-                                <span class="text-xs text-gray-500">Video ID: ${video.tiktok_id || 'N/A'}</span>
-                                <span class="text-xs text-gray-500">Added: ${createdDate}</span>
-                            </div>
-                            <div class="mt-2 p-2 bg-gray-50 rounded text-xs">
-                                <div class="text-gray-600 mb-1">Video Preview:</div>
-                                <div class="text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs">
-                                    ${video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML'}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0">
-                            <button onclick="editVideo(${video.id})" 
-                                    class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap">
-                                ✏️ Edit
-                            </button>
-                            <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
-                                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap">
-                                ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
-                            </button>
-                            <button onclick="deleteVideo(${video.id}, '${restaurant.name}')" 
-                                    class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap">
-                                🗑️ Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
+                // Create the video card content using DOM methods to avoid HTML injection issues
+                const mainDiv = document.createElement('div');
+                mainDiv.className = 'flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3';
+                
+                // Content section
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'flex-1 min-w-0';
+                
+                // Video info section
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'flex flex-col sm:flex-row sm:items-center gap-2 mb-2';
+                
+                const statusSpan = document.createElement('span');
+                statusSpan.className = `text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit`;
+                statusSpan.textContent = isFeatured;
+                
+                const videoIdSpan = document.createElement('span');
+                videoIdSpan.className = 'text-xs text-gray-500';
+                videoIdSpan.textContent = `Video ID: ${video.tiktok_id || 'N/A'}`;
+                
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'text-xs text-gray-500';
+                dateSpan.textContent = `Added: ${createdDate}`;
+                
+                infoDiv.appendChild(statusSpan);
+                infoDiv.appendChild(videoIdSpan);
+                infoDiv.appendChild(dateSpan);
+                
+                // Preview section
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'mt-2 p-2 bg-gray-50 rounded text-xs';
+                
+                const previewLabel = document.createElement('div');
+                previewLabel.className = 'text-gray-600 mb-1';
+                previewLabel.textContent = 'Video Preview:';
+                
+                const previewContent = document.createElement('div');
+                previewContent.className = 'text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs';
+                previewContent.textContent = video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML';
+                
+                previewDiv.appendChild(previewLabel);
+                previewDiv.appendChild(previewContent);
+                
+                contentDiv.appendChild(infoDiv);
+                contentDiv.appendChild(previewDiv);
+                
+                // Buttons section
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0';
+                
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
+                editBtn.textContent = '✏️ Edit';
+                editBtn.onclick = () => editVideo(video.id);
+                
+                // Feature button
+                const featureBtn = document.createElement('button');
+                featureBtn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
+                featureBtn.textContent = video.is_featured ? '⭐ Unfeature' : '⭐ Feature';
+                featureBtn.onclick = () => toggleVideoFeatured(video.id, video.is_featured);
+                
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
+                deleteBtn.textContent = '🗑️ Delete';
+                deleteBtn.onclick = () => deleteVideo(video.id, restaurant.name);
+                
+                buttonsDiv.appendChild(editBtn);
+                buttonsDiv.appendChild(featureBtn);
+                buttonsDiv.appendChild(deleteBtn);
+                
+                mainDiv.appendChild(contentDiv);
+                mainDiv.appendChild(buttonsDiv);
+                
+                videoDiv.appendChild(mainDiv);
                 
                 videosContainer.appendChild(videoDiv);
             });
