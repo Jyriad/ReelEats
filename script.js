@@ -403,8 +403,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Populate desktop filter with beautiful categories
         function populateDesktopFilterWithCategories(cuisineCategories) {
             const container = document.getElementById('cuisine-filter-container-desktop');
-            if (!container) return;
+            if (!container) {
+                console.error('Desktop filter container not found!');
+                return;
+            }
             
+            console.log('Populating desktop filter with categories:', cuisineCategories.length);
             container.innerHTML = '';
             
             cuisineCategories.forEach(category => {
@@ -431,7 +435,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     checkbox.type = 'checkbox';
                     checkbox.id = `desktop-cuisine-${cuisine.name}`;
                     checkbox.value = cuisine.name;
-                    checkbox.className = 'cuisine-checkbox absolute opacity-0 w-full h-full cursor-pointer';
+                    checkbox.className = 'cuisine-checkbox absolute opacity-0 w-full h-full cursor-pointer z-10';
                     
                     cuisineCard.innerHTML = `
                         <div class="cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md bg-white">
@@ -450,6 +454,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                         console.log('Desktop cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
                         updateCuisineCardStyle(cuisineCard, this.checked);
                         updateSelectedCount();
+                    });
+                    
+                    // Add click listener to the entire card
+                    cuisineCard.addEventListener('click', function(e) {
+                        // Don't trigger if clicking the checkbox directly
+                        if (e.target === checkbox) return;
+                        
+                        console.log('Card clicked for cuisine:', cuisine.name);
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
                     });
                 });
                 
@@ -581,11 +595,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const filterToggleBtn = document.getElementById('filter-toggle-btn');
             
             filterToggleBtn.addEventListener('click', function() {
+                console.log('Filter button clicked, window width:', window.innerWidth);
                 // On mobile, open the mobile modal
                 if (window.innerWidth < 768) {
+                    console.log('Opening mobile filter modal');
                     openMobileFilterModal();
                 } else {
                     // On desktop, open the desktop modal
+                    console.log('Opening desktop filter modal');
                     openDesktopFilterModal();
                 }
             });
@@ -670,9 +687,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Open desktop filter modal
         function openDesktopFilterModal() {
+            console.log('Opening desktop filter modal...');
             const filterModal = document.getElementById('desktop-filter-modal');
+            if (!filterModal) {
+                console.error('Desktop filter modal not found!');
+                return;
+            }
+            
             filterModal.classList.remove('hidden');
             filterModal.classList.add('md:flex');
+            
+            // Check if the container has content
+            const container = document.getElementById('cuisine-filter-container-desktop');
+            if (container) {
+                console.log('Desktop filter container children:', container.children.length);
+            }
             
             // Sync desktop checkboxes with current state
             syncDesktopFilterWithCurrent();
