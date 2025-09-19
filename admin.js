@@ -2087,16 +2087,28 @@ async function saveRestaurantChanges(restaurantId) {
 
         // Update cuisine relationships
         const selectedCuisines = getSelectedEditCuisines();
+        console.log('🍽️ Edit form selected cuisines:', selectedCuisines);
+        
         if (selectedCuisines.length >= 0) { // Always update cuisines, even if none selected
+            console.log('🍽️ Deleting existing cuisine relationships for restaurant:', restaurantId);
             // First, delete existing cuisine relationships
-            await supabaseClient
+            const { error: deleteError } = await supabaseClient
                 .from('restaurant_cuisines')
                 .delete()
                 .eq('restaurant_id', restaurantId);
+                
+            if (deleteError) {
+                console.error('Error deleting existing cuisine relationships:', deleteError);
+            } else {
+                console.log('✅ Successfully deleted existing cuisine relationships');
+            }
             
             // Then add new ones if any selected
             if (selectedCuisines.length > 0) {
+                console.log('🍽️ Adding new cuisine relationships:', selectedCuisines);
                 await addRestaurantCuisines(restaurantId, selectedCuisines);
+            } else {
+                console.log('🍽️ No cuisines selected, restaurant will have no cuisine relationships');
             }
         }
 
@@ -2225,9 +2237,12 @@ function populateEditCuisineSelection(currentCuisines) {
             const isSelected = currentCuisines.includes(cuisine.name);
             const selectedClass = isSelected ? 'selected bg-blue-500 text-white border-blue-500' : `border-${cuisine.color}-300 hover:bg-${cuisine.color}-50 bg-${cuisine.color}-50`;
             
+            // Get emoji for cuisine
+            const emoji = getCuisineEmoji(cuisine.name);
+            
             html += `
                 <button type="button" class="edit-cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" data-cuisine="${cuisine.name}">
-                    ${cuisine.emoji || '🍽️'} ${cuisine.name}
+                    ${emoji} ${cuisine.name}
                 </button>
             `;
         });
@@ -2246,10 +2261,24 @@ function populateEditCuisineSelection(currentCuisines) {
 
 // Set up cuisine selection for edit form
 function setupEditCuisineSelection() {
+    console.log('🍽️ Setting up edit cuisine selection...');
     const cuisineButtons = document.querySelectorAll('.edit-cuisine-btn');
+    console.log('🍽️ Found edit cuisine buttons:', cuisineButtons.length);
     
-    cuisineButtons.forEach(button => {
-        button.addEventListener('click', () => {
+    cuisineButtons.forEach((button, index) => {
+        // Remove any existing event listeners
+        button.replaceWith(button.cloneNode(true));
+    });
+    
+    // Re-query after cloning to get fresh elements
+    const freshButtons = document.querySelectorAll('.edit-cuisine-btn');
+    console.log('🍽️ Fresh edit cuisine buttons:', freshButtons.length);
+    
+    freshButtons.forEach((button, index) => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🍽️ Edit cuisine button clicked:', button.dataset.cuisine);
+            
             // Toggle selection
             if (button.classList.contains('selected')) {
                 // Deselect
@@ -2259,6 +2288,7 @@ function setupEditCuisineSelection() {
                 const cuisineName = button.dataset.cuisine;
                 const originalColor = getCuisineColor(cuisineName);
                 button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Deselected edit cuisine:', cuisineName);
             } else {
                 // Select
                 button.classList.add('selected');
@@ -2267,7 +2297,12 @@ function setupEditCuisineSelection() {
                 const cuisineName = button.dataset.cuisine;
                 const originalColor = getCuisineColor(cuisineName);
                 button.classList.remove(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Selected edit cuisine:', cuisineName);
             }
+            
+            // Debug: Show current selection
+            const selectedCuisines = getSelectedEditCuisines();
+            console.log('🍽️ Currently selected edit cuisines:', selectedCuisines);
         });
     });
 }
@@ -2287,6 +2322,23 @@ function getCuisineColor(cuisineName) {
         'Soup': 'orange', 'Desserts': 'pink', 'Street food': 'orange'
     };
     return colorMap[cuisineName] || 'gray';
+}
+
+// Get cuisine emoji for edit form
+function getCuisineEmoji(cuisineName) {
+    const emojiMap = {
+        'Asian': '🍜', 'Chinese': '🥢', 'Japanese': '🍣', 'Korean': '🥘',
+        'Thai': '🌶️', 'Vietnamese': '🍲', 'Taiwanese': '🥟', 'Sushi': '🍱',
+        'Poke': '🐟', 'Italian': '🍝', 'Greek': '🫒', 'Pizza': '🍕',
+        'American': '🇺🇸', 'Burgers': '🍔', 'BBQ': '🥩', 'Comfort food': '🍽️',
+        'Fast food': '⚡', 'Wings': '🍗', 'Soul food': '❤️', 'Hawaiian': '🏄',
+        'Mexican': '🌮', 'Caribbean': '🏝️', 'Indian': '🍛', 'Middle Eastern': '🥙',
+        'Healthy': '🥗', 'Vegan': '🌱', 'Salads': '🥙', 'Fine dining': '🍾',
+        'Coffee': '☕', 'Bubble tea': '🧋', 'Smoothies': '🥤', 'Ice cream': '🍦',
+        'Breakfast': '🍳', 'Bakery': '🥐', 'Seafood': '🐟', 'Sandwich': '🥪',
+        'Soup': '🍲', 'Desserts': '🍰', 'Street food': '🌭'
+    };
+    return emojiMap[cuisineName] || '🍽️';
 }
 
 // Get selected cuisines from edit form
