@@ -580,18 +580,53 @@ document.addEventListener('DOMContentLoaded', async function() {
             const cancelBtn = document.getElementById('cancel-desktop-filter');
             const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
             
+            console.log('Setting up desktop filter modal...');
+            console.log('Elements found:', {
+                filterModal: !!filterModal,
+                closeBtn: !!closeBtn,
+                applyBtn: !!applyBtn,
+                cancelBtn: !!cancelBtn,
+                clearBtn: !!clearBtn
+            });
+            
             // Close modal
-            closeBtn.addEventListener('click', closeDesktopFilterModal);
-            cancelBtn.addEventListener('click', closeDesktopFilterModal);
-            applyBtn.addEventListener('click', applyDesktopFilter);
-            clearBtn.addEventListener('click', clearDesktopFilter);
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    console.log('Close button clicked');
+                    closeDesktopFilterModal();
+                });
+            }
+            
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function() {
+                    console.log('Cancel button clicked');
+                    closeDesktopFilterModal();
+                });
+            }
+            
+            if (applyBtn) {
+                applyBtn.addEventListener('click', function() {
+                    console.log('Apply button clicked');
+                    applyDesktopFilter();
+                });
+            }
+            
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    console.log('Clear button clicked');
+                    clearDesktopFilter();
+                });
+            }
             
             // Close modal when clicking outside
-            filterModal.addEventListener('click', function(e) {
-                if (e.target === filterModal) {
-                    closeDesktopFilterModal();
-                }
-            });
+            if (filterModal) {
+                filterModal.addEventListener('click', function(e) {
+                    if (e.target === filterModal) {
+                        console.log('Clicked outside modal');
+                        closeDesktopFilterModal();
+                    }
+                });
+            }
         }
         
         // Setup mobile filter modal
@@ -618,6 +653,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         function openDesktopFilterModal() {
             const filterModal = document.getElementById('desktop-filter-modal');
             filterModal.classList.remove('hidden');
+            filterModal.classList.add('md:flex');
             
             // Sync desktop checkboxes with current state
             syncDesktopFilterWithCurrent();
@@ -625,8 +661,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Close desktop filter modal
         function closeDesktopFilterModal() {
+            console.log('Closing desktop filter modal...');
             const filterModal = document.getElementById('desktop-filter-modal');
-            filterModal.classList.add('hidden');
+            if (filterModal) {
+                filterModal.classList.add('hidden');
+                filterModal.classList.remove('md:flex');
+                console.log('Modal closed successfully');
+            } else {
+                console.error('Desktop filter modal not found!');
+            }
         }
         
         // Apply desktop filter
