@@ -88,9 +88,14 @@ async function adminLogout() {
 
 // Initialize admin panel
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Admin panel initializing...');
+    
     // Check if user is authenticated
     const session = await checkAuth();
+    console.log('Auth check result:', session);
+    
     if (!session) {
+        console.log('No session, attempting admin login...');
         const loginSuccess = await adminLogin();
         if (!loginSuccess) {
             document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Authentication required for admin panel.</p></div>';
@@ -98,10 +103,37 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    await loadDashboardData();
-    await loadCitiesForSelect();
-    await loadRecentRestaurants();
-    await loadRestaurantsWithoutVideos();
+    try {
+        console.log('Loading dashboard data...');
+        await loadDashboardData();
+        console.log('Dashboard data loaded successfully');
+    } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+    }
+    
+    try {
+        console.log('Loading cities...');
+        await loadCitiesForSelect();
+        console.log('Cities loaded successfully');
+    } catch (error) {
+        console.error('Failed to load cities:', error);
+    }
+    
+    try {
+        console.log('Loading recent restaurants...');
+        await loadRecentRestaurants();
+        console.log('Recent restaurants loaded successfully');
+    } catch (error) {
+        console.error('Failed to load recent restaurants:', error);
+    }
+    
+    try {
+        console.log('Loading restaurants without videos...');
+        await loadRestaurantsWithoutVideos();
+        console.log('Restaurants without videos loaded successfully');
+    } catch (error) {
+        console.error('Failed to load restaurants without videos:', error);
+    }
     
     // Load videos for management with error handling
     try {
