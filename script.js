@@ -435,17 +435,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     checkbox.type = 'checkbox';
                     checkbox.id = `desktop-cuisine-${cuisine.name}`;
                     checkbox.value = cuisine.name;
-                    checkbox.className = 'cuisine-checkbox absolute opacity-0 w-full h-full cursor-pointer z-10';
+                    checkbox.className = 'cuisine-checkbox absolute inset-0 opacity-0 cursor-pointer z-10';
                     
-                    cuisineCard.innerHTML = `
-                        <div class="cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md bg-white">
-                            <div class="text-center">
-                                <div class="text-2xl mb-2">${cuisine.emoji}</div>
-                                <div class="text-sm font-medium text-gray-700">${cuisine.name}</div>
-                            </div>
+                    const cardContent = document.createElement('div');
+                    cardContent.className = 'cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md bg-white h-full';
+                    cardContent.innerHTML = `
+                        <div class="text-center">
+                            <div class="text-2xl mb-2">${cuisine.emoji}</div>
+                            <div class="text-sm font-medium text-gray-700">${cuisine.name}</div>
                         </div>
                     `;
                     
+                    cuisineCard.appendChild(cardContent);
                     cuisineCard.appendChild(checkbox);
                     cuisineGrid.appendChild(cuisineCard);
                     
