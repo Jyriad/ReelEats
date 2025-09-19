@@ -3,10 +3,47 @@ const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Check if user is authenticated
+// admin.js
+
+// Check if user is authenticated AND has the 'admin' role
 async function checkAuth() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    return session;
+    // First, check if there is a logged-in user session
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !session) {
+        console.log('No active session found.');
+        return false; // Not authenticated
+    }
+
+    // If there is a session, check if that user has the 'admin' role
+    const user = session.user;
+    console.log('Checking roles for user:', user.id);
+
+    try {
+        const { data: userRole, error: roleError } = await supabaseClient
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('role', 'admin')
+            .single(); // Use .single() to get one record or null
+
+        if (roleError && roleError.code !== 'PGRST116') {
+            // PGRST116 means no rows found, which is not an actual error for us here.
+            // Throw any other errors.
+            throw roleError;
+        }
+
+        if (userRole) {
+            console.log('Admin role confirmed for user.');
+            return session; // User is an admin, return the session object
+        } else {
+            console.log('User does not have admin role.');
+            return false; // User is logged in, but not an admin
+        }
+
+    } catch (error) {
+        console.error('Error checking user role:', error);
+        return false;
+    }
 }
 
 // Simple admin login
