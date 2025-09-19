@@ -1388,10 +1388,10 @@ function displayRestaurantsForManagement(restaurants) {
         const createdDate = new Date(restaurant.created_at).toLocaleDateString();
         
         return `
-            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow" data-restaurant-id="${restaurant.id}">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <h4 class="text-lg font-semibold text-gray-900">${restaurant.name}</h4>
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow mb-4" data-restaurant-id="${restaurant.id}">
+                <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-lg font-semibold text-gray-900 truncate">${restaurant.name}</h4>
                         <p class="text-sm text-gray-600 mt-1">${restaurant.description || 'No description'}</p>
                         <div class="mt-2 space-y-1">
                             <p class="text-xs text-gray-500"><strong>City:</strong> ${restaurant.cities.name}</p>
@@ -1400,7 +1400,7 @@ function displayRestaurantsForManagement(restaurants) {
                             <p class="text-xs text-gray-500"><strong>Added:</strong> ${createdDate}</p>
                         </div>
                     </div>
-                    <div class="flex space-x-2 ml-4">
+                    <div class="flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 flex-shrink-0">
                         <button onclick="editRestaurant(${restaurant.id})" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
                             ✏️ Edit
@@ -1639,7 +1639,7 @@ function filterRestaurants() {
 
 // Video Management Functions
 
-// Load videos for management
+// Load videos for management (grouped by restaurant)
 async function loadVideosForManagement() {
     try {
         const { data: videos, error } = await supabaseClient
@@ -1647,6 +1647,7 @@ async function loadVideosForManagement() {
             .select(`
                 *,
                 restaurants (
+                    id,
                     name,
                     cities (name)
                 )
@@ -1654,6 +1655,19 @@ async function loadVideosForManagement() {
             .order('created_at', { ascending: false });
 
         if (error) throw error;
+
+        // Group videos by restaurant
+        const restaurantGroups = {};
+        videos.forEach(video => {
+            const restaurantId = video.restaurants.id;
+            if (!restaurantGroups[restaurantId]) {
+                restaurantGroups[restaurantId] = {
+                    restaurant: video.restaurants,
+                    videos: []
+                };
+            }
+            restaurantGroups[restaurantId].videos.push(video);
+        });
 
         // Populate city filter for videos
         const cityFilter = document.getElementById('video-city-filter-manage');
@@ -1663,61 +1677,90 @@ async function loadVideosForManagement() {
                 cities.map(city => `<option value="${city}">${city}</option>`).join('');
         }
 
-        displayVideosForManagement(videos);
+        displayRestaurantVideoGroups(restaurantGroups);
     } catch (error) {
         console.error('Error loading videos:', error);
         showStatus('Failed to load videos: ' + error.message, 'error');
     }
 }
 
-// Display videos in management interface
-function displayVideosForManagement(videos) {
+// Display restaurant groups with their videos
+function displayRestaurantVideoGroups(restaurantGroups) {
     const container = document.getElementById('videos-list');
     if (!container) return;
 
-    if (videos.length === 0) {
+    const restaurantArray = Object.values(restaurantGroups);
+    
+    if (restaurantArray.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center py-8">No videos found</p>';
         return;
     }
 
-    container.innerHTML = videos.map(video => {
-        const createdDate = new Date(video.created_at).toLocaleDateString();
-        const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
+    container.innerHTML = restaurantArray.map(group => {
+        const restaurant = group.restaurant;
+        const videos = group.videos;
         
         return `
-            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow" data-video-id="${video.id}">
-                <div class="flex justify-between items-start">
+            <div class="border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50" data-restaurant-group="${restaurant.id}">
+                <!-- Restaurant Header -->
+                <div class="flex justify-between items-start mb-4">
                     <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-2">
-                            <h4 class="text-lg font-semibold text-gray-900">${video.restaurants.name}</h4>
-                            <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">${isFeatured}</span>
-                        </div>
-                        <p class="text-sm text-gray-600 mb-2">${video.restaurants.cities.name}</p>
-                        <div class="text-xs text-gray-500 space-y-1">
-                            <p><strong>Added:</strong> ${createdDate}</p>
-                            <p><strong>Video ID:</strong> ${video.tiktok_id || 'N/A'}</p>
-                        </div>
-                        <div class="mt-3 p-3 bg-gray-50 rounded-md">
-                            <div class="text-xs text-gray-600 mb-2">Video Preview:</div>
-                            <div class="text-xs text-gray-500 font-mono break-all max-h-20 overflow-y-auto">
-                                ${video.embed_html ? video.embed_html.substring(0, 200) + '...' : 'No embed HTML'}
-                            </div>
-                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-1">${restaurant.name}</h3>
+                        <p class="text-sm text-gray-600">${restaurant.cities.name}</p>
+                        <p class="text-xs text-gray-500 mt-1">${videos.length} video${videos.length !== 1 ? 's' : ''}</p>
                     </div>
-                    <div class="flex flex-col space-y-2 ml-4">
-                        <button onclick="editVideo(${video.id})" 
+                    <div class="flex space-x-2">
+                        <button onclick="editRestaurant(${restaurant.id})" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                            ✏️ Edit
+                            ✏️ Edit Restaurant
                         </button>
-                        <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
-                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                            ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
-                        </button>
-                        <button onclick="deleteVideo(${video.id}, '${video.restaurants.name}')" 
+                        <button onclick="deleteRestaurant(${restaurant.id}, '${restaurant.name}')" 
                                 class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                            🗑️ Delete
+                            🗑️ Delete Restaurant
                         </button>
                     </div>
+                </div>
+                
+                <!-- Videos for this restaurant -->
+                <div class="space-y-3">
+                    ${videos.map(video => {
+                        const createdDate = new Date(video.created_at).toLocaleDateString();
+                        const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
+                        
+                        return `
+                            <div class="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow" data-video-id="${video.id}">
+                                <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                                            <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit">${isFeatured}</span>
+                                            <span class="text-xs text-gray-500">Video ID: ${video.tiktok_id || 'N/A'}</span>
+                                            <span class="text-xs text-gray-500">Added: ${createdDate}</span>
+                                        </div>
+                                        <div class="mt-2 p-2 bg-gray-50 rounded text-xs">
+                                            <div class="text-gray-600 mb-1">Video Preview:</div>
+                                            <div class="text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs">
+                                                ${video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0">
+                                        <button onclick="editVideo(${video.id})" 
+                                                class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
+                                            ✏️ Edit
+                                        </button>
+                                        <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
+                                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
+                                            ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
+                                        </button>
+                                        <button onclick="deleteVideo(${video.id}, '${restaurant.name}')" 
+                                                class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
+                                            🗑️ Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `;
@@ -1889,19 +1932,19 @@ function filterVideos() {
     const searchTerm = document.getElementById('video-search-manage').value.toLowerCase();
     const cityFilter = document.getElementById('video-city-filter-manage').value;
     
-    const videoCards = document.querySelectorAll('[data-video-id]');
+    const restaurantGroups = document.querySelectorAll('[data-restaurant-group]');
     
-    videoCards.forEach(card => {
-        const restaurantName = card.querySelector('h4').textContent.toLowerCase();
-        const cityName = card.querySelector('p').textContent.toLowerCase();
+    restaurantGroups.forEach(group => {
+        const restaurantName = group.querySelector('h3').textContent.toLowerCase();
+        const cityName = group.querySelector('p').textContent.toLowerCase();
         
         const matchesSearch = restaurantName.includes(searchTerm);
         const matchesCity = !cityFilter || cityName.includes(cityFilter.toLowerCase());
         
         if (matchesSearch && matchesCity) {
-            card.style.display = 'block';
+            group.style.display = 'block';
         } else {
-            card.style.display = 'none';
+            group.style.display = 'none';
         }
     });
 }
