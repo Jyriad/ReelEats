@@ -2053,9 +2053,16 @@ async function editRestaurant(restaurantId) {
         // Set up event listeners for edit form
         setupEditFormEventListeners();
         
+        // Set up cuisine selection after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            console.log('🍽️ Setting up edit cuisine selection after delay...');
+            setupEditCuisineSelection();
+        }, 200);
+        
         // Set up form submission
         document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('🍽️ Edit form submitted, calling saveRestaurantChanges...');
             await saveRestaurantChanges(restaurantId);
         });
         
@@ -2124,7 +2131,13 @@ async function saveRestaurantChanges(restaurantId) {
 
 // Populate cuisine selection for edit form
 function populateEditCuisineSelection(currentCuisines) {
+    console.log('🍽️ Populating edit cuisine selection with current cuisines:', currentCuisines);
     const cuisineSelection = document.getElementById('edit-cuisine-selection');
+    
+    if (!cuisineSelection) {
+        console.error('🍽️ Edit cuisine selection container not found!');
+        return;
+    }
     
     // Get the same cuisine structure as the create form
     const cuisineCategories = [
@@ -2253,7 +2266,9 @@ function populateEditCuisineSelection(currentCuisines) {
         `;
     });
     
+    console.log('🍽️ Setting edit cuisine selection HTML...');
     cuisineSelection.innerHTML = html;
+    console.log('🍽️ Edit cuisine selection HTML set, found buttons:', document.querySelectorAll('.edit-cuisine-btn').length);
     
     // Set up cuisine button event listeners
     setupEditCuisineSelection();
@@ -2275,6 +2290,11 @@ function setupEditCuisineSelection() {
     console.log('🍽️ Fresh edit cuisine buttons:', freshButtons.length);
     
     freshButtons.forEach((button, index) => {
+        // Add a simple click test first
+        button.addEventListener('click', (e) => {
+            console.log('🍽️ BUTTON CLICKED!', button.dataset.cuisine, 'Current classes:', button.className);
+        });
+        
         button.addEventListener('click', (e) => {
             e.preventDefault();
             console.log('🍽️ Edit cuisine button clicked:', button.dataset.cuisine);
@@ -2344,7 +2364,25 @@ function getCuisineEmoji(cuisineName) {
 // Get selected cuisines from edit form
 function getSelectedEditCuisines() {
     const selectedButtons = document.querySelectorAll('.edit-cuisine-btn.selected');
-    return Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
+    const cuisines = Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
+    console.log('🍽️ getSelectedEditCuisines() called, found:', cuisines);
+    return cuisines;
+}
+
+// Debug function to test edit cuisine selection
+function debugEditCuisineSelection() {
+    console.log('🍽️ Debug: Edit cuisine selection status');
+    console.log('🍽️ Total edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn').length);
+    console.log('🍽️ Selected edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn.selected').length);
+    console.log('🍽️ Selected cuisines:', getSelectedEditCuisines());
+    
+    // Test clicking a button
+    const firstButton = document.querySelector('.edit-cuisine-btn');
+    if (firstButton) {
+        console.log('🍽️ Testing click on first button:', firstButton.dataset.cuisine);
+        firstButton.click();
+        console.log('🍽️ After click - selected cuisines:', getSelectedEditCuisines());
+    }
 }
 
 // Set up event listeners for edit form
