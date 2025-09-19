@@ -57,30 +57,49 @@
             
             <!-- Filter Toggle Button -->
             <div class="mb-4">
-                <button id="filter-toggle-btn" class="flex items-center justify-center w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button id="filter-toggle-btn" class="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                     </svg>
-                    <span class="text-sm font-medium">Filter by Cuisine</span>
-                    <svg id="filter-arrow" class="w-4 h-4 ml-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
+                    <span class="text-sm font-semibold">Filter by Cuisine</span>
+                    <div id="selected-count" class="ml-2 px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium hidden">0</div>
                 </button>
-            </div>
-
-            <!-- Cuisine Filter (Desktop - Collapsible) -->
-            <div id="cuisine-filter-desktop" class="mb-4 hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-medium text-gray-700">Filter by Cuisine</label>
-                    <button id="clear-cuisine-filter" class="text-xs text-blue-600 hover:text-blue-800 underline">Clear All</button>
-                </div>
-                <div id="cuisine-filter-container" class="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white">
-                    <!-- Cuisine checkboxes will be populated here -->
-                </div>
             </div>
             
             <div id="restaurant-list" class="space-y-2 md:space-y-4"></div>
         </aside>
+            <!-- Desktop Filter Popup -->
+            <div id="desktop-filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden md:flex items-center justify-center">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                        <h3 class="text-2xl font-bold text-gray-900">Filter by Cuisine</h3>
+                        <button id="close-desktop-filter-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-6 overflow-y-auto max-h-[60vh]">
+                        <div id="cuisine-filter-container-desktop" class="space-y-6">
+                            <!-- Cuisine categories will be populated here -->
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+                        <button id="clear-cuisine-filter-desktop" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors font-medium">
+                            Clear All
+                        </button>
+                        <div class="flex space-x-3">
+                            <button id="cancel-desktop-filter" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </button>
+                            <button id="apply-desktop-filter" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                Apply Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Mobile Filter Popup -->
             <div id="filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden md:hidden">
                 <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">

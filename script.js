@@ -285,36 +285,205 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Setup filter toggle button
             setupFilterToggle();
             
+            // Setup desktop filter modal
+            setupDesktopFilterModal();
+            
             // Setup mobile filter modal
             setupMobileFilterModal();
-            
-            // Add event listener for clear all button (desktop)
-            document.getElementById('clear-cuisine-filter').addEventListener('click', function() {
-                clearAllCuisineFilters();
-            });
         }
         
         // Populate cuisine filter with all available cuisines
         function populateCuisineFilter() {
-            // Use the same cuisine list as the admin forms
-            const allCuisineList = [
-                'Asian', 'Chinese', 'Japanese', 'Korean', 'Thai', 'Vietnamese', 'Taiwanese', 'Sushi', 'Poke',
-                'Italian', 'Greek', 'Pizza', 'British', 'French',
-                'American', 'Burgers', 'BBQ', 'Comfort food', 'Fast food', 'Wings', 'Soul food', 'Hawaiian',
-                'Mexican', 'Caribbean', 'Indian', 'Middle Eastern',
-                'Healthy', 'Vegan', 'Salads', 'Fine dining',
-                'Coffee', 'Bubble tea', 'Smoothies', 'Ice cream',
-                'Breakfast', 'Bakery', 'Seafood', 'Sandwich', 'Soup', 'Desserts', 'Street food'
+            // Define cuisine categories with better organization
+            const cuisineCategories = [
+                {
+                    title: 'Asian Cuisines',
+                    emoji: '🍜',
+                    color: 'orange',
+                    cuisines: [
+                        { name: 'Asian', emoji: '🍜' },
+                        { name: 'Chinese', emoji: '🥢' },
+                        { name: 'Japanese', emoji: '🍣' },
+                        { name: 'Korean', emoji: '🥘' },
+                        { name: 'Thai', emoji: '🌶️' },
+                        { name: 'Vietnamese', emoji: '🍲' },
+                        { name: 'Taiwanese', emoji: '🥟' },
+                        { name: 'Sushi', emoji: '🍱' },
+                        { name: 'Poke', emoji: '🐟' }
+                    ]
+                },
+                {
+                    title: 'European & Mediterranean',
+                    emoji: '🍝',
+                    color: 'blue',
+                    cuisines: [
+                        { name: 'Italian', emoji: '🍝' },
+                        { name: 'Greek', emoji: '🫒' },
+                        { name: 'Pizza', emoji: '🍕' },
+                        { name: 'British', emoji: '🇬🇧' },
+                        { name: 'French', emoji: '🥐' }
+                    ]
+                },
+                {
+                    title: 'American & Comfort Food',
+                    emoji: '🍔',
+                    color: 'red',
+                    cuisines: [
+                        { name: 'American', emoji: '🍔' },
+                        { name: 'Burgers', emoji: '🍔' },
+                        { name: 'BBQ', emoji: '🥩' },
+                        { name: 'Comfort food', emoji: '🍗' },
+                        { name: 'Fast food', emoji: '⚡' },
+                        { name: 'Wings', emoji: '🍗' },
+                        { name: 'Soul food', emoji: '❤️' },
+                        { name: 'Hawaiian', emoji: '🏄' }
+                    ]
+                },
+                {
+                    title: 'International',
+                    emoji: '🌍',
+                    color: 'green',
+                    cuisines: [
+                        { name: 'Mexican', emoji: '🌮' },
+                        { name: 'Caribbean', emoji: '🏝️' },
+                        { name: 'Indian', emoji: '🍛' },
+                        { name: 'Middle Eastern', emoji: '🥙' }
+                    ]
+                },
+                {
+                    title: 'Healthy & Specialized',
+                    emoji: '🥗',
+                    color: 'emerald',
+                    cuisines: [
+                        { name: 'Healthy', emoji: '🥗' },
+                        { name: 'Vegan', emoji: '🌱' },
+                        { name: 'Salads', emoji: '🥙' },
+                        { name: 'Fine dining', emoji: '🍾' }
+                    ]
+                },
+                {
+                    title: 'Drinks & Desserts',
+                    emoji: '☕',
+                    color: 'purple',
+                    cuisines: [
+                        { name: 'Coffee', emoji: '☕' },
+                        { name: 'Bubble tea', emoji: '🧋' },
+                        { name: 'Smoothies', emoji: '🥤' },
+                        { name: 'Ice cream', emoji: '🍦' }
+                    ]
+                },
+                {
+                    title: 'Other',
+                    emoji: '🍽️',
+                    color: 'gray',
+                    cuisines: [
+                        { name: 'Breakfast', emoji: '🍳' },
+                        { name: 'Bakery', emoji: '🥐' },
+                        { name: 'Seafood', emoji: '🐟' },
+                        { name: 'Sandwich', emoji: '🥪' },
+                        { name: 'Soup', emoji: '🍲' },
+                        { name: 'Desserts', emoji: '🍰' },
+                        { name: 'Street food', emoji: '🌭' }
+                    ]
+                }
             ];
             
-            allCuisines = allCuisineList;
+            // Flatten all cuisines for filtering logic
+            allCuisines = cuisineCategories.flatMap(category => 
+                category.cuisines.map(cuisine => cuisine.name)
+            );
             
-            // Populate both desktop and mobile containers
-            populateFilterContainer('cuisine-filter-container');
+            // Populate desktop filter with categories
+            populateDesktopFilterWithCategories(cuisineCategories);
+            
+            // Populate mobile filter (simple list)
             populateFilterContainer('cuisine-filter-container-mobile');
         }
         
-        // Populate a specific filter container with checkboxes
+        // Populate desktop filter with beautiful categories
+        function populateDesktopFilterWithCategories(cuisineCategories) {
+            const container = document.getElementById('cuisine-filter-container-desktop');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            cuisineCategories.forEach(category => {
+                const categorySection = document.createElement('div');
+                categorySection.className = 'space-y-3';
+                
+                // Category header
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'flex items-center space-x-3 pb-2 border-b border-gray-200';
+                categoryHeader.innerHTML = `
+                    <span class="text-2xl">${category.emoji}</span>
+                    <h4 class="text-lg font-semibold text-gray-800">${category.title}</h4>
+                `;
+                
+                // Cuisine grid
+                const cuisineGrid = document.createElement('div');
+                cuisineGrid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3';
+                
+                category.cuisines.forEach(cuisine => {
+                    const cuisineCard = document.createElement('div');
+                    cuisineCard.className = 'cuisine-card relative group cursor-pointer';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `desktop-cuisine-${cuisine.name}`;
+                    checkbox.value = cuisine.name;
+                    checkbox.className = 'cuisine-checkbox absolute opacity-0 w-full h-full cursor-pointer';
+                    
+                    cuisineCard.innerHTML = `
+                        <div class="cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md bg-white">
+                            <div class="text-center">
+                                <div class="text-2xl mb-2">${cuisine.emoji}</div>
+                                <div class="text-sm font-medium text-gray-700">${cuisine.name}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    cuisineCard.appendChild(checkbox);
+                    cuisineGrid.appendChild(cuisineCard);
+                    
+                    // Add event listener for checkbox
+                    checkbox.addEventListener('change', function() {
+                        updateCuisineCardStyle(cuisineCard, this.checked);
+                        updateSelectedCount();
+                    });
+                });
+                
+                categorySection.appendChild(categoryHeader);
+                categorySection.appendChild(cuisineGrid);
+                container.appendChild(categorySection);
+            });
+        }
+        
+        // Update cuisine card style based on selection
+        function updateCuisineCardStyle(card, isSelected) {
+            const content = card.querySelector('.cuisine-card-content');
+            if (isSelected) {
+                content.classList.remove('border-gray-200', 'bg-white');
+                content.classList.add('border-blue-500', 'bg-blue-50', 'shadow-md');
+            } else {
+                content.classList.remove('border-blue-500', 'bg-blue-50', 'shadow-md');
+                content.classList.add('border-gray-200', 'bg-white');
+            }
+        }
+        
+        // Update selected count in filter button
+        function updateSelectedCount() {
+            const selectedCount = document.querySelectorAll('.cuisine-checkbox:checked').length;
+            const countElement = document.getElementById('selected-count');
+            
+            if (selectedCount > 0) {
+                countElement.textContent = selectedCount;
+                countElement.classList.remove('hidden');
+            } else {
+                countElement.classList.add('hidden');
+            }
+        }
+        
+        // Populate a specific filter container with checkboxes (for mobile)
         function populateFilterContainer(containerId) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -342,10 +511,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 checkboxContainer.appendChild(label);
                 container.appendChild(checkboxContainer);
                 
-                // Add event listener for each checkbox (only for desktop)
-                if (containerId === 'cuisine-filter-container') {
+                // Add event listener for each checkbox (only for mobile)
+                if (containerId === 'cuisine-filter-container-mobile') {
                     checkbox.addEventListener('change', function() {
-                        filterRestaurantsByCuisines();
+                        updateSelectedCount();
                     });
                 }
             });
@@ -391,27 +560,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Setup filter toggle functionality
         function setupFilterToggle() {
             const filterToggleBtn = document.getElementById('filter-toggle-btn');
-            const filterDesktop = document.getElementById('cuisine-filter-desktop');
-            const filterArrow = document.getElementById('filter-arrow');
             
             filterToggleBtn.addEventListener('click', function() {
-                // On mobile, open the modal
+                // On mobile, open the mobile modal
                 if (window.innerWidth < 768) {
                     openMobileFilterModal();
                 } else {
-                    // On desktop, toggle the collapsible filter
-                    const isHidden = filterDesktop.classList.contains('hidden');
-                    console.log('Desktop filter toggle - isHidden:', isHidden);
-                    
-                    if (isHidden) {
-                        filterDesktop.classList.remove('hidden');
-                        filterArrow.style.transform = 'rotate(180deg)';
-                        console.log('Showing desktop filter');
-                    } else {
-                        filterDesktop.classList.add('hidden');
-                        filterArrow.style.transform = 'rotate(0deg)';
-                        console.log('Hiding desktop filter');
-                    }
+                    // On desktop, open the desktop modal
+                    openDesktopFilterModal();
+                }
+            });
+        }
+        
+        // Setup desktop filter modal
+        function setupDesktopFilterModal() {
+            const filterModal = document.getElementById('desktop-filter-modal');
+            const closeBtn = document.getElementById('close-desktop-filter-modal');
+            const applyBtn = document.getElementById('apply-desktop-filter');
+            const cancelBtn = document.getElementById('cancel-desktop-filter');
+            const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
+            
+            // Close modal
+            closeBtn.addEventListener('click', closeDesktopFilterModal);
+            cancelBtn.addEventListener('click', closeDesktopFilterModal);
+            applyBtn.addEventListener('click', applyDesktopFilter);
+            clearBtn.addEventListener('click', clearDesktopFilter);
+            
+            // Close modal when clicking outside
+            filterModal.addEventListener('click', function(e) {
+                if (e.target === filterModal) {
+                    closeDesktopFilterModal();
                 }
             });
         }
@@ -434,6 +612,59 @@ document.addEventListener('DOMContentLoaded', async function() {
                     closeMobileFilterModal();
                 }
             });
+        }
+        
+        // Open desktop filter modal
+        function openDesktopFilterModal() {
+            const filterModal = document.getElementById('desktop-filter-modal');
+            filterModal.classList.remove('hidden');
+            
+            // Sync desktop checkboxes with current state
+            syncDesktopFilterWithCurrent();
+        }
+        
+        // Close desktop filter modal
+        function closeDesktopFilterModal() {
+            const filterModal = document.getElementById('desktop-filter-modal');
+            filterModal.classList.add('hidden');
+        }
+        
+        // Apply desktop filter
+        function applyDesktopFilter() {
+            // Apply the filter
+            filterRestaurantsByCuisines();
+            
+            // Close modal
+            closeDesktopFilterModal();
+        }
+        
+        // Clear desktop filter
+        function clearDesktopFilter() {
+            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container-desktop .cuisine-checkbox');
+            desktopCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const card = checkbox.closest('.cuisine-card');
+                if (card) {
+                    updateCuisineCardStyle(card, false);
+                }
+            });
+            updateSelectedCount();
+        }
+        
+        // Sync desktop filter with current state
+        function syncDesktopFilterWithCurrent() {
+            const currentSelected = getSelectedCuisines();
+            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container-desktop .cuisine-checkbox');
+            
+            desktopCheckboxes.forEach(checkbox => {
+                const isSelected = currentSelected.includes(checkbox.value);
+                checkbox.checked = isSelected;
+                const card = checkbox.closest('.cuisine-card');
+                if (card) {
+                    updateCuisineCardStyle(card, isSelected);
+                }
+            });
+            updateSelectedCount();
         }
         
         // Open mobile filter modal
@@ -473,24 +704,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Sync mobile filter with desktop state
         function syncMobileFilterWithDesktop() {
-            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container .cuisine-checkbox');
+            const currentSelected = getSelectedCuisines();
             const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox');
             
-            desktopCheckboxes.forEach((desktopCheckbox, index) => {
-                if (mobileCheckboxes[index]) {
-                    mobileCheckboxes[index].checked = desktopCheckbox.checked;
-                }
+            mobileCheckboxes.forEach(checkbox => {
+                checkbox.checked = currentSelected.includes(checkbox.value);
             });
         }
         
         // Sync desktop filter with mobile state
         function syncDesktopFilterWithMobile() {
             const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox');
-            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container .cuisine-checkbox');
+            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container-desktop .cuisine-checkbox');
             
             mobileCheckboxes.forEach((mobileCheckbox, index) => {
                 if (desktopCheckboxes[index]) {
                     desktopCheckboxes[index].checked = mobileCheckbox.checked;
+                    const card = desktopCheckboxes[index].closest('.cuisine-card');
+                    if (card) {
+                        updateCuisineCardStyle(card, mobileCheckbox.checked);
+                    }
                 }
             });
         }
