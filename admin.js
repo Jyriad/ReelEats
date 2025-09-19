@@ -1516,7 +1516,15 @@ function displayRestaurantVideoGroups(restaurantGroups) {
                 
                 const videoIdSpan = document.createElement('span');
                 videoIdSpan.className = 'text-xs text-gray-500';
-                videoIdSpan.textContent = `Video ID: ${video.tiktok_id || 'N/A'}`;
+                // Extract video ID from embed HTML if available
+                let videoId = 'N/A';
+                if (video.embed_html) {
+                    const idMatch = video.embed_html.match(/data-video-id="(\d+)"/);
+                    if (idMatch) {
+                        videoId = idMatch[1];
+                    }
+                }
+                videoIdSpan.textContent = `Video ID: ${videoId}`;
                 
                 const dateSpan = document.createElement('span');
                 dateSpan.className = 'text-xs text-gray-500';
@@ -1617,15 +1625,10 @@ async function editVideo(videoId) {
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">TikTok ID</label>
-                            <input type="text" id="edit-tiktok-id" value="${video.tiktok_id || ''}"
+                            <label class="block text-sm font-medium text-gray-700 mb-1">TikTok Video URL</label>
+                            <input type="url" id="edit-video-url" placeholder="https://www.tiktok.com/@username/video/1234567890"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Embed HTML</label>
-                            <textarea id="edit-embed-html" rows="6"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${video.embed_html || ''}</textarea>
+                            <p class="text-xs text-gray-500 mt-1">Enter the full TikTok video URL. The embed code will be generated automatically.</p>
                         </div>
                         
                         <div class="flex items-center">
@@ -1653,6 +1656,15 @@ async function editVideo(videoId) {
         
         document.body.appendChild(modal);
         
+        // Extract URL from existing embed HTML and populate the form
+        const urlInput = document.getElementById('edit-video-url');
+        if (video.embed_html) {
+            const urlMatch = video.embed_html.match(/cite="([^"]+)"/);
+            if (urlMatch) {
+                urlInput.value = urlMatch[1];
+            }
+        }
+        
         // Set up form submission
         document.getElementById('edit-video-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1668,9 +1680,18 @@ async function editVideo(videoId) {
 // Save video changes
 async function saveVideoChanges(videoId) {
     try {
+        const videoUrl = document.getElementById('edit-video-url').value;
+        
+        if (!videoUrl) {
+            showStatus('Please enter a TikTok video URL', 'error');
+            return;
+        }
+
+        // Generate embed HTML from URL
+        const embedHtml = generateTikTokEmbed(videoUrl);
+        
         const formData = {
-            tiktok_id: document.getElementById('edit-tiktok-id').value || null,
-            embed_html: document.getElementById('edit-embed-html').value || null,
+            embed_html: embedHtml,
             is_featured: document.getElementById('edit-is-featured').checked
         };
 
@@ -1689,6 +1710,25 @@ async function saveVideoChanges(videoId) {
         console.error('Error updating video:', error);
         showStatus('Failed to update video: ' + error.message, 'error');
     }
+}
+
+// Generate TikTok embed HTML from URL
+function generateTikTokEmbed(url) {
+    // Extract video ID from TikTok URL
+    const videoIdMatch = url.match(/\/video\/(\d+)/);
+    if (!videoIdMatch) {
+        throw new Error('Invalid TikTok URL format');
+    }
+    
+    const videoId = videoIdMatch[1];
+    
+    // Generate the embed HTML
+    return `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px;">
+        <section>
+            <a target="_blank" title="@username" href="${url}">@username</a>
+        </section>
+    </blockquote>
+    <script async src="https://www.tiktok.com/embed.js"></script>`;
 }
 
 // Toggle video featured status
