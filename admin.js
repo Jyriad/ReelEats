@@ -84,8 +84,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Check database status
     checkDatabaseStatus();
     
-    // Set up cuisine selection
-    setupCuisineSelection();
+    // Set up cuisine selection after a short delay to ensure DOM is ready
+    setTimeout(() => {
+        setupCuisineSelection();
+    }, 100);
 });
 
 // Load dashboard statistics
@@ -240,22 +242,48 @@ function selectRestaurantForTikTok(restaurantId, restaurantName) {
 
 // Set up cuisine selection functionality
 function setupCuisineSelection() {
+    console.log('🍽️ Setting up cuisine selection...');
     const cuisineButtons = document.querySelectorAll('.cuisine-btn');
+    console.log('🍽️ Found cuisine buttons:', cuisineButtons.length);
     
-    cuisineButtons.forEach(button => {
-        button.addEventListener('click', () => {
+    cuisineButtons.forEach((button, index) => {
+        // Remove any existing event listeners
+        button.replaceWith(button.cloneNode(true));
+    });
+    
+    // Re-query after cloning to get fresh elements
+    const freshButtons = document.querySelectorAll('.cuisine-btn');
+    console.log('🍽️ Fresh cuisine buttons:', freshButtons.length);
+    
+    freshButtons.forEach((button, index) => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🍽️ Cuisine button clicked:', button.dataset.cuisine);
+            
             // Toggle selection
             if (button.classList.contains('selected')) {
                 // Deselect
                 button.classList.remove('selected');
                 button.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
-                button.classList.add('border-gray-300', 'hover:bg-gray-50');
+                // Restore original color based on data-cuisine
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Deselected:', cuisineName);
             } else {
                 // Select
                 button.classList.add('selected');
                 button.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
-                button.classList.remove('border-gray-300', 'hover:bg-gray-50');
+                // Remove original color classes
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.remove(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Selected:', cuisineName);
             }
+            
+            // Debug: Show current selection
+            const selectedCuisines = getSelectedCuisines();
+            console.log('🍽️ Currently selected cuisines:', selectedCuisines);
         });
     });
 }
@@ -266,18 +294,45 @@ function getSelectedCuisines() {
     return Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
 }
 
+// Get cuisine color for create form
+function getCuisineColor(cuisineName) {
+    const colorMap = {
+        'Asian': 'orange', 'Chinese': 'red', 'Japanese': 'yellow', 'Korean': 'red',
+        'Thai': 'orange', 'Vietnamese': 'green', 'Taiwanese': 'blue', 'Sushi': 'yellow',
+        'Poke': 'orange', 'Italian': 'green', 'Greek': 'blue', 'Pizza': 'yellow',
+        'American': 'red', 'Burgers': 'yellow', 'BBQ': 'orange', 'Comfort food': 'yellow',
+        'Fast food': 'red', 'Wings': 'orange', 'Soul food': 'purple', 'Hawaiian': 'green',
+        'Mexican': 'red', 'Caribbean': 'orange', 'Indian': 'yellow', 'Middle Eastern': 'orange',
+        'Healthy': 'green', 'Vegan': 'green', 'Salads': 'green', 'Fine dining': 'purple',
+        'Coffee': 'amber', 'Bubble tea': 'pink', 'Smoothies': 'green', 'Ice cream': 'yellow',
+        'Breakfast': 'yellow', 'Bakery': 'amber', 'Seafood': 'blue', 'Sandwich': 'yellow',
+        'Soup': 'orange', 'Desserts': 'pink', 'Street food': 'orange'
+    };
+    return colorMap[cuisineName] || 'gray';
+}
+
 // Reset cuisine selection
 function resetCuisineSelection() {
     const cuisineButtons = document.querySelectorAll('.cuisine-btn');
     cuisineButtons.forEach(button => {
         button.classList.remove('selected', 'bg-blue-500', 'text-white', 'border-blue-500');
-        button.classList.add('border-gray-300', 'hover:bg-gray-50');
+        // Restore original color based on data-cuisine
+        const cuisineName = button.dataset.cuisine;
+        const originalColor = getCuisineColor(cuisineName);
+        button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
     });
 }
 
 // Add cuisine relationships to restaurant_cuisines table
 async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
     try {
+        console.log('🍽️ Adding cuisines for restaurant:', restaurantId, 'Selected cuisines:', selectedCuisineNames);
+        
+        if (!selectedCuisineNames || selectedCuisineNames.length === 0) {
+            console.log('🍽️ No cuisines selected, skipping cuisine relationships');
+            return;
+        }
+        
         // First, get cuisine IDs from cuisine names
         const { data: cuisines, error: cuisineError } = await supabaseClient
             .from('cuisines')
@@ -292,11 +347,42 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
         
         console.log('🍽️ Found cuisine IDs:', cuisines);
         
+        // Check if any cuisines are missing and create them
+        const foundCuisineNames = cuisines.map(c => c.name);
+        const missingCuisines = selectedCuisineNames.filter(name => !foundCuisineNames.includes(name));
+        
+        if (missingCuisines.length > 0) {
+            console.log('🍽️ Creating missing cuisines:', missingCuisines);
+            const newCuisines = missingCuisines.map(name => ({ name }));
+            
+            const { data: createdCuisines, error: createError } = await supabaseClient
+                .from('cuisines')
+                .insert(newCuisines)
+                .select('id, name');
+                
+            if (createError) {
+                console.error('Error creating missing cuisines:', createError);
+                showStatus('Restaurant added, but failed to create missing cuisines.', 'warning');
+                return;
+            }
+            
+            console.log('🍽️ Created missing cuisines:', createdCuisines);
+            cuisines.push(...createdCuisines);
+        }
+        
+        if (!cuisines || cuisines.length === 0) {
+            console.log('🍽️ No cuisines found or created for selected names:', selectedCuisineNames);
+            showStatus('Restaurant added, but no cuisines could be processed.', 'warning');
+            return;
+        }
+        
         // Create restaurant_cuisine relationships
         const relationshipData = cuisines.map(cuisine => ({
             restaurant_id: restaurantId,
             cuisine_id: cuisine.id
         }));
+        
+        console.log('🍽️ Creating relationships:', relationshipData);
         
         const { error: relationshipError } = await supabaseClient
             .from('restaurant_cuisines')
@@ -306,7 +392,7 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
             console.error('Error adding restaurant cuisines:', relationshipError);
             showStatus('Restaurant added, but failed to link cuisines. Please add them manually.', 'warning');
         } else {
-            console.log('✅ Successfully added cuisine relationships');
+            console.log('✅ Successfully added', relationshipData.length, 'cuisine relationships');
         }
         
     } catch (error) {
@@ -544,9 +630,12 @@ async function handleAddRestaurant(e) {
         
         // Add cuisine relationships
         const selectedCuisines = getSelectedCuisines();
+        console.log('🍽️ Selected cuisines from form:', selectedCuisines);
         if (selectedCuisines.length > 0) {
             console.log('🍽️ Adding cuisine relationships:', selectedCuisines);
             await addRestaurantCuisines(restaurant.id, selectedCuisines);
+        } else {
+            console.log('🍽️ No cuisines selected for this restaurant');
         }
         
         // Reset form
