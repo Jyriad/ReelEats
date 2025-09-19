@@ -885,18 +885,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     console.log('Login successful, checking admin status...');
                     
-                    // Check if user is admin
-                    const { data: profile, error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .select('is_admin')
-                        .eq('id', data.user.id)
+                    // Check if user has admin role
+                    const { data: userRole, error: roleError } = await supabaseClient
+                        .from('user_roles')
+                        .select('role')
+                        .eq('user_id', data.user.id)
+                        .eq('role', 'admin')
                         .single();
                     
-                    if (profileError) {
-                        throw new Error('Profile not found');
-                    }
-                    
-                    if (!profile.is_admin) {
+                    if (roleError || !userRole) {
                         throw new Error('Access denied. Admin privileges required.');
                     }
                     
