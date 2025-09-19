@@ -1696,75 +1696,92 @@ function displayRestaurantVideoGroups(restaurantGroups) {
         return;
     }
 
-    container.innerHTML = restaurantArray.map(group => {
+    // Clear the container first
+    container.innerHTML = '';
+    
+    // Create each restaurant group as a separate element
+    restaurantArray.forEach(group => {
         const restaurant = group.restaurant;
         const videos = group.videos;
         
-        return `
-            <div class="border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50" data-restaurant-group="${restaurant.id}">
-                <!-- Restaurant Header -->
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex-1">
-                        <h3 class="text-xl font-bold text-gray-900 mb-1">${restaurant.name}</h3>
-                        <p class="text-sm text-gray-600">${restaurant.cities.name}</p>
-                        <p class="text-xs text-gray-500 mt-1">${videos.length} video${videos.length !== 1 ? 's' : ''}</p>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button onclick="editRestaurant(${restaurant.id})" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                            ✏️ Edit Restaurant
-                        </button>
-                        <button onclick="deleteRestaurant(${restaurant.id}, '${restaurant.name}')" 
-                                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                            🗑️ Delete Restaurant
-                        </button>
-                    </div>
+        const restaurantDiv = document.createElement('div');
+        restaurantDiv.className = 'border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50';
+        restaurantDiv.setAttribute('data-restaurant-group', restaurant.id);
+        
+        restaurantDiv.innerHTML = `
+            <!-- Restaurant Header -->
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-gray-900 mb-1">${restaurant.name}</h3>
+                    <p class="text-sm text-gray-600">${restaurant.cities.name}</p>
+                    <p class="text-xs text-gray-500 mt-1">${videos.length} video${videos.length !== 1 ? 's' : ''}</p>
                 </div>
-                
-                <!-- Videos for this restaurant -->
-                <div class="space-y-3">
-                    ${videos.map(video => {
-                        const createdDate = new Date(video.created_at).toLocaleDateString();
-                        const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
-                        
-                        return `
-                            <div class="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow" data-video-id="${video.id}">
-                                <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                                            <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit">${isFeatured}</span>
-                                            <span class="text-xs text-gray-500">Video ID: ${video.tiktok_id || 'N/A'}</span>
-                                            <span class="text-xs text-gray-500">Added: ${createdDate}</span>
-                                        </div>
-                                        <div class="mt-2 p-2 bg-gray-50 rounded text-xs">
-                                            <div class="text-gray-600 mb-1">Video Preview:</div>
-                                            <div class="text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs">
-                                                ${video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0">
-                                        <button onclick="editVideo(${video.id})" 
-                                                class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
-                                            ✏️ Edit
-                                        </button>
-                                        <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
-                                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
-                                            ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
-                                        </button>
-                                        <button onclick="deleteVideo(${video.id}, '${restaurant.name}')" 
-                                                class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
-                                            🗑️ Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
+                <div class="flex space-x-2">
+                    <button onclick="editRestaurant(${restaurant.id})" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                        ✏️ Edit Restaurant
+                    </button>
+                    <button onclick="deleteRestaurant(${restaurant.id}, '${restaurant.name}')" 
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                        🗑️ Delete Restaurant
+                    </button>
                 </div>
             </div>
+            
+            <!-- Videos for this restaurant -->
+            <div class="space-y-3" id="videos-for-restaurant-${restaurant.id}">
+            </div>
         `;
-    }).join('');
+        
+        // Add the restaurant div to the container
+        container.appendChild(restaurantDiv);
+        
+        // Now add videos to this restaurant
+        const videosContainer = restaurantDiv.querySelector(`#videos-for-restaurant-${restaurant.id}`);
+        
+        videos.forEach(video => {
+            const createdDate = new Date(video.created_at).toLocaleDateString();
+            const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
+            
+            const videoDiv = document.createElement('div');
+            videoDiv.className = 'border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow';
+            videoDiv.setAttribute('data-video-id', video.id);
+            
+            videoDiv.innerHTML = `
+                <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                            <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit">${isFeatured}</span>
+                            <span class="text-xs text-gray-500">Video ID: ${video.tiktok_id || 'N/A'}</span>
+                            <span class="text-xs text-gray-500">Added: ${createdDate}</span>
+                        </div>
+                        <div class="mt-2 p-2 bg-gray-50 rounded text-xs">
+                            <div class="text-gray-600 mb-1">Video Preview:</div>
+                            <div class="text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs">
+                                ${video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0">
+                        <button onclick="editVideo(${video.id})" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
+                            ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
+                        </button>
+                        <button onclick="deleteVideo(${video.id}, '${restaurant.name}')" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            videosContainer.appendChild(videoDiv);
+        });
+    });
 }
 
 // Edit video function
