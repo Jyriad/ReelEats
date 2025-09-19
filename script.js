@@ -19,10 +19,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         let restaurantMarkers = [];
         let map; // Define map in a broader scope
         let mapInitialized = false; // Prevent double initialization
+        let allCuisines = []; // Store all available cuisines for filtering
 
         // --- Initialization ---
         initializeMap();
         await loadCitiesAndInitialRestaurants();
+        setupCuisineFilter();
 
         // --- Core Functions ---
 
@@ -263,6 +265,63 @@ document.addEventListener('DOMContentLoaded', async function() {
             displayRestaurants(currentRestaurants);
         }
 
+        // Setup cuisine filter functionality
+        function setupCuisineFilter() {
+            const cuisineFilter = document.getElementById('cuisine-filter');
+            
+            // Populate cuisine filter dropdown
+            populateCuisineFilter();
+            
+            // Add event listener for filter changes
+            cuisineFilter.addEventListener('change', function() {
+                const selectedCuisine = this.value;
+                filterRestaurantsByCuisine(selectedCuisine);
+            });
+        }
+        
+        // Populate cuisine filter dropdown with all available cuisines
+        async function populateCuisineFilter() {
+            try {
+                const { data: cuisines, error } = await supabaseClient
+                    .from('cuisines')
+                    .select('name')
+                    .order('name');
+                
+                if (error) throw error;
+                
+                allCuisines = cuisines.map(c => c.name);
+                const cuisineFilter = document.getElementById('cuisine-filter');
+                
+                // Clear existing options except "All Cuisines"
+                cuisineFilter.innerHTML = '<option value="">All Cuisines</option>';
+                
+                // Add cuisine options
+                allCuisines.forEach(cuisine => {
+                    const option = document.createElement('option');
+                    option.value = cuisine;
+                    option.textContent = cuisine;
+                    cuisineFilter.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading cuisines for filter:', error);
+            }
+        }
+        
+        // Filter restaurants by selected cuisine
+        function filterRestaurantsByCuisine(selectedCuisine) {
+            if (!selectedCuisine) {
+                // Show all restaurants
+                displayRestaurants(currentRestaurants);
+            } else {
+                // Filter restaurants that have the selected cuisine
+                const filteredRestaurants = currentRestaurants.filter(restaurant => {
+                    return restaurant.cuisines && restaurant.cuisines.includes(selectedCuisine);
+                });
+                displayRestaurants(filteredRestaurants);
+            }
+        }
+
         function displayRestaurants(restaurants) {
             restaurantList.innerHTML = '';
             restaurantMarkers.forEach(marker => map.removeLayer(marker));
@@ -310,7 +369,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>`;
             }
             
+            const number = index + 1; // Start numbering from 1
             listItem.innerHTML = `
+                <div class="flex-shrink-0 mr-3">
+                    <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                        ${number}
+                    </div>
+                </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="text-gray-900 text-base md:text-lg font-bold truncate">${restaurant.name}</h3>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
@@ -335,7 +400,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function createNumberedMarker(restaurant, index) {
-            const marker = L.marker([restaurant.lat, restaurant.lon], { title: restaurant.name });
+            // Create a custom numbered icon
+            const number = index + 1; // Start numbering from 1
+            const icon = L.divIcon({
+                className: 'numbered-marker',
+                html: `<div class="numbered-marker-content">${number}</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            
+            const marker = L.marker([restaurant.lat, restaurant.lon], { 
+                icon: icon,
+                title: `${number}. ${restaurant.name}`
+            });
+            
             marker.on('click', () => {
                 // Remove active class from all cards
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {

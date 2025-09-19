@@ -2162,7 +2162,9 @@ function populateEditCuisineSelection(currentCuisines) {
             cuisines: [
                 { name: 'Italian', color: 'green' },
                 { name: 'Greek', color: 'blue' },
-                { name: 'Pizza', color: 'yellow' }
+                { name: 'Pizza', color: 'yellow' },
+                { name: 'British', color: 'blue' },
+                { name: 'French', color: 'purple' }
             ]
         },
         {
@@ -2356,7 +2358,8 @@ function getCuisineEmoji(cuisineName) {
         'Healthy': '🥗', 'Vegan': '🌱', 'Salads': '🥙', 'Fine dining': '🍾',
         'Coffee': '☕', 'Bubble tea': '🧋', 'Smoothies': '🥤', 'Ice cream': '🍦',
         'Breakfast': '🍳', 'Bakery': '🥐', 'Seafood': '🐟', 'Sandwich': '🥪',
-        'Soup': '🍲', 'Desserts': '🍰', 'Street food': '🌭'
+        'Soup': '🍲', 'Desserts': '🍰', 'Street food': '🌭',
+        'British': '🇬🇧', 'French': '🥐'
     };
     return emojiMap[cuisineName] || '🍽️';
 }
