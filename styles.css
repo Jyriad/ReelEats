@@ -212,14 +212,30 @@ html, body {
     margin-bottom: 10px;
 }
 /* Custom user marker icon */
-.user-location-icon { background: transparent; border: none; }
+.user-location-icon { 
+    background: transparent; 
+    border: none; 
+}
 .user-icon {
-    width: 30px; height: 30px; border-radius: 9999px; background: #06b6d4; /* cyan-500 */
-    border: 2px solid #ffffff; box-shadow: 0 0 0 2px rgba(6,182,212,0.5);
-    display: flex; align-items: center; justify-content: center; color: #0f172a; font-size: 16px; line-height: 1;
+    width: 35px; height: 35px; border-radius: 9999px; background: #ef4444; /* red-500 */
+    border: 3px solid #ffffff; box-shadow: 0 0 0 3px rgba(239,68,68,0.5);
+    display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 18px; line-height: 1;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 /* Highlight for selected restaurant in list */
-.active-list-item { background-color: #eef2ff !important; border-color: #a5b4fc !important; }
+.active-list-item { 
+    background-color: #eef2ff !important; 
+    border-color: #a5b4fc !important; 
+    border-width: 2px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    transform: translateY(-1px) !important;
+}
 /* Isolate list rendering for perf */
 #restaurant-list { contain: content; }
 /* Mobile drawer resizing */
@@ -423,6 +439,81 @@ html, body {
     /* Better touch targets */
     .restaurant-item {
         min-height: 60px;
+    }
+}
+
+/* Numbered marker styles */
+.numbered-marker {
+    background: none !important;
+    border: none !important;
+}
+
+.numbered-marker-content {
+    background: #3b82f6;
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.numbered-marker-content:hover {
+    background: #1d4ed8;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Filter modal styles */
+#filter-modal {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 9999 !important;
+}
+
+#filter-modal .inline-block {
+    transition: transform 0.3s ease;
+}
+
+#filter-modal:not(.hidden) .inline-block {
+    transform: translateY(0);
+}
+
+#filter-modal.hidden .inline-block {
+    transform: translateY(100%);
+}
+
+/* Filter toggle button styles */
+#filter-toggle-btn {
+    transition: all 0.2s ease;
+}
+
+#filter-toggle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#filter-arrow {
+    transition: transform 0.3s ease;
+}
+
+/* Mobile filter modal improvements */
+@media (max-width: 767px) {
+    #filter-modal .inline-block {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        border-radius: 1rem 1rem 0 0;
+    }
+    
+    #cuisine-filter-container-mobile {
+        max-height: 50vh;
     }
 }
 

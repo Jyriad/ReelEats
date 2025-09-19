@@ -66,14 +66,28 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadRecentRestaurants();
     await loadRestaurantsWithoutVideos();
     
+    // Load videos for management with error handling
+    try {
+        await loadVideosForManagement();
+    } catch (error) {
+        console.error('Failed to load videos for management:', error);
+        // Ensure the section shows something even if loading fails
+        const container = document.getElementById('videos-list');
+        if (container) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-8">No videos available</p>';
+        }
+    }
+    
     // Set up event listeners
     setupEventListeners();
     
     // Check database status
     checkDatabaseStatus();
     
-    // Set up cuisine selection
-    setupCuisineSelection();
+    // Set up cuisine selection after a short delay to ensure DOM is ready
+    setTimeout(() => {
+        setupCuisineSelection();
+    }, 100);
 });
 
 // Load dashboard statistics
@@ -228,22 +242,48 @@ function selectRestaurantForTikTok(restaurantId, restaurantName) {
 
 // Set up cuisine selection functionality
 function setupCuisineSelection() {
+    console.log('🍽️ Setting up cuisine selection...');
     const cuisineButtons = document.querySelectorAll('.cuisine-btn');
+    console.log('🍽️ Found cuisine buttons:', cuisineButtons.length);
     
-    cuisineButtons.forEach(button => {
-        button.addEventListener('click', () => {
+    cuisineButtons.forEach((button, index) => {
+        // Remove any existing event listeners
+        button.replaceWith(button.cloneNode(true));
+    });
+    
+    // Re-query after cloning to get fresh elements
+    const freshButtons = document.querySelectorAll('.cuisine-btn');
+    console.log('🍽️ Fresh cuisine buttons:', freshButtons.length);
+    
+    freshButtons.forEach((button, index) => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🍽️ Cuisine button clicked:', button.dataset.cuisine);
+            
             // Toggle selection
             if (button.classList.contains('selected')) {
                 // Deselect
                 button.classList.remove('selected');
                 button.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
-                button.classList.add('border-gray-300', 'hover:bg-gray-50');
+                // Restore original color based on data-cuisine
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Deselected:', cuisineName);
             } else {
                 // Select
                 button.classList.add('selected');
                 button.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
-                button.classList.remove('border-gray-300', 'hover:bg-gray-50');
+                // Remove original color classes
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.remove(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Selected:', cuisineName);
             }
+            
+            // Debug: Show current selection
+            const selectedCuisines = getSelectedCuisines();
+            console.log('🍽️ Currently selected cuisines:', selectedCuisines);
         });
     });
 }
@@ -254,18 +294,45 @@ function getSelectedCuisines() {
     return Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
 }
 
+// Get cuisine color for create form
+function getCuisineColor(cuisineName) {
+    const colorMap = {
+        'Asian': 'orange', 'Chinese': 'red', 'Japanese': 'yellow', 'Korean': 'red',
+        'Thai': 'orange', 'Vietnamese': 'green', 'Taiwanese': 'blue', 'Sushi': 'yellow',
+        'Poke': 'orange', 'Italian': 'green', 'Greek': 'blue', 'Pizza': 'yellow',
+        'American': 'red', 'Burgers': 'yellow', 'BBQ': 'orange', 'Comfort food': 'yellow',
+        'Fast food': 'red', 'Wings': 'orange', 'Soul food': 'purple', 'Hawaiian': 'green',
+        'Mexican': 'red', 'Caribbean': 'orange', 'Indian': 'yellow', 'Middle Eastern': 'orange',
+        'Healthy': 'green', 'Vegan': 'green', 'Salads': 'green', 'Fine dining': 'purple',
+        'Coffee': 'amber', 'Bubble tea': 'pink', 'Smoothies': 'green', 'Ice cream': 'yellow',
+        'Breakfast': 'yellow', 'Bakery': 'amber', 'Seafood': 'blue', 'Sandwich': 'yellow',
+        'Soup': 'orange', 'Desserts': 'pink', 'Street food': 'orange'
+    };
+    return colorMap[cuisineName] || 'gray';
+}
+
 // Reset cuisine selection
 function resetCuisineSelection() {
     const cuisineButtons = document.querySelectorAll('.cuisine-btn');
     cuisineButtons.forEach(button => {
         button.classList.remove('selected', 'bg-blue-500', 'text-white', 'border-blue-500');
-        button.classList.add('border-gray-300', 'hover:bg-gray-50');
+        // Restore original color based on data-cuisine
+        const cuisineName = button.dataset.cuisine;
+        const originalColor = getCuisineColor(cuisineName);
+        button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
     });
 }
 
 // Add cuisine relationships to restaurant_cuisines table
 async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
     try {
+        console.log('🍽️ Adding cuisines for restaurant:', restaurantId, 'Selected cuisines:', selectedCuisineNames);
+        
+        if (!selectedCuisineNames || selectedCuisineNames.length === 0) {
+            console.log('🍽️ No cuisines selected, skipping cuisine relationships');
+            return;
+        }
+        
         // First, get cuisine IDs from cuisine names
         const { data: cuisines, error: cuisineError } = await supabaseClient
             .from('cuisines')
@@ -280,11 +347,42 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
         
         console.log('🍽️ Found cuisine IDs:', cuisines);
         
+        // Check if any cuisines are missing and create them
+        const foundCuisineNames = cuisines.map(c => c.name);
+        const missingCuisines = selectedCuisineNames.filter(name => !foundCuisineNames.includes(name));
+        
+        if (missingCuisines.length > 0) {
+            console.log('🍽️ Creating missing cuisines:', missingCuisines);
+            const newCuisines = missingCuisines.map(name => ({ name }));
+            
+            const { data: createdCuisines, error: createError } = await supabaseClient
+                .from('cuisines')
+                .insert(newCuisines)
+                .select('id, name');
+                
+            if (createError) {
+                console.error('Error creating missing cuisines:', createError);
+                showStatus('Restaurant added, but failed to create missing cuisines.', 'warning');
+                return;
+            }
+            
+            console.log('🍽️ Created missing cuisines:', createdCuisines);
+            cuisines.push(...createdCuisines);
+        }
+        
+        if (!cuisines || cuisines.length === 0) {
+            console.log('🍽️ No cuisines found or created for selected names:', selectedCuisineNames);
+            showStatus('Restaurant added, but no cuisines could be processed.', 'warning');
+            return;
+        }
+        
         // Create restaurant_cuisine relationships
         const relationshipData = cuisines.map(cuisine => ({
             restaurant_id: restaurantId,
             cuisine_id: cuisine.id
         }));
+        
+        console.log('🍽️ Creating relationships:', relationshipData);
         
         const { error: relationshipError } = await supabaseClient
             .from('restaurant_cuisines')
@@ -294,7 +392,7 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
             console.error('Error adding restaurant cuisines:', relationshipError);
             showStatus('Restaurant added, but failed to link cuisines. Please add them manually.', 'warning');
         } else {
-            console.log('✅ Successfully added cuisine relationships');
+            console.log('✅ Successfully added', relationshipData.length, 'cuisine relationships');
         }
         
     } catch (error) {
@@ -407,6 +505,28 @@ function setupEventListeners() {
         showStatus('Data refreshed successfully!', 'success');
     });
     
+    
+    // Video management search and filter
+    const searchVideoInput = document.getElementById('video-search-manage');
+    const videoCityFilterSelect = document.getElementById('video-city-filter-manage');
+    const refreshVideosBtn = document.getElementById('refresh-videos');
+    
+    if (searchVideoInput) {
+        searchVideoInput.addEventListener('input', filterVideos);
+    }
+    
+    if (videoCityFilterSelect) {
+        videoCityFilterSelect.addEventListener('change', filterVideos);
+    }
+    
+    if (refreshVideosBtn) {
+        refreshVideosBtn.addEventListener('click', async () => {
+            showStatus('Refreshing videos...', 'info');
+            await loadVideosForManagement();
+            showStatus('Videos refreshed successfully!', 'success');
+        });
+    }
+    
     // Clear cache button
     document.getElementById('clear-cache').addEventListener('click', () => {
         localStorage.clear();
@@ -510,9 +630,12 @@ async function handleAddRestaurant(e) {
         
         // Add cuisine relationships
         const selectedCuisines = getSelectedCuisines();
+        console.log('🍽️ Selected cuisines from form:', selectedCuisines);
         if (selectedCuisines.length > 0) {
             console.log('🍽️ Adding cuisine relationships:', selectedCuisines);
             await addRestaurantCuisines(restaurant.id, selectedCuisines);
+        } else {
+            console.log('🍽️ No cuisines selected for this restaurant');
         }
         
         // Reset form
@@ -645,7 +768,7 @@ async function searchWithNewAPI(restaurantName, statusEl) {
 }
 
 // Search using legacy Places API (fallback)
-async function searchWithLegacyAPI(restaurantName, statusEl) {
+async function searchWithLegacyAPI(restaurantName, statusEl, formType = 'create') {
     return new Promise(async (resolve, reject) => {
         const service = new google.maps.places.PlacesService(document.createElement('div'));
         
@@ -735,7 +858,7 @@ async function searchWithLegacyAPI(restaurantName, statusEl) {
                         return a.name.localeCompare(b.name);
                     });
                     
-                    displayLocationOptions(sortedResults.slice(0, 15)); // Show top 15 results
+                    displayLocationOptions(sortedResults.slice(0, 15), formType); // Show top 15 results
                     statusEl.textContent = `Found ${sortedResults.length} location(s) (Enhanced Search)`;
                     statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
                     resolve(sortedResults);
@@ -781,11 +904,11 @@ async function handleExtractFromUrl() {
 }
 
 // Extract location from various Google Maps URL formats
-async function extractLocationFromUrl(url, statusEl) {
+async function extractLocationFromUrl(url, statusEl, formType = 'create') {
     // Handle Google Share links (like share.google/...)
     if (url.includes('share.google') || url.includes('goo.gl') || url.includes('maps.app.goo.gl')) {
         console.log('Detected Google Share link, following redirect...');
-        await handleShareLink(url, statusEl);
+        await handleShareLink(url, statusEl, formType);
         return;
     }
     
@@ -833,17 +956,17 @@ async function extractLocationFromUrl(url, statusEl) {
     
     if (placeId) {
         // Use Place ID to get location details
-        await getPlaceFromId(placeId, statusEl);
+        await getPlaceFromId(placeId, statusEl, formType);
     } else if (lat && lng) {
         // Use coordinates for reverse geocoding
-        await reverseGeocode(lat, lng, statusEl);
+        await reverseGeocode(lat, lng, statusEl, formType);
     } else {
         throw new Error('Could not extract coordinates or place ID from URL. Please try using the "Find on Map" button instead.');
     }
 }
 
 // Handle Google Share links by following redirects
-async function handleShareLink(shareUrl, statusEl) {
+async function handleShareLink(shareUrl, statusEl, formType = 'create') {
     try {
         // Try to follow the redirect to get the actual Google Maps URL
         const response = await fetch(shareUrl, { 
@@ -856,7 +979,7 @@ async function handleShareLink(shareUrl, statusEl) {
         
         if (finalUrl && finalUrl !== shareUrl) {
             // Extract from the final URL
-            await extractLocationFromUrl(finalUrl, statusEl);
+            await extractLocationFromUrl(finalUrl, statusEl, formType);
         } else {
             // If redirect doesn't work, try alternative approach
             throw new Error('Could not follow share link redirect');
@@ -878,7 +1001,7 @@ async function handleShareLink(shareUrl, statusEl) {
 }
 
 // Get place details from Place ID
-async function getPlaceFromId(placeId, statusEl) {
+async function getPlaceFromId(placeId, statusEl, formType = 'create') {
     try {
         // Try new Places API first
         const API_KEY = 'AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU';
@@ -908,7 +1031,7 @@ async function getPlaceFromId(placeId, statusEl) {
                 }
             };
             
-            selectLocation(convertedPlace);
+            selectLocation(convertedPlace, formType);
             statusEl.textContent = 'Location extracted successfully (New API)';
             statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
             return;
@@ -930,7 +1053,7 @@ async function getPlaceFromId(placeId, statusEl) {
             }, (place, status) => {
                 if (status === google.maps.places.PlacesServiceStatus.OK && place) {
                     console.log('🔄 Legacy API place details:', place);
-                    selectLocation(place);
+                    selectLocation(place, formType);
                     statusEl.textContent = 'Location extracted successfully (Legacy API)';
                     statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
                     resolve();
@@ -943,7 +1066,7 @@ async function getPlaceFromId(placeId, statusEl) {
 }
 
 // Reverse geocode coordinates to get place information
-async function reverseGeocode(lat, lng, statusEl) {
+async function reverseGeocode(lat, lng, statusEl, formType = 'create') {
     return new Promise((resolve, reject) => {
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
@@ -955,7 +1078,7 @@ async function reverseGeocode(lat, lng, statusEl) {
                     geometry: {
                         location: { lat: () => lat, lng: () => lng }
                     }
-                });
+                }, formType);
                 statusEl.textContent = 'Location extracted successfully';
                 statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
                 resolve();
@@ -967,9 +1090,9 @@ async function reverseGeocode(lat, lng, statusEl) {
 }
 
 // Display location options for user to choose from
-function displayLocationOptions(places) {
-    const resultsDiv = document.getElementById('location-results');
-    const optionsDiv = document.getElementById('location-options');
+function displayLocationOptions(places, formType = 'create') {
+    const resultsDiv = document.getElementById(formType === 'edit' ? 'edit-location-results' : 'location-results');
+    const optionsDiv = document.getElementById(formType === 'edit' ? 'edit-location-options' : 'location-options');
     
     optionsDiv.innerHTML = places.map((place, index) => {
         // Handle both new API format (direct values) and legacy API format (functions)
@@ -982,7 +1105,7 @@ function displayLocationOptions(places) {
             
         return `
             <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors" 
-                 onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')})">
+                 onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')}, '${formType}')">
                 <div class="font-medium text-gray-900">${place.name}</div>
                 <div class="text-sm text-gray-600">${place.formatted_address}</div>
                 <div class="text-xs text-gray-500 mt-1">
@@ -997,7 +1120,7 @@ function displayLocationOptions(places) {
 }
 
 // Select a location from the options
-function selectLocation(place) {
+function selectLocation(place, formType = 'create') {
     const lat = typeof place.geometry.location.lat === 'function' 
         ? place.geometry.location.lat() 
         : place.geometry.location.lat;
@@ -1006,35 +1129,49 @@ function selectLocation(place) {
         : place.geometry.location.lng;
     
     // Fill hidden form fields
-    document.getElementById('restaurant-lat').value = lat;
-    document.getElementById('restaurant-lon').value = lng;
-    document.getElementById('google-place-id').value = place.place_id || '';
+    const latField = formType === 'edit' ? 'edit-restaurant-lat' : 'restaurant-lat';
+    const lonField = formType === 'edit' ? 'edit-restaurant-lon' : 'restaurant-lon';
+    const placeIdField = formType === 'edit' ? 'edit-google-place-id' : 'google-place-id';
+    const mapsUrlField = formType === 'edit' ? 'edit-google-maps-url' : 'google-maps-url';
+    
+    document.getElementById(latField).value = lat;
+    document.getElementById(lonField).value = lng;
+    document.getElementById(placeIdField).value = place.place_id || '';
     
     // Fill Google Maps URL field
     if (place.place_id) {
         // Use Google Maps Place URL format
         const googleMapsUrl = `https://maps.google.com/?cid=${place.place_id}`;
-        document.getElementById('google-maps-url').value = googleMapsUrl;
+        document.getElementById(mapsUrlField).value = googleMapsUrl;
     } else {
         // Fallback to coordinates-based URL
         const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
-        document.getElementById('google-maps-url').value = googleMapsUrl;
+        document.getElementById(mapsUrlField).value = googleMapsUrl;
     }
     
     // Update selected location display
-    document.getElementById('selected-name').textContent = place.name;
-    document.getElementById('selected-address').textContent = place.formatted_address;
-    document.getElementById('selected-coordinates').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const nameField = formType === 'edit' ? 'edit-selected-name' : 'selected-name';
+    const addressField = formType === 'edit' ? 'edit-selected-address' : 'selected-address';
+    const coordsField = formType === 'edit' ? 'edit-selected-coordinates' : 'selected-coordinates';
+    
+    document.getElementById(nameField).textContent = place.name;
+    document.getElementById(addressField).textContent = place.formatted_address;
+    document.getElementById(coordsField).textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     
     // Show selected location info
-    document.getElementById('selected-location').classList.remove('hidden');
-    document.getElementById('location-results').classList.add('hidden');
+    const selectedLocationDiv = formType === 'edit' ? 'edit-selected-location' : 'selected-location';
+    const resultsDiv = formType === 'edit' ? 'edit-location-results' : 'location-results';
     
-    // Enable submit button
-    document.getElementById('submit-restaurant-btn').disabled = false;
+    document.getElementById(selectedLocationDiv).classList.remove('hidden');
+    document.getElementById(resultsDiv).classList.add('hidden');
+    
+    // Enable submit button (only for create form)
+    if (formType === 'create') {
+        document.getElementById('submit-restaurant-btn').disabled = false;
+    }
     
     // Update status
-    const statusEl = document.getElementById('location-status');
+    const statusEl = document.getElementById(formType === 'edit' ? 'edit-location-status' : 'location-status');
     statusEl.textContent = 'Location selected ✓';
     statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
 }
@@ -1294,4 +1431,1104 @@ function showStatus(message, type = 'success') {
     setTimeout(() => {
         statusDiv.classList.add('hidden');
     }, 3000);
+}
+
+
+// Video Management Functions
+
+// Load restaurants with their videos for management
+async function loadVideosForManagement() {
+    try {
+        console.log('Loading restaurants with videos for management...');
+        
+        // First, get all restaurants
+        const { data: restaurants, error: restaurantsError } = await supabaseClient
+            .from('restaurants')
+            .select(`
+                *,
+                cities (name),
+                restaurant_cuisines (
+                    cuisines (name)
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (restaurantsError) throw restaurantsError;
+
+        console.log('Restaurants loaded:', restaurants);
+
+        // Then, get all videos
+        const { data: videos, error: videosError } = await supabaseClient
+            .from('tiktoks')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (videosError) throw videosError;
+
+        console.log('Videos loaded:', videos);
+
+        // Group videos by restaurant ID
+        const videosByRestaurant = {};
+        videos.forEach(video => {
+            if (!videosByRestaurant[video.restaurant_id]) {
+                videosByRestaurant[video.restaurant_id] = [];
+            }
+            videosByRestaurant[video.restaurant_id].push(video);
+        });
+
+        // Create restaurant groups with their videos
+        const restaurantGroups = restaurants.map(restaurant => ({
+            restaurant: restaurant,
+            videos: videosByRestaurant[restaurant.id] || []
+        }));
+
+        console.log('Restaurant groups:', restaurantGroups);
+
+        // Populate city filter
+        const cityFilter = document.getElementById('video-city-filter-manage');
+        if (cityFilter) {
+            const cities = [...new Set(restaurants.map(r => r.cities.name))];
+            cityFilter.innerHTML = '<option value="">All Cities</option>' + 
+                cities.map(city => `<option value="${city}">${city}</option>`).join('');
+        }
+
+        displayRestaurantVideoGroups(restaurantGroups);
+    } catch (error) {
+        console.error('Error loading restaurants and videos:', error);
+        showStatus('Failed to load restaurants and videos: ' + error.message, 'error');
+        
+        // Show error message in the videos list container
+        const container = document.getElementById('videos-list');
+        if (container) {
+            container.innerHTML = `<p class="text-red-500 text-center py-8">Error loading data: ${error.message}</p>`;
+        }
+    }
+    
+    // Ensure the section is visible by adding a loading message if empty
+    const container = document.getElementById('videos-list');
+    if (container && container.innerHTML.trim() === '') {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">Loading restaurants...</p>';
+    }
+}
+
+// Display restaurant groups with their videos
+function displayRestaurantVideoGroups(restaurantGroups) {
+    console.log('Displaying restaurant video groups:', restaurantGroups);
+    
+    const container = document.getElementById('videos-list');
+    if (!container) {
+        console.error('Videos list container not found!');
+        return;
+    }
+
+    console.log('Restaurant groups array:', restaurantGroups);
+    
+    if (restaurantGroups.length === 0) {
+        console.log('No restaurants found, showing empty message');
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No restaurants found</p>';
+        return;
+    }
+
+    // Clear the container first
+    container.innerHTML = '';
+    
+    // Create each restaurant group as a separate element
+    restaurantGroups.forEach(group => {
+        const restaurant = group.restaurant;
+        const videos = group.videos;
+        
+        const restaurantDiv = document.createElement('div');
+        restaurantDiv.className = 'border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50';
+        restaurantDiv.setAttribute('data-restaurant-group', restaurant.id);
+        
+        // Show video count and status
+        const videoCountText = videos.length === 0 ? 'No videos' : `${videos.length} video${videos.length !== 1 ? 's' : ''}`;
+        const videoStatusClass = videos.length === 0 ? 'text-red-500' : 'text-gray-500';
+        
+        restaurantDiv.innerHTML = `
+            <!-- Restaurant Header -->
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-gray-900 mb-1">${restaurant.name}</h3>
+                    <p class="text-sm text-gray-600">${restaurant.cities.name}</p>
+                    <p class="text-xs ${videoStatusClass} mt-1">${videoCountText}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="editRestaurant(${restaurant.id})" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                        ✏️ Edit Restaurant
+                    </button>
+                    <button onclick="deleteRestaurant(${restaurant.id}, '${restaurant.name}')" 
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                        🗑️ Delete Restaurant
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Videos for this restaurant -->
+            <div class="space-y-3" id="videos-for-restaurant-${restaurant.id}">
+            </div>
+        `;
+        
+        // Add the restaurant div to the container
+        container.appendChild(restaurantDiv);
+        
+        // Now add videos to this restaurant
+        const videosContainer = restaurantDiv.querySelector(`#videos-for-restaurant-${restaurant.id}`);
+        
+        if (videos.length === 0) {
+            // Show message for restaurants without videos
+            const noVideosDiv = document.createElement('div');
+            noVideosDiv.className = 'border border-dashed border-gray-300 rounded-lg p-4 bg-white text-center';
+            noVideosDiv.innerHTML = `
+                <div class="text-gray-500 mb-2">
+                    <span class="text-2xl">📹</span>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">No videos added yet</p>
+                <button onclick="addVideoToRestaurant(${restaurant.id}, '${restaurant.name}')" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                    ➕ Add Video
+                </button>
+            `;
+            videosContainer.appendChild(noVideosDiv);
+        } else {
+            // Add videos
+            videos.forEach(video => {
+                const createdDate = new Date(video.created_at).toLocaleDateString();
+                const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
+                
+                const videoDiv = document.createElement('div');
+                videoDiv.className = 'border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow';
+                videoDiv.setAttribute('data-video-id', video.id);
+                
+                // Create the video card content using DOM methods to avoid HTML injection issues
+                const mainDiv = document.createElement('div');
+                mainDiv.className = 'flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3';
+                
+                // Content section
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'flex-1 min-w-0';
+                
+                // Video info section
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'flex flex-col sm:flex-row sm:items-center gap-2 mb-2';
+                
+                const statusSpan = document.createElement('span');
+                statusSpan.className = `text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit`;
+                statusSpan.textContent = isFeatured;
+                
+                const videoIdSpan = document.createElement('span');
+                videoIdSpan.className = 'text-xs text-gray-500';
+                // Extract video ID from embed HTML if available
+                let videoId = 'N/A';
+                if (video.embed_html) {
+                    const idMatch = video.embed_html.match(/data-video-id="(\d+)"/);
+                    if (idMatch) {
+                        videoId = idMatch[1];
+                    }
+                }
+                videoIdSpan.textContent = `Video ID: ${videoId}`;
+                
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'text-xs text-gray-500';
+                dateSpan.textContent = `Added: ${createdDate}`;
+                
+                infoDiv.appendChild(statusSpan);
+                infoDiv.appendChild(videoIdSpan);
+                infoDiv.appendChild(dateSpan);
+                
+                // Preview section
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'mt-2 p-2 bg-gray-50 rounded text-xs';
+                
+                const previewLabel = document.createElement('div');
+                previewLabel.className = 'text-gray-600 mb-1';
+                previewLabel.textContent = 'Video Preview:';
+                
+                const previewContent = document.createElement('div');
+                previewContent.className = 'text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs';
+                previewContent.textContent = video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML';
+                
+                previewDiv.appendChild(previewLabel);
+                previewDiv.appendChild(previewContent);
+                
+                contentDiv.appendChild(infoDiv);
+                contentDiv.appendChild(previewDiv);
+                
+                // Buttons section
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0';
+                
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
+                editBtn.textContent = '✏️ Edit';
+                editBtn.onclick = () => editVideo(video.id);
+                
+                // Feature button
+                const featureBtn = document.createElement('button');
+                featureBtn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
+                featureBtn.textContent = video.is_featured ? '⭐ Unfeature' : '⭐ Feature';
+                featureBtn.onclick = () => toggleVideoFeatured(video.id, video.is_featured);
+                
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
+                deleteBtn.textContent = '🗑️ Delete';
+                deleteBtn.onclick = () => deleteVideo(video.id, restaurant.name);
+                
+                buttonsDiv.appendChild(editBtn);
+                buttonsDiv.appendChild(featureBtn);
+                buttonsDiv.appendChild(deleteBtn);
+                
+                mainDiv.appendChild(contentDiv);
+                mainDiv.appendChild(buttonsDiv);
+                
+                videoDiv.appendChild(mainDiv);
+                
+                videosContainer.appendChild(videoDiv);
+            });
+        }
+    });
+}
+
+// Edit video function
+async function editVideo(videoId) {
+    try {
+        // Fetch video details
+        const { data: video, error } = await supabaseClient
+            .from('tiktoks')
+            .select(`
+                *,
+                restaurants (
+                    name,
+                    cities (name)
+                )
+            `)
+            .eq('id', videoId)
+            .single();
+
+        if (error) throw error;
+
+        // Create edit modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.innerHTML = `
+            <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit TikTok Video</h3>
+                    
+                    <form id="edit-video-form" class="space-y-4">
+                        <input type="hidden" id="edit-video-id" value="${video.id}">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant</label>
+                            <input type="text" value="${video.restaurants.name} (${video.restaurants.cities.name})" disabled
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">TikTok Video URL</label>
+                            <input type="url" id="edit-video-url" placeholder="https://www.tiktok.com/@username/video/1234567890"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Enter the full TikTok video URL. The embed code will be generated automatically.</p>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" id="edit-is-featured" ${video.is_featured ? 'checked' : ''}
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="edit-is-featured" class="ml-2 block text-sm text-gray-900">
+                                Featured Video
+                            </label>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button type="button" onclick="closeEditVideoModal()" 
+                                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Extract URL from existing embed HTML and populate the form
+        const urlInput = document.getElementById('edit-video-url');
+        if (video.embed_html) {
+            const urlMatch = video.embed_html.match(/cite="([^"]+)"/);
+            if (urlMatch) {
+                urlInput.value = urlMatch[1];
+            }
+        }
+        
+        // Set up form submission
+        document.getElementById('edit-video-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveVideoChanges(videoId);
+        });
+        
+    } catch (error) {
+        console.error('Error editing video:', error);
+        showStatus('Failed to load video details: ' + error.message, 'error');
+    }
+}
+
+// Save video changes
+async function saveVideoChanges(videoId) {
+    try {
+        const videoUrl = document.getElementById('edit-video-url').value;
+        
+        if (!videoUrl) {
+            showStatus('Please enter a TikTok video URL', 'error');
+            return;
+        }
+
+        // Generate embed HTML from URL
+        const embedHtml = generateTikTokEmbed(videoUrl);
+        
+        const formData = {
+            embed_html: embedHtml,
+            is_featured: document.getElementById('edit-is-featured').checked
+        };
+
+        const { error } = await supabaseClient
+            .from('tiktoks')
+            .update(formData)
+            .eq('id', videoId);
+
+        if (error) throw error;
+
+        showStatus('Video updated successfully!', 'success');
+        closeEditVideoModal();
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error updating video:', error);
+        showStatus('Failed to update video: ' + error.message, 'error');
+    }
+}
+
+// Generate TikTok embed HTML from URL
+function generateTikTokEmbed(url) {
+    // Extract video ID from TikTok URL
+    const videoIdMatch = url.match(/\/video\/(\d+)/);
+    if (!videoIdMatch) {
+        throw new Error('Invalid TikTok URL format');
+    }
+    
+    const videoId = videoIdMatch[1];
+    
+    // Generate the embed HTML
+    return `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px;">
+        <section>
+            <a target="_blank" title="@username" href="${url}">@username</a>
+        </section>
+    </blockquote>
+    <script async src="https://www.tiktok.com/embed.js"></script>`;
+}
+
+// Toggle video featured status
+async function toggleVideoFeatured(videoId, currentStatus) {
+    try {
+        const { error } = await supabaseClient
+            .from('tiktoks')
+            .update({ is_featured: !currentStatus })
+            .eq('id', videoId);
+
+        if (error) throw error;
+
+        showStatus(`Video ${!currentStatus ? 'featured' : 'unfeatured'} successfully!`, 'success');
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error toggling video featured status:', error);
+        showStatus('Failed to update video status: ' + error.message, 'error');
+    }
+}
+
+// Delete video function
+async function deleteVideo(videoId, restaurantName) {
+    if (!confirm(`Are you sure you want to delete the video for "${restaurantName}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('tiktoks')
+            .delete()
+            .eq('id', videoId);
+
+        if (error) throw error;
+
+        showStatus('Video deleted successfully!', 'success');
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error deleting video:', error);
+        showStatus('Failed to delete video: ' + error.message, 'error');
+    }
+}
+
+// Close edit video modal
+function closeEditVideoModal() {
+    const modal = document.querySelector('.fixed.inset-0');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Filter videos based on search and city filter
+function filterVideos() {
+    const searchTerm = document.getElementById('video-search-manage').value.toLowerCase();
+    const cityFilter = document.getElementById('video-city-filter-manage').value;
+    
+    const restaurantGroups = document.querySelectorAll('[data-restaurant-group]');
+    
+    restaurantGroups.forEach(group => {
+        const restaurantName = group.querySelector('h3').textContent.toLowerCase();
+        const cityName = group.querySelector('p').textContent.toLowerCase();
+        
+        const matchesSearch = restaurantName.includes(searchTerm);
+        const matchesCity = !cityFilter || cityName.includes(cityFilter.toLowerCase());
+        
+        if (matchesSearch && matchesCity) {
+            group.style.display = 'block';
+        } else {
+            group.style.display = 'none';
+        }
+    });
+}
+
+// Restaurant Management Functions (needed for video management section)
+
+// Edit restaurant function
+async function editRestaurant(restaurantId) {
+    try {
+        // Fetch restaurant details
+        const { data: restaurant, error } = await supabaseClient
+            .from('restaurants')
+            .select(`
+                *,
+                cities (name),
+                restaurant_cuisines (
+                    cuisines (name)
+                )
+            `)
+            .eq('id', restaurantId)
+            .single();
+
+        if (error) throw error;
+
+        // Get current cuisines for this restaurant
+        const currentCuisines = restaurant.restaurant_cuisines ? 
+            restaurant.restaurant_cuisines.map(rc => rc.cuisines.name) : [];
+
+        // Create edit modal with similar UI to create form
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.innerHTML = `
+            <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Restaurant</h3>
+                    
+                    <form id="edit-restaurant-form" class="space-y-4">
+                        <input type="hidden" id="edit-restaurant-id" value="${restaurant.id}">
+                        
+                        <!-- Restaurant Name and Find Button -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
+                                <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div class="flex flex-col justify-end">
+                                <button type="button" id="edit-find-on-map-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                    <span>🗺️</span>
+                                    Find on Map
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Alternative: Google Maps URL -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Maps URL (Alternative)</label>
+                            <div class="flex gap-2">
+                                <input type="url" id="edit-google-maps-url" value="${restaurant.google_maps_url || ''}" placeholder="https://maps.google.com/... or Google Place URL"
+                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button type="button" id="edit-extract-from-url-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                    Extract
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Paste a Google Maps URL to automatically extract location data</p>
+                        </div>
+
+                        <!-- City Selection -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <select id="edit-restaurant-city" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">Select City</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <div id="edit-location-status" class="px-3 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-300 rounded-md">
+                                    Location: ${restaurant.lat.toFixed(6)}, ${restaurant.lon.toFixed(6)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="edit-restaurant-description" placeholder="Brief description of the restaurant" rows="2"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${restaurant.description || ''}</textarea>
+                        </div>
+
+                        <!-- Cuisine Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Cuisines (Select all that apply)</label>
+                            <div id="edit-cuisine-selection" class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 space-y-4">
+                                <!-- Cuisine buttons will be populated here -->
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Click cuisines to select/deselect. Selected cuisines will be highlighted in blue.</p>
+                        </div>
+
+                        <!-- Location Results (Initially Hidden) -->
+                        <div id="edit-location-results" class="hidden">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Found Locations (Click to Select):</h4>
+                            <div id="edit-location-options" class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
+                                <!-- Location options will appear here -->
+                            </div>
+                        </div>
+
+                        <!-- Selected Location Info (Initially Hidden) -->
+                        <div id="edit-selected-location" class="hidden">
+                            <div class="p-4 bg-green-50 border border-green-200 rounded-md">
+                                <h4 class="text-sm font-medium text-green-800 mb-2">✅ Selected Location:</h4>
+                                <div class="text-sm text-green-700">
+                                    <div><strong>Name:</strong> <span id="edit-selected-name"></span></div>
+                                    <div><strong>Address:</strong> <span id="edit-selected-address"></span></div>
+                                    <div><strong>Coordinates:</strong> <span id="edit-selected-coordinates"></span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden fields for form submission -->
+                        <input type="hidden" id="edit-restaurant-lat" value="${restaurant.lat}">
+                        <input type="hidden" id="edit-restaurant-lon" value="${restaurant.lon}">
+                        <input type="hidden" id="edit-google-place-id" value="${restaurant.google_place_id || ''}">
+                        
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button type="button" onclick="closeEditModal()" 
+                                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Populate city dropdown
+        await populateCityDropdown('edit-restaurant-city', restaurant.city_id);
+        
+        // Populate cuisine selection
+        populateEditCuisineSelection(currentCuisines);
+        
+        // Set up event listeners for edit form
+        setupEditFormEventListeners();
+        
+        // Set up cuisine selection after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            console.log('🍽️ Setting up edit cuisine selection after delay...');
+            setupEditCuisineSelection();
+        }, 200);
+        
+        // Set up form submission
+        document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('🍽️ Edit form submitted, calling saveRestaurantChanges...');
+            await saveRestaurantChanges(restaurantId);
+        });
+        
+    } catch (error) {
+        console.error('Error editing restaurant:', error);
+        showStatus('Failed to load restaurant details: ' + error.message, 'error');
+    }
+}
+
+// Save restaurant changes
+async function saveRestaurantChanges(restaurantId) {
+    try {
+        const formData = {
+            name: document.getElementById('edit-restaurant-name').value,
+            description: document.getElementById('edit-restaurant-description').value,
+            lat: parseFloat(document.getElementById('edit-restaurant-lat').value),
+            lon: parseFloat(document.getElementById('edit-restaurant-lon').value),
+            city_id: parseInt(document.getElementById('edit-restaurant-city').value),
+            google_place_id: document.getElementById('edit-google-place-id').value || null,
+            google_maps_url: document.getElementById('edit-google-maps-url').value || null
+        };
+
+        const { error } = await supabaseClient
+            .from('restaurants')
+            .update(formData)
+            .eq('id', restaurantId);
+
+        if (error) throw error;
+
+        // Update cuisine relationships
+        const selectedCuisines = getSelectedEditCuisines();
+        console.log('🍽️ Edit form selected cuisines:', selectedCuisines);
+        
+        if (selectedCuisines.length >= 0) { // Always update cuisines, even if none selected
+            console.log('🍽️ Deleting existing cuisine relationships for restaurant:', restaurantId);
+            // First, delete existing cuisine relationships
+            const { error: deleteError } = await supabaseClient
+                .from('restaurant_cuisines')
+                .delete()
+                .eq('restaurant_id', restaurantId);
+                
+            if (deleteError) {
+                console.error('Error deleting existing cuisine relationships:', deleteError);
+            } else {
+                console.log('✅ Successfully deleted existing cuisine relationships');
+            }
+            
+            // Then add new ones if any selected
+            if (selectedCuisines.length > 0) {
+                console.log('🍽️ Adding new cuisine relationships:', selectedCuisines);
+                await addRestaurantCuisines(restaurantId, selectedCuisines);
+            } else {
+                console.log('🍽️ No cuisines selected, restaurant will have no cuisine relationships');
+            }
+        }
+
+        showStatus('Restaurant updated successfully!', 'success');
+        closeEditModal();
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error updating restaurant:', error);
+        showStatus('Failed to update restaurant: ' + error.message, 'error');
+    }
+}
+
+// Populate cuisine selection for edit form
+function populateEditCuisineSelection(currentCuisines) {
+    console.log('🍽️ Populating edit cuisine selection with current cuisines:', currentCuisines);
+    const cuisineSelection = document.getElementById('edit-cuisine-selection');
+    
+    if (!cuisineSelection) {
+        console.error('🍽️ Edit cuisine selection container not found!');
+        return;
+    }
+    
+    // Get the same cuisine structure as the create form
+    const cuisineCategories = [
+        {
+            title: 'Asian Cuisines',
+            emoji: '🍜',
+            cuisines: [
+                { name: 'Asian', color: 'orange' },
+                { name: 'Chinese', color: 'red' },
+                { name: 'Japanese', color: 'yellow' },
+                { name: 'Korean', color: 'red' },
+                { name: 'Thai', color: 'orange' },
+                { name: 'Vietnamese', color: 'green' },
+                { name: 'Taiwanese', color: 'blue' },
+                { name: 'Sushi', color: 'yellow' },
+                { name: 'Poke', color: 'orange' }
+            ]
+        },
+        {
+            title: 'European & Mediterranean',
+            emoji: '🍝',
+            cuisines: [
+                { name: 'Italian', color: 'green' },
+                { name: 'Greek', color: 'blue' },
+                { name: 'Pizza', color: 'yellow' },
+                { name: 'British', color: 'blue' },
+                { name: 'French', color: 'purple' }
+            ]
+        },
+        {
+            title: 'American & Comfort Food',
+            emoji: '🍔',
+            cuisines: [
+                { name: 'American', color: 'red' },
+                { name: 'Burgers', color: 'yellow' },
+                { name: 'BBQ', color: 'orange' },
+                { name: 'Comfort food', color: 'yellow' },
+                { name: 'Fast food', color: 'red' },
+                { name: 'Wings', color: 'orange' },
+                { name: 'Soul food', color: 'purple' },
+                { name: 'Hawaiian', color: 'green' }
+            ]
+        },
+        {
+            title: 'Latin American',
+            emoji: '🌮',
+            cuisines: [
+                { name: 'Mexican', color: 'red' },
+                { name: 'Caribbean', color: 'orange' }
+            ]
+        },
+        {
+            title: 'Middle Eastern & Indian',
+            emoji: '🍛',
+            cuisines: [
+                { name: 'Indian', color: 'yellow' },
+                { name: 'Middle Eastern', color: 'orange' }
+            ]
+        },
+        {
+            title: 'Specialty & Dietary',
+            emoji: '🥗',
+            cuisines: [
+                { name: 'Healthy', color: 'green' },
+                { name: 'Vegan', color: 'green' },
+                { name: 'Salads', color: 'green' },
+                { name: 'Fine dining', color: 'purple' }
+            ]
+        },
+        {
+            title: 'Beverages & Snacks',
+            emoji: '☕',
+            cuisines: [
+                { name: 'Coffee', color: 'amber' },
+                { name: 'Bubble tea', color: 'pink' },
+                { name: 'Smoothies', color: 'green' },
+                { name: 'Ice cream', color: 'yellow' }
+            ]
+        },
+        {
+            title: 'Breakfast & Bakery',
+            emoji: '🥐',
+            cuisines: [
+                { name: 'Breakfast', color: 'yellow' },
+                { name: 'Bakery', color: 'amber' }
+            ]
+        },
+        {
+            title: 'Other Specialties',
+            emoji: '🍽️',
+            cuisines: [
+                { name: 'Seafood', color: 'blue' },
+                { name: 'Sandwich', color: 'yellow' },
+                { name: 'Soup', color: 'orange' },
+                { name: 'Desserts', color: 'pink' },
+                { name: 'Street food', color: 'orange' }
+            ]
+        }
+    ];
+
+    let html = '';
+    cuisineCategories.forEach(category => {
+        html += `
+            <div>
+                <h4 class="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                    <span class="text-lg mr-2">${category.emoji}</span> ${category.title}
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        `;
+        
+        category.cuisines.forEach(cuisine => {
+            const isSelected = currentCuisines.includes(cuisine.name);
+            const selectedClass = isSelected ? 'selected bg-blue-500 text-white border-blue-500' : `border-${cuisine.color}-300 hover:bg-${cuisine.color}-50 bg-${cuisine.color}-50`;
+            
+            // Get emoji for cuisine
+            const emoji = getCuisineEmoji(cuisine.name);
+            
+            html += `
+                <button type="button" class="edit-cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" data-cuisine="${cuisine.name}">
+                    ${emoji} ${cuisine.name}
+                </button>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    console.log('🍽️ Setting edit cuisine selection HTML...');
+    cuisineSelection.innerHTML = html;
+    console.log('🍽️ Edit cuisine selection HTML set, found buttons:', document.querySelectorAll('.edit-cuisine-btn').length);
+    
+    // Set up cuisine button event listeners
+    setupEditCuisineSelection();
+}
+
+// Set up cuisine selection for edit form
+function setupEditCuisineSelection() {
+    console.log('🍽️ Setting up edit cuisine selection...');
+    const cuisineButtons = document.querySelectorAll('.edit-cuisine-btn');
+    console.log('🍽️ Found edit cuisine buttons:', cuisineButtons.length);
+    
+    cuisineButtons.forEach((button, index) => {
+        // Remove any existing event listeners
+        button.replaceWith(button.cloneNode(true));
+    });
+    
+    // Re-query after cloning to get fresh elements
+    const freshButtons = document.querySelectorAll('.edit-cuisine-btn');
+    console.log('🍽️ Fresh edit cuisine buttons:', freshButtons.length);
+    
+    freshButtons.forEach((button, index) => {
+        // Add a simple click test first
+        button.addEventListener('click', (e) => {
+            console.log('🍽️ BUTTON CLICKED!', button.dataset.cuisine, 'Current classes:', button.className);
+        });
+        
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🍽️ Edit cuisine button clicked:', button.dataset.cuisine);
+            
+            // Toggle selection
+            if (button.classList.contains('selected')) {
+                // Deselect
+                button.classList.remove('selected');
+                button.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+                // Restore original color based on data-cuisine
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Deselected edit cuisine:', cuisineName);
+            } else {
+                // Select
+                button.classList.add('selected');
+                button.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
+                // Remove original color classes
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.remove(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+                console.log('🍽️ Selected edit cuisine:', cuisineName);
+            }
+            
+            // Debug: Show current selection
+            const selectedCuisines = getSelectedEditCuisines();
+            console.log('🍽️ Currently selected edit cuisines:', selectedCuisines);
+        });
+    });
+}
+
+// Get cuisine color for edit form
+function getCuisineColor(cuisineName) {
+    const colorMap = {
+        'Asian': 'orange', 'Chinese': 'red', 'Japanese': 'yellow', 'Korean': 'red',
+        'Thai': 'orange', 'Vietnamese': 'green', 'Taiwanese': 'blue', 'Sushi': 'yellow',
+        'Poke': 'orange', 'Italian': 'green', 'Greek': 'blue', 'Pizza': 'yellow',
+        'American': 'red', 'Burgers': 'yellow', 'BBQ': 'orange', 'Comfort food': 'yellow',
+        'Fast food': 'red', 'Wings': 'orange', 'Soul food': 'purple', 'Hawaiian': 'green',
+        'Mexican': 'red', 'Caribbean': 'orange', 'Indian': 'yellow', 'Middle Eastern': 'orange',
+        'Healthy': 'green', 'Vegan': 'green', 'Salads': 'green', 'Fine dining': 'purple',
+        'Coffee': 'amber', 'Bubble tea': 'pink', 'Smoothies': 'green', 'Ice cream': 'yellow',
+        'Breakfast': 'yellow', 'Bakery': 'amber', 'Seafood': 'blue', 'Sandwich': 'yellow',
+        'Soup': 'orange', 'Desserts': 'pink', 'Street food': 'orange'
+    };
+    return colorMap[cuisineName] || 'gray';
+}
+
+// Get cuisine emoji for edit form
+function getCuisineEmoji(cuisineName) {
+    const emojiMap = {
+        'Asian': '🍜', 'Chinese': '🥢', 'Japanese': '🍣', 'Korean': '🥘',
+        'Thai': '🌶️', 'Vietnamese': '🍲', 'Taiwanese': '🥟', 'Sushi': '🍱',
+        'Poke': '🐟', 'Italian': '🍝', 'Greek': '🫒', 'Pizza': '🍕',
+        'American': '🇺🇸', 'Burgers': '🍔', 'BBQ': '🥩', 'Comfort food': '🍽️',
+        'Fast food': '⚡', 'Wings': '🍗', 'Soul food': '❤️', 'Hawaiian': '🏄',
+        'Mexican': '🌮', 'Caribbean': '🏝️', 'Indian': '🍛', 'Middle Eastern': '🥙',
+        'Healthy': '🥗', 'Vegan': '🌱', 'Salads': '🥙', 'Fine dining': '🍾',
+        'Coffee': '☕', 'Bubble tea': '🧋', 'Smoothies': '🥤', 'Ice cream': '🍦',
+        'Breakfast': '🍳', 'Bakery': '🥐', 'Seafood': '🐟', 'Sandwich': '🥪',
+        'Soup': '🍲', 'Desserts': '🍰', 'Street food': '🌭',
+        'British': '🇬🇧', 'French': '🥐'
+    };
+    return emojiMap[cuisineName] || '🍽️';
+}
+
+// Get selected cuisines from edit form
+function getSelectedEditCuisines() {
+    const selectedButtons = document.querySelectorAll('.edit-cuisine-btn.selected');
+    const cuisines = Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
+    console.log('🍽️ getSelectedEditCuisines() called, found:', cuisines);
+    return cuisines;
+}
+
+// Debug function to test edit cuisine selection
+function debugEditCuisineSelection() {
+    console.log('🍽️ Debug: Edit cuisine selection status');
+    console.log('🍽️ Total edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn').length);
+    console.log('🍽️ Selected edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn.selected').length);
+    console.log('🍽️ Selected cuisines:', getSelectedEditCuisines());
+    
+    // Test clicking a button
+    const firstButton = document.querySelector('.edit-cuisine-btn');
+    if (firstButton) {
+        console.log('🍽️ Testing click on first button:', firstButton.dataset.cuisine);
+        firstButton.click();
+        console.log('🍽️ After click - selected cuisines:', getSelectedEditCuisines());
+    }
+}
+
+// Set up event listeners for edit form
+function setupEditFormEventListeners() {
+    // Find on Map button
+    document.getElementById('edit-find-on-map-btn').addEventListener('click', handleEditFindOnMap);
+    
+    // Extract from URL button
+    document.getElementById('edit-extract-from-url-btn').addEventListener('click', handleEditExtractFromUrl);
+}
+
+// Handle Find on Map for edit form
+async function handleEditFindOnMap() {
+    const restaurantName = document.getElementById('edit-restaurant-name').value.trim();
+    
+    if (!restaurantName) {
+        showStatus('Please enter a restaurant name first', 'error');
+        return;
+    }
+    
+    // Check if Google Maps API is loaded
+    if (typeof google === 'undefined' || !google.maps) {
+        showStatus('Google Maps API not loaded. Please check your API key.', 'error');
+        return;
+    }
+    
+    const statusEl = document.getElementById('edit-location-status');
+    statusEl.textContent = 'Searching...';
+    statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
+    
+    try {
+        // Use legacy Places API for edit form
+        await searchWithLegacyAPI(restaurantName, statusEl, 'edit');
+    } catch (error) {
+        console.error('Error searching for location:', error);
+        statusEl.textContent = 'Search failed';
+        statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+        showStatus('Error searching for location: ' + error.message, 'error');
+    }
+}
+
+// Handle Extract from URL for edit form
+async function handleEditExtractFromUrl() {
+    const url = document.getElementById('edit-google-maps-url').value.trim();
+    
+    if (!url) {
+        showStatus('Please enter a Google Maps URL first', 'error');
+        return;
+    }
+    
+    const statusEl = document.getElementById('edit-location-status');
+    statusEl.textContent = 'Extracting from URL...';
+    statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
+    
+    try {
+        // Check if Google Maps API is loaded
+        if (typeof google === 'undefined' || !google.maps) {
+            throw new Error('Google Maps API not loaded. Please check your API key.');
+        }
+        
+        await extractLocationFromUrl(url, statusEl, 'edit');
+        
+    } catch (error) {
+        console.error('Error extracting from URL:', error);
+        statusEl.textContent = 'URL extraction failed';
+        statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+        showStatus('Error extracting from URL: ' + error.message, 'error');
+    }
+}
+
+// Delete restaurant function
+async function deleteRestaurant(restaurantId, restaurantName) {
+    if (!confirm(`Are you sure you want to delete "${restaurantName}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        // First delete related records
+        await supabaseClient
+            .from('restaurant_cuisines')
+            .delete()
+            .eq('restaurant_id', restaurantId);
+
+        await supabaseClient
+            .from('tiktoks')
+            .delete()
+            .eq('restaurant_id', restaurantId);
+
+        // Then delete the restaurant
+        const { error } = await supabaseClient
+            .from('restaurants')
+            .delete()
+            .eq('id', restaurantId);
+
+        if (error) throw error;
+
+        showStatus('Restaurant deleted successfully!', 'success');
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error deleting restaurant:', error);
+        showStatus('Failed to delete restaurant: ' + error.message, 'error');
+    }
+}
+
+// Close edit modal
+function closeEditModal() {
+    const modal = document.querySelector('.fixed.inset-0');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Populate city dropdown for edit form
+async function populateCityDropdown(selectId, selectedCityId = null) {
+    try {
+        const { data: cities, error } = await supabaseClient
+            .from('cities')
+            .select('id, name')
+            .order('name');
+
+        if (error) throw error;
+
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Select City</option>' + 
+            cities.map(city => 
+                `<option value="${city.id}" ${city.id === selectedCityId ? 'selected' : ''}>${city.name}</option>`
+            ).join('');
+    } catch (error) {
+        console.error('Error loading cities:', error);
+    }
+}
+
+// Add video to restaurant function
+function addVideoToRestaurant(restaurantId, restaurantName) {
+    // Scroll to the add video section and pre-populate the restaurant search
+    const addVideoSection = document.querySelector('#add-tiktok-form');
+    if (addVideoSection) {
+        addVideoSection.scrollIntoView({ behavior: 'smooth' });
+        const restaurantSearch = document.getElementById('restaurant-search');
+        if (restaurantSearch) {
+            restaurantSearch.value = restaurantName;
+            restaurantSearch.dispatchEvent(new Event('input'));
+        }
+    }
 }
