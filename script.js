@@ -832,6 +832,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const loginForm = document.getElementById('admin-login-form');
             const cancelBtn = document.getElementById('cancel-login');
             const errorDiv = document.getElementById('login-error');
+            const forgotPasswordLink = document.getElementById('forgot-password-link');
+            
+            // Password reset elements
+            const resetModal = document.getElementById('password-reset-modal');
+            const resetForm = document.getElementById('password-reset-form');
+            const cancelResetBtn = document.getElementById('cancel-reset');
+            const resetErrorDiv = document.getElementById('reset-error');
+            const resetSuccessDiv = document.getElementById('reset-success');
             
             // Open login modal when admin link is clicked
             adminLink.addEventListener('click', function(e) {
@@ -857,6 +865,30 @@ document.addEventListener('DOMContentLoaded', async function() {
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 await handleAdminLogin();
+            });
+            
+            // Handle forgot password link
+            forgotPasswordLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                openPasswordResetModal();
+            });
+            
+            // Handle password reset form submission
+            resetForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handlePasswordReset();
+            });
+            
+            // Handle cancel reset button
+            cancelResetBtn.addEventListener('click', function() {
+                closePasswordResetModal();
+            });
+            
+            // Close reset modal when clicking outside
+            resetModal.addEventListener('click', function(e) {
+                if (e.target === resetModal) {
+                    closePasswordResetModal();
+                }
             });
             
             function closeLoginModal() {
@@ -910,6 +942,58 @@ document.addEventListener('DOMContentLoaded', async function() {
                     console.error('Login error:', error);
                     errorDiv.textContent = error.message || 'Login failed. Please try again.';
                     errorDiv.classList.remove('hidden');
+                }
+            }
+            
+            function openPasswordResetModal() {
+                console.log('Opening password reset modal');
+                resetModal.classList.remove('hidden');
+                resetModal.classList.add('flex');
+                // Pre-fill email if it was entered in login form
+                const loginEmail = document.getElementById('admin-email').value;
+                if (loginEmail) {
+                    document.getElementById('reset-email').value = loginEmail;
+                }
+            }
+            
+            function closePasswordResetModal() {
+                resetModal.classList.add('hidden');
+                resetModal.classList.remove('flex');
+                resetForm.reset();
+                resetErrorDiv.classList.add('hidden');
+                resetSuccessDiv.classList.add('hidden');
+            }
+            
+            async function handlePasswordReset() {
+                const email = document.getElementById('reset-email').value;
+                
+                try {
+                    console.log('Sending password reset email to:', email);
+                    
+                    // Send password reset email
+                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/admin.html`
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    console.log('Password reset email sent successfully');
+                    
+                    // Show success message
+                    resetErrorDiv.classList.add('hidden');
+                    resetSuccessDiv.textContent = 'Password reset email sent! Check your inbox and follow the link to reset your password.';
+                    resetSuccessDiv.classList.remove('hidden');
+                    
+                    // Clear form
+                    resetForm.reset();
+                    
+                } catch (error) {
+                    console.error('Password reset error:', error);
+                    resetSuccessDiv.classList.add('hidden');
+                    resetErrorDiv.textContent = error.message || 'Failed to send reset email. Please try again.';
+                    resetErrorDiv.classList.remove('hidden');
                 }
             }
         }
