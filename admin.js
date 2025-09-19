@@ -1333,66 +1333,78 @@ function showStatus(message, type = 'success') {
 
 // Video Management Functions
 
-// Load videos for management (grouped by restaurant)
+// Load restaurants with their videos for management
 async function loadVideosForManagement() {
     try {
-        console.log('Loading videos for management...');
+        console.log('Loading restaurants with videos for management...');
         
-        const { data: videos, error } = await supabaseClient
-            .from('tiktoks')
+        // First, get all restaurants
+        const { data: restaurants, error: restaurantsError } = await supabaseClient
+            .from('restaurants')
             .select(`
                 *,
-                restaurants (
-                    id,
-                    name,
-                    cities (name)
+                cities (name),
+                restaurant_cuisines (
+                    cuisines (name)
                 )
             `)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (restaurantsError) throw restaurantsError;
+
+        console.log('Restaurants loaded:', restaurants);
+
+        // Then, get all videos
+        const { data: videos, error: videosError } = await supabaseClient
+            .from('tiktoks')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (videosError) throw videosError;
 
         console.log('Videos loaded:', videos);
 
-        // Group videos by restaurant
-        const restaurantGroups = {};
+        // Group videos by restaurant ID
+        const videosByRestaurant = {};
         videos.forEach(video => {
-            const restaurantId = video.restaurants.id;
-            if (!restaurantGroups[restaurantId]) {
-                restaurantGroups[restaurantId] = {
-                    restaurant: video.restaurants,
-                    videos: []
-                };
+            if (!videosByRestaurant[video.restaurant_id]) {
+                videosByRestaurant[video.restaurant_id] = [];
             }
-            restaurantGroups[restaurantId].videos.push(video);
+            videosByRestaurant[video.restaurant_id].push(video);
         });
+
+        // Create restaurant groups with their videos
+        const restaurantGroups = restaurants.map(restaurant => ({
+            restaurant: restaurant,
+            videos: videosByRestaurant[restaurant.id] || []
+        }));
 
         console.log('Restaurant groups:', restaurantGroups);
 
-        // Populate city filter for videos
+        // Populate city filter
         const cityFilter = document.getElementById('video-city-filter-manage');
         if (cityFilter) {
-            const cities = [...new Set(videos.map(v => v.restaurants.cities.name))];
+            const cities = [...new Set(restaurants.map(r => r.cities.name))];
             cityFilter.innerHTML = '<option value="">All Cities</option>' + 
                 cities.map(city => `<option value="${city}">${city}</option>`).join('');
         }
 
         displayRestaurantVideoGroups(restaurantGroups);
     } catch (error) {
-        console.error('Error loading videos:', error);
-        showStatus('Failed to load videos: ' + error.message, 'error');
+        console.error('Error loading restaurants and videos:', error);
+        showStatus('Failed to load restaurants and videos: ' + error.message, 'error');
         
         // Show error message in the videos list container
         const container = document.getElementById('videos-list');
         if (container) {
-            container.innerHTML = `<p class="text-red-500 text-center py-8">Error loading videos: ${error.message}</p>`;
+            container.innerHTML = `<p class="text-red-500 text-center py-8">Error loading data: ${error.message}</p>`;
         }
     }
     
     // Ensure the section is visible by adding a loading message if empty
     const container = document.getElementById('videos-list');
     if (container && container.innerHTML.trim() === '') {
-        container.innerHTML = '<p class="text-gray-500 text-center py-8">Loading videos...</p>';
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">Loading restaurants...</p>';
     }
 }
 
@@ -1406,12 +1418,11 @@ function displayRestaurantVideoGroups(restaurantGroups) {
         return;
     }
 
-    const restaurantArray = Object.values(restaurantGroups);
-    console.log('Restaurant array:', restaurantArray);
+    console.log('Restaurant groups array:', restaurantGroups);
     
-    if (restaurantArray.length === 0) {
+    if (restaurantGroups.length === 0) {
         console.log('No restaurants found, showing empty message');
-        container.innerHTML = '<p class="text-gray-500 text-center py-8">No videos found</p>';
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No restaurants found</p>';
         return;
     }
 
@@ -1419,7 +1430,7 @@ function displayRestaurantVideoGroups(restaurantGroups) {
     container.innerHTML = '';
     
     // Create each restaurant group as a separate element
-    restaurantArray.forEach(group => {
+    restaurantGroups.forEach(group => {
         const restaurant = group.restaurant;
         const videos = group.videos;
         
@@ -1427,13 +1438,17 @@ function displayRestaurantVideoGroups(restaurantGroups) {
         restaurantDiv.className = 'border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50';
         restaurantDiv.setAttribute('data-restaurant-group', restaurant.id);
         
+        // Show video count and status
+        const videoCountText = videos.length === 0 ? 'No videos' : `${videos.length} video${videos.length !== 1 ? 's' : ''}`;
+        const videoStatusClass = videos.length === 0 ? 'text-red-500' : 'text-gray-500';
+        
         restaurantDiv.innerHTML = `
             <!-- Restaurant Header -->
             <div class="flex justify-between items-start mb-4">
                 <div class="flex-1">
                     <h3 class="text-xl font-bold text-gray-900 mb-1">${restaurant.name}</h3>
                     <p class="text-sm text-gray-600">${restaurant.cities.name}</p>
-                    <p class="text-xs text-gray-500 mt-1">${videos.length} video${videos.length !== 1 ? 's' : ''}</p>
+                    <p class="text-xs ${videoStatusClass} mt-1">${videoCountText}</p>
                 </div>
                 <div class="flex space-x-2">
                     <button onclick="editRestaurant(${restaurant.id})" 
@@ -1458,48 +1473,66 @@ function displayRestaurantVideoGroups(restaurantGroups) {
         // Now add videos to this restaurant
         const videosContainer = restaurantDiv.querySelector(`#videos-for-restaurant-${restaurant.id}`);
         
-        videos.forEach(video => {
-            const createdDate = new Date(video.created_at).toLocaleDateString();
-            const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
-            
-            const videoDiv = document.createElement('div');
-            videoDiv.className = 'border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow';
-            videoDiv.setAttribute('data-video-id', video.id);
-            
-            videoDiv.innerHTML = `
-                <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                            <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit">${isFeatured}</span>
-                            <span class="text-xs text-gray-500">Video ID: ${video.tiktok_id || 'N/A'}</span>
-                            <span class="text-xs text-gray-500">Added: ${createdDate}</span>
-                        </div>
-                        <div class="mt-2 p-2 bg-gray-50 rounded text-xs">
-                            <div class="text-gray-600 mb-1">Video Preview:</div>
-                            <div class="text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs">
-                                ${video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML'}
+        if (videos.length === 0) {
+            // Show message for restaurants without videos
+            const noVideosDiv = document.createElement('div');
+            noVideosDiv.className = 'border border-dashed border-gray-300 rounded-lg p-4 bg-white text-center';
+            noVideosDiv.innerHTML = `
+                <div class="text-gray-500 mb-2">
+                    <span class="text-2xl">📹</span>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">No videos added yet</p>
+                <button onclick="addVideoToRestaurant(${restaurant.id}, '${restaurant.name}')" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                    ➕ Add Video
+                </button>
+            `;
+            videosContainer.appendChild(noVideosDiv);
+        } else {
+            // Add videos
+            videos.forEach(video => {
+                const createdDate = new Date(video.created_at).toLocaleDateString();
+                const isFeatured = video.is_featured ? '⭐ Featured' : '📹 Regular';
+                
+                const videoDiv = document.createElement('div');
+                videoDiv.className = 'border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow';
+                videoDiv.setAttribute('data-video-id', video.id);
+                
+                videoDiv.innerHTML = `
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                                <span class="text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit">${isFeatured}</span>
+                                <span class="text-xs text-gray-500">Video ID: ${video.tiktok_id || 'N/A'}</span>
+                                <span class="text-xs text-gray-500">Added: ${createdDate}</span>
+                            </div>
+                            <div class="mt-2 p-2 bg-gray-50 rounded text-xs">
+                                <div class="text-gray-600 mb-1">Video Preview:</div>
+                                <div class="text-gray-500 font-mono break-all max-h-16 overflow-y-auto text-xs">
+                                    ${video.embed_html ? video.embed_html.substring(0, 150) + '...' : 'No embed HTML'}
+                                </div>
                             </div>
                         </div>
+                        <div class="flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0">
+                            <button onclick="editVideo(${video.id})" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap">
+                                ✏️ Edit
+                            </button>
+                            <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
+                                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap">
+                                ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
+                            </button>
+                            <button onclick="deleteVideo(${video.id}, '${restaurant.name}')" 
+                                    class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap">
+                                🗑️ Delete
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex flex-row lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 flex-shrink-0">
-                        <button onclick="editVideo(${video.id})" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
-                            ✏️ Edit
-                        </button>
-                        <button onclick="toggleVideoFeatured(${video.id}, ${video.is_featured})" 
-                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
-                            ${video.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
-                        </button>
-                        <button onclick="deleteVideo(${video.id}, '${restaurant.name}')" 
-                                class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors">
-                            🗑️ Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            videosContainer.appendChild(videoDiv);
-        });
+                `;
+                
+                videosContainer.appendChild(videoDiv);
+            });
+        }
     });
 }
 
@@ -1683,4 +1716,219 @@ function filterVideos() {
             group.style.display = 'none';
         }
     });
+}
+
+// Restaurant Management Functions (needed for video management section)
+
+// Edit restaurant function
+async function editRestaurant(restaurantId) {
+    try {
+        // Fetch restaurant details
+        const { data: restaurant, error } = await supabaseClient
+            .from('restaurants')
+            .select(`
+                *,
+                cities (name),
+                restaurant_cuisines (
+                    cuisines (name)
+                )
+            `)
+            .eq('id', restaurantId)
+            .single();
+
+        if (error) throw error;
+
+        // Create edit modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.innerHTML = `
+            <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Restaurant</h3>
+                    
+                    <form id="edit-restaurant-form" class="space-y-4">
+                        <input type="hidden" id="edit-restaurant-id" value="${restaurant.id}">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
+                            <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="edit-restaurant-description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${restaurant.description || ''}</textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                                <input type="number" id="edit-restaurant-lat" value="${restaurant.lat}" step="any" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                                <input type="number" id="edit-restaurant-lon" value="${restaurant.lon}" step="any" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                            <select id="edit-restaurant-city" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Select City</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Place ID</label>
+                            <input type="text" id="edit-google-place-id" value="${restaurant.google_place_id || ''}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Maps URL</label>
+                            <input type="url" id="edit-google-maps-url" value="${restaurant.google_maps_url || ''}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button type="button" onclick="closeEditModal()" 
+                                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Populate city dropdown
+        await populateCityDropdown('edit-restaurant-city', restaurant.city_id);
+        
+        // Set up form submission
+        document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveRestaurantChanges(restaurantId);
+        });
+        
+    } catch (error) {
+        console.error('Error editing restaurant:', error);
+        showStatus('Failed to load restaurant details: ' + error.message, 'error');
+    }
+}
+
+// Save restaurant changes
+async function saveRestaurantChanges(restaurantId) {
+    try {
+        const formData = {
+            name: document.getElementById('edit-restaurant-name').value,
+            description: document.getElementById('edit-restaurant-description').value,
+            lat: parseFloat(document.getElementById('edit-restaurant-lat').value),
+            lon: parseFloat(document.getElementById('edit-restaurant-lon').value),
+            city_id: parseInt(document.getElementById('edit-restaurant-city').value),
+            google_place_id: document.getElementById('edit-google-place-id').value || null,
+            google_maps_url: document.getElementById('edit-google-maps-url').value || null
+        };
+
+        const { error } = await supabaseClient
+            .from('restaurants')
+            .update(formData)
+            .eq('id', restaurantId);
+
+        if (error) throw error;
+
+        showStatus('Restaurant updated successfully!', 'success');
+        closeEditModal();
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error updating restaurant:', error);
+        showStatus('Failed to update restaurant: ' + error.message, 'error');
+    }
+}
+
+// Delete restaurant function
+async function deleteRestaurant(restaurantId, restaurantName) {
+    if (!confirm(`Are you sure you want to delete "${restaurantName}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        // First delete related records
+        await supabaseClient
+            .from('restaurant_cuisines')
+            .delete()
+            .eq('restaurant_id', restaurantId);
+
+        await supabaseClient
+            .from('tiktoks')
+            .delete()
+            .eq('restaurant_id', restaurantId);
+
+        // Then delete the restaurant
+        const { error } = await supabaseClient
+            .from('restaurants')
+            .delete()
+            .eq('id', restaurantId);
+
+        if (error) throw error;
+
+        showStatus('Restaurant deleted successfully!', 'success');
+        await loadVideosForManagement();
+        
+    } catch (error) {
+        console.error('Error deleting restaurant:', error);
+        showStatus('Failed to delete restaurant: ' + error.message, 'error');
+    }
+}
+
+// Close edit modal
+function closeEditModal() {
+    const modal = document.querySelector('.fixed.inset-0');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Populate city dropdown for edit form
+async function populateCityDropdown(selectId, selectedCityId = null) {
+    try {
+        const { data: cities, error } = await supabaseClient
+            .from('cities')
+            .select('id, name')
+            .order('name');
+
+        if (error) throw error;
+
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Select City</option>' + 
+            cities.map(city => 
+                `<option value="${city.id}" ${city.id === selectedCityId ? 'selected' : ''}>${city.name}</option>`
+            ).join('');
+    } catch (error) {
+        console.error('Error loading cities:', error);
+    }
+}
+
+// Add video to restaurant function
+function addVideoToRestaurant(restaurantId, restaurantName) {
+    // Scroll to the add video section and pre-populate the restaurant search
+    const addVideoSection = document.querySelector('#add-tiktok-form');
+    if (addVideoSection) {
+        addVideoSection.scrollIntoView({ behavior: 'smooth' });
+        const restaurantSearch = document.getElementById('restaurant-search');
+        if (restaurantSearch) {
+            restaurantSearch.value = restaurantName;
+            restaurantSearch.dispatchEvent(new Event('input'));
+        }
+    }
 }
