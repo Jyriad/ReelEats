@@ -85,7 +85,7 @@ async function adminLogout() {
 }
 
 // Initialize admin panel
-document.addEventListener('DOMContentLoaded', async function() {
+async function initializeAdminPanel() {
     console.log('Admin panel initializing...');
     
     // Check if user is authenticated
@@ -147,15 +147,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Set up event listeners
     setupEventListeners();
-    
-    // Check database status
-    checkDatabaseStatus();
-    
-    // Set up cuisine selection after a short delay to ensure DOM is ready
-    setTimeout(() => {
-        setupCuisineSelection();
-    }, 100);
-});
+}
+
+// Run when DOM is ready or immediately if already ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAdminPanel);
+} else {
+    initializeAdminPanel();
+}
 
 // Load dashboard statistics
 async function loadDashboardData() {
