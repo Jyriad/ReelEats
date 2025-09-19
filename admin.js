@@ -66,7 +66,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadRecentRestaurants();
     await loadRestaurantsWithoutVideos();
     await loadRestaurantsForManagement();
-    await loadVideosForManagement();
+    
+    // Load videos for management with error handling
+    try {
+        await loadVideosForManagement();
+    } catch (error) {
+        console.error('Failed to load videos for management:', error);
+        // Ensure the section shows something even if loading fails
+        const container = document.getElementById('videos-list');
+        if (container) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-8">No videos available</p>';
+        }
+    }
     
     // Set up event listeners
     setupEventListeners();
@@ -1642,6 +1653,8 @@ function filterRestaurants() {
 // Load videos for management (grouped by restaurant)
 async function loadVideosForManagement() {
     try {
+        console.log('Loading videos for management...');
+        
         const { data: videos, error } = await supabaseClient
             .from('tiktoks')
             .select(`
@@ -1656,6 +1669,8 @@ async function loadVideosForManagement() {
 
         if (error) throw error;
 
+        console.log('Videos loaded:', videos);
+
         // Group videos by restaurant
         const restaurantGroups = {};
         videos.forEach(video => {
@@ -1669,6 +1684,8 @@ async function loadVideosForManagement() {
             restaurantGroups[restaurantId].videos.push(video);
         });
 
+        console.log('Restaurant groups:', restaurantGroups);
+
         // Populate city filter for videos
         const cityFilter = document.getElementById('video-city-filter-manage');
         if (cityFilter) {
@@ -1681,17 +1698,36 @@ async function loadVideosForManagement() {
     } catch (error) {
         console.error('Error loading videos:', error);
         showStatus('Failed to load videos: ' + error.message, 'error');
+        
+        // Show error message in the videos list container
+        const container = document.getElementById('videos-list');
+        if (container) {
+            container.innerHTML = `<p class="text-red-500 text-center py-8">Error loading videos: ${error.message}</p>`;
+        }
+    }
+    
+    // Ensure the section is visible by adding a loading message if empty
+    const container = document.getElementById('videos-list');
+    if (container && container.innerHTML.trim() === '') {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">Loading videos...</p>';
     }
 }
 
 // Display restaurant groups with their videos
 function displayRestaurantVideoGroups(restaurantGroups) {
+    console.log('Displaying restaurant video groups:', restaurantGroups);
+    
     const container = document.getElementById('videos-list');
-    if (!container) return;
+    if (!container) {
+        console.error('Videos list container not found!');
+        return;
+    }
 
     const restaurantArray = Object.values(restaurantGroups);
+    console.log('Restaurant array:', restaurantArray);
     
     if (restaurantArray.length === 0) {
+        console.log('No restaurants found, showing empty message');
         container.innerHTML = '<p class="text-gray-500 text-center py-8">No videos found</p>';
         return;
     }
