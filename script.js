@@ -267,10 +267,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Setup cuisine filter functionality
         function setupCuisineFilter() {
-            // Populate cuisine filter checkboxes
+            // Populate cuisine filter checkboxes for both desktop and mobile
             populateCuisineFilter();
             
-            // Add event listener for clear all button
+            // Setup filter toggle button
+            setupFilterToggle();
+            
+            // Setup mobile filter modal
+            setupMobileFilterModal();
+            
+            // Add event listener for clear all button (desktop)
             document.getElementById('clear-cuisine-filter').addEventListener('click', function() {
                 clearAllCuisineFilters();
             });
@@ -290,35 +296,46 @@ document.addEventListener('DOMContentLoaded', async function() {
             ];
             
             allCuisines = allCuisineList;
-            const cuisineFilterContainer = document.getElementById('cuisine-filter-container');
+            
+            // Populate both desktop and mobile containers
+            populateFilterContainer('cuisine-filter-container');
+            populateFilterContainer('cuisine-filter-container-mobile');
+        }
+        
+        // Populate a specific filter container with checkboxes
+        function populateFilterContainer(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
             
             // Clear existing checkboxes
-            cuisineFilterContainer.innerHTML = '';
+            container.innerHTML = '';
             
             // Add cuisine checkboxes
             allCuisines.forEach(cuisine => {
                 const checkboxContainer = document.createElement('div');
-                checkboxContainer.className = 'flex items-center mb-1';
+                checkboxContainer.className = 'flex items-center mb-2';
                 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.id = `cuisine-${cuisine}`;
+                checkbox.id = `${containerId}-cuisine-${cuisine}`;
                 checkbox.value = cuisine;
                 checkbox.className = 'cuisine-checkbox mr-2 text-blue-600 focus:ring-blue-500';
                 
                 const label = document.createElement('label');
-                label.htmlFor = `cuisine-${cuisine}`;
+                label.htmlFor = `${containerId}-cuisine-${cuisine}`;
                 label.textContent = cuisine;
-                label.className = 'text-sm text-gray-700 cursor-pointer';
+                label.className = 'text-sm text-gray-700 cursor-pointer flex-1';
                 
                 checkboxContainer.appendChild(checkbox);
                 checkboxContainer.appendChild(label);
-                cuisineFilterContainer.appendChild(checkboxContainer);
+                container.appendChild(checkboxContainer);
                 
-                // Add event listener for each checkbox
-                checkbox.addEventListener('change', function() {
-                    filterRestaurantsByCuisines();
-                });
+                // Add event listener for each checkbox (only for desktop)
+                if (containerId === 'cuisine-filter-container') {
+                    checkbox.addEventListener('change', function() {
+                        filterRestaurantsByCuisines();
+                    });
+                }
             });
         }
         
@@ -357,6 +374,109 @@ document.addEventListener('DOMContentLoaded', async function() {
                 checkbox.checked = false;
             });
             displayRestaurants(currentRestaurants);
+        }
+        
+        // Setup filter toggle functionality
+        function setupFilterToggle() {
+            const filterToggleBtn = document.getElementById('filter-toggle-btn');
+            const filterDesktop = document.getElementById('cuisine-filter-desktop');
+            const filterArrow = document.getElementById('filter-arrow');
+            
+            filterToggleBtn.addEventListener('click', function() {
+                // On mobile, open the modal
+                if (window.innerWidth < 768) {
+                    openMobileFilterModal();
+                } else {
+                    // On desktop, toggle the collapsible filter
+                    const isHidden = filterDesktop.classList.contains('hidden');
+                    if (isHidden) {
+                        filterDesktop.classList.remove('hidden');
+                        filterArrow.style.transform = 'rotate(180deg)';
+                    } else {
+                        filterDesktop.classList.add('hidden');
+                        filterArrow.style.transform = 'rotate(0deg)';
+                    }
+                }
+            });
+        }
+        
+        // Setup mobile filter modal
+        function setupMobileFilterModal() {
+            const filterModal = document.getElementById('filter-modal');
+            const closeBtn = document.getElementById('close-filter-modal');
+            const applyBtn = document.getElementById('apply-filter-btn');
+            const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
+            
+            // Close modal
+            closeBtn.addEventListener('click', closeMobileFilterModal);
+            applyBtn.addEventListener('click', applyMobileFilter);
+            clearBtn.addEventListener('click', clearMobileFilter);
+            
+            // Close modal when clicking outside
+            filterModal.addEventListener('click', function(e) {
+                if (e.target === filterModal) {
+                    closeMobileFilterModal();
+                }
+            });
+        }
+        
+        // Open mobile filter modal
+        function openMobileFilterModal() {
+            const filterModal = document.getElementById('filter-modal');
+            filterModal.classList.remove('hidden');
+            
+            // Sync mobile checkboxes with desktop state
+            syncMobileFilterWithDesktop();
+        }
+        
+        // Close mobile filter modal
+        function closeMobileFilterModal() {
+            const filterModal = document.getElementById('filter-modal');
+            filterModal.classList.add('hidden');
+        }
+        
+        // Apply mobile filter
+        function applyMobileFilter() {
+            // Sync desktop checkboxes with mobile state
+            syncDesktopFilterWithMobile();
+            
+            // Apply the filter
+            filterRestaurantsByCuisines();
+            
+            // Close modal
+            closeMobileFilterModal();
+        }
+        
+        // Clear mobile filter
+        function clearMobileFilter() {
+            const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox');
+            mobileCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+        
+        // Sync mobile filter with desktop state
+        function syncMobileFilterWithDesktop() {
+            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container .cuisine-checkbox');
+            const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox');
+            
+            desktopCheckboxes.forEach((desktopCheckbox, index) => {
+                if (mobileCheckboxes[index]) {
+                    mobileCheckboxes[index].checked = desktopCheckbox.checked;
+                }
+            });
+        }
+        
+        // Sync desktop filter with mobile state
+        function syncDesktopFilterWithMobile() {
+            const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox');
+            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container .cuisine-checkbox');
+            
+            mobileCheckboxes.forEach((mobileCheckbox, index) => {
+                if (desktopCheckboxes[index]) {
+                    desktopCheckboxes[index].checked = mobileCheckbox.checked;
+                }
+            });
         }
 
         function displayRestaurants(restaurants) {
