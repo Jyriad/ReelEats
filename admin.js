@@ -679,7 +679,7 @@ async function searchWithNewAPI(restaurantName, statusEl) {
 }
 
 // Search using legacy Places API (fallback)
-async function searchWithLegacyAPI(restaurantName, statusEl) {
+async function searchWithLegacyAPI(restaurantName, statusEl, formType = 'create') {
     return new Promise(async (resolve, reject) => {
         const service = new google.maps.places.PlacesService(document.createElement('div'));
         
@@ -769,7 +769,7 @@ async function searchWithLegacyAPI(restaurantName, statusEl) {
                         return a.name.localeCompare(b.name);
                     });
                     
-                    displayLocationOptions(sortedResults.slice(0, 15)); // Show top 15 results
+                    displayLocationOptions(sortedResults.slice(0, 15), formType); // Show top 15 results
                     statusEl.textContent = `Found ${sortedResults.length} location(s) (Enhanced Search)`;
                     statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
                     resolve(sortedResults);
@@ -815,11 +815,11 @@ async function handleExtractFromUrl() {
 }
 
 // Extract location from various Google Maps URL formats
-async function extractLocationFromUrl(url, statusEl) {
+async function extractLocationFromUrl(url, statusEl, formType = 'create') {
     // Handle Google Share links (like share.google/...)
     if (url.includes('share.google') || url.includes('goo.gl') || url.includes('maps.app.goo.gl')) {
         console.log('Detected Google Share link, following redirect...');
-        await handleShareLink(url, statusEl);
+        await handleShareLink(url, statusEl, formType);
         return;
     }
     
@@ -867,17 +867,17 @@ async function extractLocationFromUrl(url, statusEl) {
     
     if (placeId) {
         // Use Place ID to get location details
-        await getPlaceFromId(placeId, statusEl);
+        await getPlaceFromId(placeId, statusEl, formType);
     } else if (lat && lng) {
         // Use coordinates for reverse geocoding
-        await reverseGeocode(lat, lng, statusEl);
+        await reverseGeocode(lat, lng, statusEl, formType);
     } else {
         throw new Error('Could not extract coordinates or place ID from URL. Please try using the "Find on Map" button instead.');
     }
 }
 
 // Handle Google Share links by following redirects
-async function handleShareLink(shareUrl, statusEl) {
+async function handleShareLink(shareUrl, statusEl, formType = 'create') {
     try {
         // Try to follow the redirect to get the actual Google Maps URL
         const response = await fetch(shareUrl, { 
@@ -890,7 +890,7 @@ async function handleShareLink(shareUrl, statusEl) {
         
         if (finalUrl && finalUrl !== shareUrl) {
             // Extract from the final URL
-            await extractLocationFromUrl(finalUrl, statusEl);
+            await extractLocationFromUrl(finalUrl, statusEl, formType);
         } else {
             // If redirect doesn't work, try alternative approach
             throw new Error('Could not follow share link redirect');
@@ -912,7 +912,7 @@ async function handleShareLink(shareUrl, statusEl) {
 }
 
 // Get place details from Place ID
-async function getPlaceFromId(placeId, statusEl) {
+async function getPlaceFromId(placeId, statusEl, formType = 'create') {
     try {
         // Try new Places API first
         const API_KEY = 'AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU';
@@ -942,7 +942,7 @@ async function getPlaceFromId(placeId, statusEl) {
                 }
             };
             
-            selectLocation(convertedPlace);
+            selectLocation(convertedPlace, formType);
             statusEl.textContent = 'Location extracted successfully (New API)';
             statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
             return;
@@ -964,7 +964,7 @@ async function getPlaceFromId(placeId, statusEl) {
             }, (place, status) => {
                 if (status === google.maps.places.PlacesServiceStatus.OK && place) {
                     console.log('🔄 Legacy API place details:', place);
-                    selectLocation(place);
+                    selectLocation(place, formType);
                     statusEl.textContent = 'Location extracted successfully (Legacy API)';
                     statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
                     resolve();
@@ -977,7 +977,7 @@ async function getPlaceFromId(placeId, statusEl) {
 }
 
 // Reverse geocode coordinates to get place information
-async function reverseGeocode(lat, lng, statusEl) {
+async function reverseGeocode(lat, lng, statusEl, formType = 'create') {
     return new Promise((resolve, reject) => {
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
@@ -989,7 +989,7 @@ async function reverseGeocode(lat, lng, statusEl) {
                     geometry: {
                         location: { lat: () => lat, lng: () => lng }
                     }
-                });
+                }, formType);
                 statusEl.textContent = 'Location extracted successfully';
                 statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
                 resolve();
@@ -1001,9 +1001,9 @@ async function reverseGeocode(lat, lng, statusEl) {
 }
 
 // Display location options for user to choose from
-function displayLocationOptions(places) {
-    const resultsDiv = document.getElementById('location-results');
-    const optionsDiv = document.getElementById('location-options');
+function displayLocationOptions(places, formType = 'create') {
+    const resultsDiv = document.getElementById(formType === 'edit' ? 'edit-location-results' : 'location-results');
+    const optionsDiv = document.getElementById(formType === 'edit' ? 'edit-location-options' : 'location-options');
     
     optionsDiv.innerHTML = places.map((place, index) => {
         // Handle both new API format (direct values) and legacy API format (functions)
@@ -1016,7 +1016,7 @@ function displayLocationOptions(places) {
             
         return `
             <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors" 
-                 onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')})">
+                 onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')}, '${formType}')">
                 <div class="font-medium text-gray-900">${place.name}</div>
                 <div class="text-sm text-gray-600">${place.formatted_address}</div>
                 <div class="text-xs text-gray-500 mt-1">
@@ -1031,7 +1031,7 @@ function displayLocationOptions(places) {
 }
 
 // Select a location from the options
-function selectLocation(place) {
+function selectLocation(place, formType = 'create') {
     const lat = typeof place.geometry.location.lat === 'function' 
         ? place.geometry.location.lat() 
         : place.geometry.location.lat;
@@ -1040,35 +1040,49 @@ function selectLocation(place) {
         : place.geometry.location.lng;
     
     // Fill hidden form fields
-    document.getElementById('restaurant-lat').value = lat;
-    document.getElementById('restaurant-lon').value = lng;
-    document.getElementById('google-place-id').value = place.place_id || '';
+    const latField = formType === 'edit' ? 'edit-restaurant-lat' : 'restaurant-lat';
+    const lonField = formType === 'edit' ? 'edit-restaurant-lon' : 'restaurant-lon';
+    const placeIdField = formType === 'edit' ? 'edit-google-place-id' : 'google-place-id';
+    const mapsUrlField = formType === 'edit' ? 'edit-google-maps-url' : 'google-maps-url';
+    
+    document.getElementById(latField).value = lat;
+    document.getElementById(lonField).value = lng;
+    document.getElementById(placeIdField).value = place.place_id || '';
     
     // Fill Google Maps URL field
     if (place.place_id) {
         // Use Google Maps Place URL format
         const googleMapsUrl = `https://maps.google.com/?cid=${place.place_id}`;
-        document.getElementById('google-maps-url').value = googleMapsUrl;
+        document.getElementById(mapsUrlField).value = googleMapsUrl;
     } else {
         // Fallback to coordinates-based URL
         const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
-        document.getElementById('google-maps-url').value = googleMapsUrl;
+        document.getElementById(mapsUrlField).value = googleMapsUrl;
     }
     
     // Update selected location display
-    document.getElementById('selected-name').textContent = place.name;
-    document.getElementById('selected-address').textContent = place.formatted_address;
-    document.getElementById('selected-coordinates').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const nameField = formType === 'edit' ? 'edit-selected-name' : 'selected-name';
+    const addressField = formType === 'edit' ? 'edit-selected-address' : 'selected-address';
+    const coordsField = formType === 'edit' ? 'edit-selected-coordinates' : 'selected-coordinates';
+    
+    document.getElementById(nameField).textContent = place.name;
+    document.getElementById(addressField).textContent = place.formatted_address;
+    document.getElementById(coordsField).textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     
     // Show selected location info
-    document.getElementById('selected-location').classList.remove('hidden');
-    document.getElementById('location-results').classList.add('hidden');
+    const selectedLocationDiv = formType === 'edit' ? 'edit-selected-location' : 'selected-location';
+    const resultsDiv = formType === 'edit' ? 'edit-location-results' : 'location-results';
     
-    // Enable submit button
-    document.getElementById('submit-restaurant-btn').disabled = false;
+    document.getElementById(selectedLocationDiv).classList.remove('hidden');
+    document.getElementById(resultsDiv).classList.add('hidden');
+    
+    // Enable submit button (only for create form)
+    if (formType === 'create') {
+        document.getElementById('submit-restaurant-btn').disabled = false;
+    }
     
     // Update status
-    const statusEl = document.getElementById('location-status');
+    const statusEl = document.getElementById(formType === 'edit' ? 'edit-location-status' : 'location-status');
     statusEl.textContent = 'Location selected ✓';
     statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
 }
@@ -1823,61 +1837,106 @@ async function editRestaurant(restaurantId) {
 
         if (error) throw error;
 
-        // Create edit modal
+        // Get current cuisines for this restaurant
+        const currentCuisines = restaurant.restaurant_cuisines ? 
+            restaurant.restaurant_cuisines.map(rc => rc.cuisines.name) : [];
+
+        // Create edit modal with similar UI to create form
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
         modal.innerHTML = `
-            <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Restaurant</h3>
                     
                     <form id="edit-restaurant-form" class="space-y-4">
                         <input type="hidden" id="edit-restaurant-id" value="${restaurant.id}">
                         
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
-                            <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <!-- Restaurant Name and Find Button -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
+                                <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div class="flex flex-col justify-end">
+                                <button type="button" id="edit-find-on-map-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                    <span>🗺️</span>
+                                    Find on Map
+                                </button>
+                            </div>
                         </div>
-                        
+
+                        <!-- Alternative: Google Maps URL -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Maps URL (Alternative)</label>
+                            <div class="flex gap-2">
+                                <input type="url" id="edit-google-maps-url" value="${restaurant.google_maps_url || ''}" placeholder="https://maps.google.com/... or Google Place URL"
+                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button type="button" id="edit-extract-from-url-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                    Extract
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Paste a Google Maps URL to automatically extract location data</p>
+                        </div>
+
+                        <!-- City Selection -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <select id="edit-restaurant-city" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">Select City</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <div id="edit-location-status" class="px-3 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-300 rounded-md">
+                                    Location: ${restaurant.lat.toFixed(6)}, ${restaurant.lon.toFixed(6)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea id="edit-restaurant-description" rows="3"
+                            <textarea id="edit-restaurant-description" placeholder="Brief description of the restaurant" rows="2"
                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${restaurant.description || ''}</textarea>
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                                <input type="number" id="edit-restaurant-lat" value="${restaurant.lat}" step="any" required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+
+                        <!-- Cuisine Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Cuisines (Select all that apply)</label>
+                            <div id="edit-cuisine-selection" class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 space-y-4">
+                                <!-- Cuisine buttons will be populated here -->
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                                <input type="number" id="edit-restaurant-lon" value="${restaurant.lon}" step="any" required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Click cuisines to select/deselect. Selected cuisines will be highlighted in blue.</p>
+                        </div>
+
+                        <!-- Location Results (Initially Hidden) -->
+                        <div id="edit-location-results" class="hidden">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Found Locations (Click to Select):</h4>
+                            <div id="edit-location-options" class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
+                                <!-- Location options will appear here -->
                             </div>
                         </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
-                            <select id="edit-restaurant-city" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">Select City</option>
-                            </select>
+
+                        <!-- Selected Location Info (Initially Hidden) -->
+                        <div id="edit-selected-location" class="hidden">
+                            <div class="p-4 bg-green-50 border border-green-200 rounded-md">
+                                <h4 class="text-sm font-medium text-green-800 mb-2">✅ Selected Location:</h4>
+                                <div class="text-sm text-green-700">
+                                    <div><strong>Name:</strong> <span id="edit-selected-name"></span></div>
+                                    <div><strong>Address:</strong> <span id="edit-selected-address"></span></div>
+                                    <div><strong>Coordinates:</strong> <span id="edit-selected-coordinates"></span></div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Place ID</label>
-                            <input type="text" id="edit-google-place-id" value="${restaurant.google_place_id || ''}"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Google Maps URL</label>
-                            <input type="url" id="edit-google-maps-url" value="${restaurant.google_maps_url || ''}"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
+
+                        <!-- Hidden fields for form submission -->
+                        <input type="hidden" id="edit-restaurant-lat" value="${restaurant.lat}">
+                        <input type="hidden" id="edit-restaurant-lon" value="${restaurant.lon}">
+                        <input type="hidden" id="edit-google-place-id" value="${restaurant.google_place_id || ''}">
                         
                         <div class="flex justify-end space-x-3 pt-4">
                             <button type="button" onclick="closeEditModal()" 
@@ -1898,6 +1957,12 @@ async function editRestaurant(restaurantId) {
         
         // Populate city dropdown
         await populateCityDropdown('edit-restaurant-city', restaurant.city_id);
+        
+        // Populate cuisine selection
+        populateEditCuisineSelection(currentCuisines);
+        
+        // Set up event listeners for edit form
+        setupEditFormEventListeners();
         
         // Set up form submission
         document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
@@ -1931,6 +1996,21 @@ async function saveRestaurantChanges(restaurantId) {
 
         if (error) throw error;
 
+        // Update cuisine relationships
+        const selectedCuisines = getSelectedEditCuisines();
+        if (selectedCuisines.length >= 0) { // Always update cuisines, even if none selected
+            // First, delete existing cuisine relationships
+            await supabaseClient
+                .from('restaurant_cuisines')
+                .delete()
+                .eq('restaurant_id', restaurantId);
+            
+            // Then add new ones if any selected
+            if (selectedCuisines.length > 0) {
+                await addRestaurantCuisines(restaurantId, selectedCuisines);
+            }
+        }
+
         showStatus('Restaurant updated successfully!', 'success');
         closeEditModal();
         await loadVideosForManagement();
@@ -1938,6 +2018,259 @@ async function saveRestaurantChanges(restaurantId) {
     } catch (error) {
         console.error('Error updating restaurant:', error);
         showStatus('Failed to update restaurant: ' + error.message, 'error');
+    }
+}
+
+// Populate cuisine selection for edit form
+function populateEditCuisineSelection(currentCuisines) {
+    const cuisineSelection = document.getElementById('edit-cuisine-selection');
+    
+    // Get the same cuisine structure as the create form
+    const cuisineCategories = [
+        {
+            title: 'Asian Cuisines',
+            emoji: '🍜',
+            cuisines: [
+                { name: 'Asian', color: 'orange' },
+                { name: 'Chinese', color: 'red' },
+                { name: 'Japanese', color: 'yellow' },
+                { name: 'Korean', color: 'red' },
+                { name: 'Thai', color: 'orange' },
+                { name: 'Vietnamese', color: 'green' },
+                { name: 'Taiwanese', color: 'blue' },
+                { name: 'Sushi', color: 'yellow' },
+                { name: 'Poke', color: 'orange' }
+            ]
+        },
+        {
+            title: 'European & Mediterranean',
+            emoji: '🍝',
+            cuisines: [
+                { name: 'Italian', color: 'green' },
+                { name: 'Greek', color: 'blue' },
+                { name: 'Pizza', color: 'yellow' }
+            ]
+        },
+        {
+            title: 'American & Comfort Food',
+            emoji: '🍔',
+            cuisines: [
+                { name: 'American', color: 'red' },
+                { name: 'Burgers', color: 'yellow' },
+                { name: 'BBQ', color: 'orange' },
+                { name: 'Comfort food', color: 'yellow' },
+                { name: 'Fast food', color: 'red' },
+                { name: 'Wings', color: 'orange' },
+                { name: 'Soul food', color: 'purple' },
+                { name: 'Hawaiian', color: 'green' }
+            ]
+        },
+        {
+            title: 'Latin American',
+            emoji: '🌮',
+            cuisines: [
+                { name: 'Mexican', color: 'red' },
+                { name: 'Caribbean', color: 'orange' }
+            ]
+        },
+        {
+            title: 'Middle Eastern & Indian',
+            emoji: '🍛',
+            cuisines: [
+                { name: 'Indian', color: 'yellow' },
+                { name: 'Middle Eastern', color: 'orange' }
+            ]
+        },
+        {
+            title: 'Specialty & Dietary',
+            emoji: '🥗',
+            cuisines: [
+                { name: 'Healthy', color: 'green' },
+                { name: 'Vegan', color: 'green' },
+                { name: 'Salads', color: 'green' },
+                { name: 'Fine dining', color: 'purple' }
+            ]
+        },
+        {
+            title: 'Beverages & Snacks',
+            emoji: '☕',
+            cuisines: [
+                { name: 'Coffee', color: 'amber' },
+                { name: 'Bubble tea', color: 'pink' },
+                { name: 'Smoothies', color: 'green' },
+                { name: 'Ice cream', color: 'yellow' }
+            ]
+        },
+        {
+            title: 'Breakfast & Bakery',
+            emoji: '🥐',
+            cuisines: [
+                { name: 'Breakfast', color: 'yellow' },
+                { name: 'Bakery', color: 'amber' }
+            ]
+        },
+        {
+            title: 'Other Specialties',
+            emoji: '🍽️',
+            cuisines: [
+                { name: 'Seafood', color: 'blue' },
+                { name: 'Sandwich', color: 'yellow' },
+                { name: 'Soup', color: 'orange' },
+                { name: 'Desserts', color: 'pink' },
+                { name: 'Street food', color: 'orange' }
+            ]
+        }
+    ];
+
+    let html = '';
+    cuisineCategories.forEach(category => {
+        html += `
+            <div>
+                <h4 class="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                    <span class="text-lg mr-2">${category.emoji}</span> ${category.title}
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        `;
+        
+        category.cuisines.forEach(cuisine => {
+            const isSelected = currentCuisines.includes(cuisine.name);
+            const selectedClass = isSelected ? 'selected bg-blue-500 text-white border-blue-500' : `border-${cuisine.color}-300 hover:bg-${cuisine.color}-50 bg-${cuisine.color}-50`;
+            
+            html += `
+                <button type="button" class="edit-cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" data-cuisine="${cuisine.name}">
+                    ${cuisine.emoji || '🍽️'} ${cuisine.name}
+                </button>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    cuisineSelection.innerHTML = html;
+    
+    // Set up cuisine button event listeners
+    setupEditCuisineSelection();
+}
+
+// Set up cuisine selection for edit form
+function setupEditCuisineSelection() {
+    const cuisineButtons = document.querySelectorAll('.edit-cuisine-btn');
+    
+    cuisineButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Toggle selection
+            if (button.classList.contains('selected')) {
+                // Deselect
+                button.classList.remove('selected');
+                button.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+                // Restore original color based on data-cuisine
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+            } else {
+                // Select
+                button.classList.add('selected');
+                button.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
+                // Remove original color classes
+                const cuisineName = button.dataset.cuisine;
+                const originalColor = getCuisineColor(cuisineName);
+                button.classList.remove(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+            }
+        });
+    });
+}
+
+// Get cuisine color for edit form
+function getCuisineColor(cuisineName) {
+    const colorMap = {
+        'Asian': 'orange', 'Chinese': 'red', 'Japanese': 'yellow', 'Korean': 'red',
+        'Thai': 'orange', 'Vietnamese': 'green', 'Taiwanese': 'blue', 'Sushi': 'yellow',
+        'Poke': 'orange', 'Italian': 'green', 'Greek': 'blue', 'Pizza': 'yellow',
+        'American': 'red', 'Burgers': 'yellow', 'BBQ': 'orange', 'Comfort food': 'yellow',
+        'Fast food': 'red', 'Wings': 'orange', 'Soul food': 'purple', 'Hawaiian': 'green',
+        'Mexican': 'red', 'Caribbean': 'orange', 'Indian': 'yellow', 'Middle Eastern': 'orange',
+        'Healthy': 'green', 'Vegan': 'green', 'Salads': 'green', 'Fine dining': 'purple',
+        'Coffee': 'amber', 'Bubble tea': 'pink', 'Smoothies': 'green', 'Ice cream': 'yellow',
+        'Breakfast': 'yellow', 'Bakery': 'amber', 'Seafood': 'blue', 'Sandwich': 'yellow',
+        'Soup': 'orange', 'Desserts': 'pink', 'Street food': 'orange'
+    };
+    return colorMap[cuisineName] || 'gray';
+}
+
+// Get selected cuisines from edit form
+function getSelectedEditCuisines() {
+    const selectedButtons = document.querySelectorAll('.edit-cuisine-btn.selected');
+    return Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
+}
+
+// Set up event listeners for edit form
+function setupEditFormEventListeners() {
+    // Find on Map button
+    document.getElementById('edit-find-on-map-btn').addEventListener('click', handleEditFindOnMap);
+    
+    // Extract from URL button
+    document.getElementById('edit-extract-from-url-btn').addEventListener('click', handleEditExtractFromUrl);
+}
+
+// Handle Find on Map for edit form
+async function handleEditFindOnMap() {
+    const restaurantName = document.getElementById('edit-restaurant-name').value.trim();
+    
+    if (!restaurantName) {
+        showStatus('Please enter a restaurant name first', 'error');
+        return;
+    }
+    
+    // Check if Google Maps API is loaded
+    if (typeof google === 'undefined' || !google.maps) {
+        showStatus('Google Maps API not loaded. Please check your API key.', 'error');
+        return;
+    }
+    
+    const statusEl = document.getElementById('edit-location-status');
+    statusEl.textContent = 'Searching...';
+    statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
+    
+    try {
+        // Use legacy Places API for edit form
+        await searchWithLegacyAPI(restaurantName, statusEl, 'edit');
+    } catch (error) {
+        console.error('Error searching for location:', error);
+        statusEl.textContent = 'Search failed';
+        statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+        showStatus('Error searching for location: ' + error.message, 'error');
+    }
+}
+
+// Handle Extract from URL for edit form
+async function handleEditExtractFromUrl() {
+    const url = document.getElementById('edit-google-maps-url').value.trim();
+    
+    if (!url) {
+        showStatus('Please enter a Google Maps URL first', 'error');
+        return;
+    }
+    
+    const statusEl = document.getElementById('edit-location-status');
+    statusEl.textContent = 'Extracting from URL...';
+    statusEl.className = 'px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-300 rounded-md';
+    
+    try {
+        // Check if Google Maps API is loaded
+        if (typeof google === 'undefined' || !google.maps) {
+            throw new Error('Google Maps API not loaded. Please check your API key.');
+        }
+        
+        await extractLocationFromUrl(url, statusEl, 'edit');
+        
+    } catch (error) {
+        console.error('Error extracting from URL:', error);
+        statusEl.textContent = 'URL extraction failed';
+        statusEl.className = 'px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md';
+        showStatus('Error extracting from URL: ' + error.message, 'error');
     }
 }
 
