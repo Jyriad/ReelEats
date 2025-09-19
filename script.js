@@ -34,8 +34,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // On mobile, hide desktop filter
             if (window.innerWidth < 768) {
-                filterDesktop.classList.add('hidden');
-                filterModal.classList.add('hidden');
+                if (filterDesktop) filterDesktop.classList.add('hidden');
+                if (filterModal) filterModal.classList.add('hidden');
             }
         });
 
@@ -872,6 +872,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 try {
                     console.log('Attempting admin login for:', email);
+                    console.log('Password length:', password.length);
+                    
+                    // Test Supabase connection first
+                    console.log('Testing Supabase connection...');
+                    const { data: testData, error: testError } = await supabaseClient.auth.getSession();
+                    console.log('Supabase connection test result:', { testData, testError });
                     
                     // Sign in with Supabase
                     const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -880,6 +886,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     });
                     
                     if (error) {
+                        console.error('Supabase auth error:', error);
+                        console.error('Error code:', error.status);
+                        console.error('Error message:', error.message);
                         throw error;
                     }
                     
