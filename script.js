@@ -447,6 +447,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     // Add event listener for checkbox
                     checkbox.addEventListener('change', function() {
+                        console.log('Desktop cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
                         updateCuisineCardStyle(cuisineCard, this.checked);
                         updateSelectedCount();
                     });
@@ -474,6 +475,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         function updateSelectedCount() {
             const selectedCount = document.querySelectorAll('.cuisine-checkbox:checked').length;
             const countElement = document.getElementById('selected-count');
+            
+            console.log('Updating selected count:', selectedCount);
             
             if (selectedCount > 0) {
                 countElement.textContent = selectedCount;
@@ -523,9 +526,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Filter restaurants by selected cuisines (multiple selection)
         function filterRestaurantsByCuisines() {
             const selectedCuisines = getSelectedCuisines();
+            console.log('Filtering restaurants with cuisines:', selectedCuisines);
             
             if (selectedCuisines.length === 0) {
                 // Show all restaurants if no cuisines selected
+                console.log('No cuisines selected, showing all restaurants');
                 displayRestaurants(currentRestaurants);
             } else {
                 // Filter restaurants that have ANY of the selected cuisines
@@ -534,18 +539,26 @@ document.addEventListener('DOMContentLoaded', async function() {
                         return false;
                     }
                     // Check if restaurant has at least one of the selected cuisines
-                    return selectedCuisines.some(selectedCuisine => 
+                    const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
                         restaurant.cuisines.includes(selectedCuisine)
                     );
+                    console.log(`Restaurant ${restaurant.name} (${restaurant.cuisines}) matches:`, hasMatchingCuisine);
+                    return hasMatchingCuisine;
                 });
+                console.log(`Filtered ${filteredRestaurants.length} restaurants from ${currentRestaurants.length} total`);
                 displayRestaurants(filteredRestaurants);
             }
         }
         
         // Get selected cuisines from checkboxes
         function getSelectedCuisines() {
-            const checkboxes = document.querySelectorAll('.cuisine-checkbox:checked');
-            return Array.from(checkboxes).map(checkbox => checkbox.value);
+            // Get checkboxes from both desktop and mobile filters
+            const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container-desktop .cuisine-checkbox:checked');
+            const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox:checked');
+            
+            // Combine both sets of checkboxes
+            const allCheckboxes = [...desktopCheckboxes, ...mobileCheckboxes];
+            return Array.from(allCheckboxes).map(checkbox => checkbox.value);
         }
         
         // Clear all cuisine filters
@@ -553,7 +566,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const checkboxes = document.querySelectorAll('.cuisine-checkbox');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = false;
+                // Update desktop card styles
+                const card = checkbox.closest('.cuisine-card');
+                if (card) {
+                    updateCuisineCardStyle(card, false);
+                }
             });
+            updateSelectedCount();
             displayRestaurants(currentRestaurants);
         }
         
@@ -674,6 +693,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Apply desktop filter
         function applyDesktopFilter() {
+            console.log('Applying desktop filter...');
+            const selectedCuisines = getSelectedCuisines();
+            console.log('Selected cuisines:', selectedCuisines);
+            
             // Apply the filter
             filterRestaurantsByCuisines();
             
