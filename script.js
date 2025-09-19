@@ -267,59 +267,96 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Setup cuisine filter functionality
         function setupCuisineFilter() {
-            const cuisineFilter = document.getElementById('cuisine-filter');
-            
-            // Populate cuisine filter dropdown
+            // Populate cuisine filter checkboxes
             populateCuisineFilter();
             
-            // Add event listener for filter changes
-            cuisineFilter.addEventListener('change', function() {
-                const selectedCuisine = this.value;
-                filterRestaurantsByCuisine(selectedCuisine);
+            // Add event listener for clear all button
+            document.getElementById('clear-cuisine-filter').addEventListener('click', function() {
+                clearAllCuisineFilters();
             });
         }
         
-        // Populate cuisine filter dropdown with all available cuisines
-        async function populateCuisineFilter() {
-            try {
-                const { data: cuisines, error } = await supabaseClient
-                    .from('cuisines')
-                    .select('name')
-                    .order('name');
+        // Populate cuisine filter with all available cuisines
+        function populateCuisineFilter() {
+            // Use the same cuisine list as the admin forms
+            const allCuisineList = [
+                'Asian', 'Chinese', 'Japanese', 'Korean', 'Thai', 'Vietnamese', 'Taiwanese', 'Sushi', 'Poke',
+                'Italian', 'Greek', 'Pizza', 'British', 'French',
+                'American', 'Burgers', 'BBQ', 'Comfort food', 'Fast food', 'Wings', 'Soul food', 'Hawaiian',
+                'Mexican', 'Caribbean', 'Indian', 'Middle Eastern',
+                'Healthy', 'Vegan', 'Salads', 'Fine dining',
+                'Coffee', 'Bubble tea', 'Smoothies', 'Ice cream',
+                'Breakfast', 'Bakery', 'Seafood', 'Sandwich', 'Soup', 'Desserts', 'Street food'
+            ];
+            
+            allCuisines = allCuisineList;
+            const cuisineFilterContainer = document.getElementById('cuisine-filter-container');
+            
+            // Clear existing checkboxes
+            cuisineFilterContainer.innerHTML = '';
+            
+            // Add cuisine checkboxes
+            allCuisines.forEach(cuisine => {
+                const checkboxContainer = document.createElement('div');
+                checkboxContainer.className = 'flex items-center mb-1';
                 
-                if (error) throw error;
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `cuisine-${cuisine}`;
+                checkbox.value = cuisine;
+                checkbox.className = 'cuisine-checkbox mr-2 text-blue-600 focus:ring-blue-500';
                 
-                allCuisines = cuisines.map(c => c.name);
-                const cuisineFilter = document.getElementById('cuisine-filter');
+                const label = document.createElement('label');
+                label.htmlFor = `cuisine-${cuisine}`;
+                label.textContent = cuisine;
+                label.className = 'text-sm text-gray-700 cursor-pointer';
                 
-                // Clear existing options except "All Cuisines"
-                cuisineFilter.innerHTML = '<option value="">All Cuisines</option>';
+                checkboxContainer.appendChild(checkbox);
+                checkboxContainer.appendChild(label);
+                cuisineFilterContainer.appendChild(checkboxContainer);
                 
-                // Add cuisine options
-                allCuisines.forEach(cuisine => {
-                    const option = document.createElement('option');
-                    option.value = cuisine;
-                    option.textContent = cuisine;
-                    cuisineFilter.appendChild(option);
+                // Add event listener for each checkbox
+                checkbox.addEventListener('change', function() {
+                    filterRestaurantsByCuisines();
                 });
-                
-            } catch (error) {
-                console.error('Error loading cuisines for filter:', error);
-            }
+            });
         }
         
-        // Filter restaurants by selected cuisine
-        function filterRestaurantsByCuisine(selectedCuisine) {
-            if (!selectedCuisine) {
-                // Show all restaurants
+        // Filter restaurants by selected cuisines (multiple selection)
+        function filterRestaurantsByCuisines() {
+            const selectedCuisines = getSelectedCuisines();
+            
+            if (selectedCuisines.length === 0) {
+                // Show all restaurants if no cuisines selected
                 displayRestaurants(currentRestaurants);
             } else {
-                // Filter restaurants that have the selected cuisine
+                // Filter restaurants that have ANY of the selected cuisines
                 const filteredRestaurants = currentRestaurants.filter(restaurant => {
-                    return restaurant.cuisines && restaurant.cuisines.includes(selectedCuisine);
+                    if (!restaurant.cuisines || restaurant.cuisines.length === 0) {
+                        return false;
+                    }
+                    // Check if restaurant has at least one of the selected cuisines
+                    return selectedCuisines.some(selectedCuisine => 
+                        restaurant.cuisines.includes(selectedCuisine)
+                    );
                 });
                 displayRestaurants(filteredRestaurants);
             }
+        }
+        
+        // Get selected cuisines from checkboxes
+        function getSelectedCuisines() {
+            const checkboxes = document.querySelectorAll('.cuisine-checkbox:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+        
+        // Clear all cuisine filters
+        function clearAllCuisineFilters() {
+            const checkboxes = document.querySelectorAll('.cuisine-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            displayRestaurants(currentRestaurants);
         }
 
         function displayRestaurants(restaurants) {
