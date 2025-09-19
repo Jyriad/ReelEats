@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeMap();
         await loadCitiesAndInitialRestaurants();
         setupCuisineFilter();
+        setupAdminLogin();
         
         // Handle window resize to ensure proper filter behavior
         window.addEventListener('resize', function() {
@@ -822,6 +823,95 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 }
             });
+        }
+
+        // Setup admin login functionality
+        function setupAdminLogin() {
+            const adminLink = document.getElementById('admin-link');
+            const loginModal = document.getElementById('admin-login-modal');
+            const loginForm = document.getElementById('admin-login-form');
+            const cancelBtn = document.getElementById('cancel-login');
+            const errorDiv = document.getElementById('login-error');
+            
+            // Open login modal when admin link is clicked
+            adminLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Admin link clicked, opening login modal');
+                loginModal.classList.remove('hidden');
+                loginModal.classList.add('flex');
+            });
+            
+            // Close modal when cancel is clicked
+            cancelBtn.addEventListener('click', function() {
+                closeLoginModal();
+            });
+            
+            // Close modal when clicking outside
+            loginModal.addEventListener('click', function(e) {
+                if (e.target === loginModal) {
+                    closeLoginModal();
+                }
+            });
+            
+            // Handle form submission
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handleAdminLogin();
+            });
+            
+            function closeLoginModal() {
+                loginModal.classList.add('hidden');
+                loginModal.classList.remove('flex');
+                loginForm.reset();
+                errorDiv.classList.add('hidden');
+            }
+            
+            async function handleAdminLogin() {
+                const email = document.getElementById('admin-email').value;
+                const password = document.getElementById('admin-password').value;
+                
+                try {
+                    console.log('Attempting admin login for:', email);
+                    
+                    // Sign in with Supabase
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    console.log('Login successful, checking admin status...');
+                    
+                    // Check if user is admin
+                    const { data: profile, error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .select('is_admin')
+                        .eq('id', data.user.id)
+                        .single();
+                    
+                    if (profileError) {
+                        throw new Error('Profile not found');
+                    }
+                    
+                    if (!profile.is_admin) {
+                        throw new Error('Access denied. Admin privileges required.');
+                    }
+                    
+                    console.log('Admin access granted, redirecting to admin panel');
+                    
+                    // Close modal and redirect
+                    closeLoginModal();
+                    window.location.href = 'admin.html';
+                    
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorDiv.textContent = error.message || 'Login failed. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                }
+            }
         }
 
         function displayRestaurants(restaurants) {

@@ -511,6 +511,65 @@
         </div>
     </div>
 
-    <script src="admin.js?v=109"></script>
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Check authentication before showing admin content
+        async function checkAdminAuth() {
+            try {
+                // Check if user is signed in
+                const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+                
+                if (userError || !user) {
+                    throw new Error('Not authenticated');
+                }
+                
+                // Check if user is admin
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (profileError || !profile?.is_admin) {
+                    throw new Error('Admin access required');
+                }
+                
+                console.log('Admin access verified');
+                return true;
+                
+            } catch (error) {
+                console.error('Admin auth check failed:', error);
+                
+                // Hide admin content and show login message
+                document.body.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center bg-gray-50">
+                        <div class="text-center">
+                            <h1 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+                            <p class="text-gray-600 mb-6">You need admin privileges to access this page.</p>
+                            <a href="index.html" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                Return to Map
+                            </a>
+                        </div>
+                    </div>
+                `;
+                return false;
+            }
+        }
+        
+        // Run auth check when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isAuthenticated = await checkAdminAuth();
+            if (isAuthenticated) {
+                // Load admin script only if authenticated
+                const script = document.createElement('script');
+                script.src = 'admin.js?v=109';
+                document.head.appendChild(script);
+            }
+        });
+    </script>
 </body>
 </html>
