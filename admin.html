@@ -520,12 +520,38 @@
         // Check authentication before showing admin content
         async function checkAdminAuth() {
             try {
-                // Check if user is signed in
-                const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+                // First try to get the current session
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
                 
-                if (userError || !user) {
-                    throw new Error('Not authenticated');
+                if (sessionError) {
+                    console.log('Session error:', sessionError);
+                    return false;
                 }
+
+                if (!session) {
+                    console.log('No active session found.');
+                    return false;
+                }
+
+                // Check if session is still valid (not expired)
+                const now = Math.floor(Date.now() / 1000);
+                if (session.expires_at && session.expires_at < now) {
+                    console.log('Session expired, attempting refresh...');
+                    
+                    // Try to refresh the session
+                    const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+                    
+                    if (refreshError || !refreshData.session) {
+                        console.log('Session refresh failed:', refreshError);
+                        return false;
+                    }
+                    
+                    console.log('Session refreshed successfully');
+                }
+
+                // Get the user from the session
+                const user = session.user;
+                console.log('Checking admin role for user:', user.id);
                 
                 // Check if user has admin role
                 const { data: userRole, error: roleError } = await supabaseClient
