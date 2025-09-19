@@ -25,6 +25,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeMap();
         await loadCitiesAndInitialRestaurants();
         setupCuisineFilter();
+        
+        // Handle window resize to ensure proper filter behavior
+        window.addEventListener('resize', function() {
+            const filterDesktop = document.getElementById('cuisine-filter-desktop');
+            const filterModal = document.getElementById('filter-modal');
+            
+            // On mobile, hide desktop filter
+            if (window.innerWidth < 768) {
+                filterDesktop.classList.add('hidden');
+                filterModal.classList.add('hidden');
+            }
+        });
 
         // --- Core Functions ---
 
@@ -389,12 +401,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     // On desktop, toggle the collapsible filter
                     const isHidden = filterDesktop.classList.contains('hidden');
+                    console.log('Desktop filter toggle - isHidden:', isHidden);
+                    
                     if (isHidden) {
                         filterDesktop.classList.remove('hidden');
                         filterArrow.style.transform = 'rotate(180deg)';
+                        console.log('Showing desktop filter');
                     } else {
                         filterDesktop.classList.add('hidden');
                         filterArrow.style.transform = 'rotate(0deg)';
+                        console.log('Hiding desktop filter');
                     }
                 }
             });
