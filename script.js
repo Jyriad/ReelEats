@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let map; // Define map in a broader scope
         let mapInitialized = false; // Prevent double initialization
         let allCuisines = []; // Store all available cuisines for filtering
+        let favoritedRestaurants = new Set();
 
         // --- Authentication ---
         const authContainer = document.getElementById('auth-container');
@@ -72,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // --- Auth State Management ---
-        function updateUserUI(user) {
+        async function updateUserUI(user) {
             if (user) {
                 // User is logged in - show logout button instead of login button
                 authBtn.classList.add('hidden');
@@ -96,6 +97,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 logoutButton.classList.remove('hidden');
+
+                // Fetch user's favorites
+                const { data, error } = await supabaseClient
+                    .from('user_favorites')
+                    .select('restaurant_id')
+                    .eq('user_id', user.id);
+
+                if (error) {
+                    console.error('Error fetching favorites:', error);
+                } else {
+                    favoritedRestaurants = new Set(data.map(fav => fav.restaurant_id));
+                }
+
+                // Re-display restaurants to show correct favorite status
+                displayRestaurants(currentRestaurants);
                 
             } else {
                 // User is logged out - show login button
@@ -106,6 +122,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (logoutButton) {
                     logoutButton.classList.add('hidden');
                 }
+                
+                favoritedRestaurants.clear(); // Clear favorites on logout
+                displayRestaurants(currentRestaurants); // Re-display to remove favorite icons
             }
         }
 
@@ -284,6 +303,48 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
 
         // --- Core Functions ---
+
+        // Add this new function to script.js
+        async function toggleFavorite(restaurantId) {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                alert('Please log in to save your favorites!');
+                openAuthModal(); // Open the login modal
+                return;
+            }
+
+            const userId = session.user.id;
+            const isFavorited = favoritedRestaurants.has(restaurantId);
+            const favoriteBtn = document.querySelector(`.favorite-btn[data-restaurant-id="${restaurantId}"]`);
+
+            if (isFavorited) {
+                // Remove from favorites
+                const { error } = await supabaseClient
+                    .from('user_favorites')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('restaurant_id', restaurantId);
+
+                if (error) {
+                    console.error('Error removing favorite:', error);
+                } else {
+                    favoritedRestaurants.delete(restaurantId);
+                    favoriteBtn?.classList.remove('favorited');
+                }
+            } else {
+                // Add to favorites
+                const { error } = await supabaseClient
+                    .from('user_favorites')
+                    .insert({ user_id: userId, restaurant_id: restaurantId });
+
+                if (error) {
+                    console.error('Error adding favorite:', error);
+                } else {
+                    favoritedRestaurants.add(restaurantId);
+                    favoriteBtn?.classList.add('favorited');
+                }
+            }
+        }
 
         function initializeMap() {
             if (mapInitialized) {
@@ -1186,32 +1247,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         function createListItem(restaurant, index) {
             const listItem = document.createElement('div');
-            listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start';
+            // Add position: relative to the list item for the button
+            listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start relative';
             listItem.dataset.restaurantId = restaurant.id;
-            
-            // Create cuisine tags
+
+            const isFavorited = favoritedRestaurants.has(restaurant.id);
+            const favoriteClass = isFavorited ? 'favorited' : '';
+            const number = index + 1;
+
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
                 ? restaurant.cuisines.map(cuisine => 
                     `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${cuisine}</span>`
                   ).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
-            
-            // Calculate distance if user location is available (both mobile and desktop)
+
             let distanceHtml = '';
             if (window.userLocation) {
-                const distance = calculateDistance(
-                    window.userLocation.lat, 
-                    window.userLocation.lon, 
-                    restaurant.lat, 
-                    restaurant.lon
-                );
+                const distance = calculateDistance(window.userLocation.lat, window.userLocation.lon, restaurant.lat, restaurant.lon);
                 distanceHtml = `<div class="mt-1 text-xs text-gray-500 flex items-center">
                     <span class="mr-1">📍</span>
                     <span>${distance} away</span>
                 </div>`;
             }
-            
-            const number = index + 1; // Start numbering from 1
+
             listItem.innerHTML = `
                 <div class="flex-shrink-0 mr-3">
                     <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
@@ -1219,25 +1277,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-gray-900 text-base md:text-lg font-bold truncate">${restaurant.name}</h3>
+                    <h3 class="text-gray-900 text-base md:text-lg font-bold truncate pr-8">${restaurant.name}</h3>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
-                    <div class="mt-2 flex flex-wrap">
-                        ${cuisineTags}
-                    </div>
+                    <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
                     ${distanceHtml}
                 </div>
+                <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                </button>
             `;
-            listItem.addEventListener('click', () => {
-                // Remove active class from all cards
-                document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {
-                    card.classList.remove('active-list-item');
-                });
-                // Add active class to clicked card
+
+            // Main click event to open video
+            listItem.addEventListener('click', (e) => {
+                // Prevent opening video if the favorite button was clicked
+                if (e.target.closest('.favorite-btn')) return;
+
+                document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
                 listItem.classList.add('active-list-item');
-                
                 showVideoFor(restaurant);
                 map.flyTo([restaurant.lat, restaurant.lon], 15);
             });
+
+            // Event listener for the favorite button
+            const favoriteBtn = listItem.querySelector('.favorite-btn');
+            favoriteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent the main card click event from firing
+                toggleFavorite(restaurant.id);
+            });
+
             return listItem;
         }
 

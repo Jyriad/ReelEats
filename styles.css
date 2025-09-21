@@ -517,3 +517,32 @@ html, body {
     }
 }
 
+/* Favorite Icon Styles */
+.favorite-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    cursor: pointer;
+    z-index: 10;
+    color: #9ca3af; /* Default gray color for the star outline */
+    transition: all 0.2s ease-in-out;
+}
+
+.favorite-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: #4b5563; /* Darker outline for better visibility */
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.favorite-btn:hover {
+    transform: scale(1.2);
+    color: #f59e0b; /* Yellow on hover */
+}
+
+.favorite-btn.favorited svg {
+    fill: #f59e0b; /* Filled yellow color */
+    stroke: #f59e0b;
+}
+
