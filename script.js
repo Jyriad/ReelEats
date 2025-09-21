@@ -124,14 +124,25 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         async function handleOAuthLogin(provider) {
             try {
-                const { error } = await supabaseClient.auth.signInWithOAuth({
+                console.log('Starting OAuth login with provider:', provider);
+                console.log('Current URL:', window.location.href);
+                
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
                     provider: provider,
                     options: {
-                        redirectTo: `${window.location.origin}${window.location.pathname}`
+                        redirectTo: window.location.href
                     }
                 });
-                if (error) throw error;
+                
+                if (error) {
+                    console.error('OAuth error:', error);
+                    throw error;
+                }
+                
+                console.log('OAuth redirect initiated:', data);
+                
             } catch (error) {
+                console.error('OAuth login failed:', error);
                 showAuthFeedback('Error with social login: ' + error.message);
             }
         }
@@ -178,7 +189,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             );
         });
 
-        googleLoginBtn.addEventListener('click', () => handleOAuthLogin('google'));
+        googleLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Google login button clicked');
+            handleOAuthLogin('google');
+        });
 
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -187,18 +202,45 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // --- Handle OAuth redirects ---
         async function handleOAuthRedirect() {
+            // Check for OAuth tokens in URL hash
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const accessToken = hashParams.get('access_token');
             const refreshToken = hashParams.get('refresh_token');
+            const error = hashParams.get('error');
+            
+            if (error) {
+                console.error('OAuth error in URL:', error);
+                showAuthFeedback('OAuth authentication failed: ' + error);
+                // Clear the hash
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
             
             if (accessToken && refreshToken) {
-                console.log('OAuth redirect detected, processing...');
+                console.log('OAuth redirect detected, processing tokens...');
+                
+                try {
+                    // Set the session manually
+                    const { data, error } = await supabaseClient.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                    
+                    if (error) {
+                        console.error('Error setting session:', error);
+                        showAuthFeedback('Failed to complete authentication: ' + error.message);
+                    } else {
+                        console.log('OAuth authentication successful:', data);
+                        // Close the auth modal if it's open
+                        closeAuthModal();
+                    }
+                } catch (error) {
+                    console.error('Error processing OAuth tokens:', error);
+                    showAuthFeedback('Failed to complete authentication: ' + error.message);
+                }
                 
                 // Clear the hash from URL
                 window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // The session will be automatically set by Supabase
-                // The onAuthStateChange listener will handle the UI update
             }
         }
 
