@@ -21,6 +21,173 @@ document.addEventListener('DOMContentLoaded', async function() {
         let mapInitialized = false; // Prevent double initialization
         let allCuisines = []; // Store all available cuisines for filtering
 
+        // --- Authentication ---
+        const authContainer = document.getElementById('auth-container');
+        const authBtn = document.getElementById('auth-btn');
+        const authModal = document.getElementById('auth-modal');
+        const closeAuthModalBtn = document.getElementById('close-auth-modal');
+        const switchAuthModeLink = document.getElementById('switch-auth-mode');
+        const authTitle = document.getElementById('auth-title');
+        const authFeedback = document.getElementById('auth-feedback');
+
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+
+        const userDropdown = document.getElementById('user-dropdown');
+        const userEmailEl = document.getElementById('user-email');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // --- Auth UI Logic ---
+        function openAuthModal() {
+            authModal.classList.remove('hidden');
+            authModal.classList.add('flex');
+        }
+
+        function closeAuthModal() {
+            authModal.classList.add('hidden');
+            authModal.classList.remove('flex');
+            authFeedback.classList.add('hidden'); // Hide feedback on close
+        }
+
+        function switchToSignUp() {
+            loginForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+            authTitle.textContent = 'Sign Up';
+            switchAuthModeLink.textContent = 'Already have an account? Login';
+            authFeedback.classList.add('hidden');
+        }
+
+        function switchToLogin() {
+            signupForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            authTitle.textContent = 'Login';
+            switchAuthModeLink.textContent = 'Need an account? Sign Up';
+            authFeedback.classList.add('hidden');
+        }
+
+        function showAuthFeedback(message, isError = true) {
+            authFeedback.textContent = message;
+            authFeedback.className = isError ? 'text-sm text-red-500 mb-4' : 'text-sm text-green-500 mb-4';
+            authFeedback.classList.remove('hidden');
+        }
+
+        // --- Auth State Management ---
+        function updateUserUI(user) {
+            if (user) {
+                // User is logged in
+                authBtn.classList.add('hidden');
+                userDropdown.classList.remove('hidden');
+                userEmailEl.textContent = user.email;
+                
+                // Use a flag to prevent multiple event listeners
+                if (!authContainer.dataset.listenerAttached) {
+                    authContainer.addEventListener('click', () => {
+                        userDropdown.classList.toggle('hidden');
+                    });
+                    authContainer.dataset.listenerAttached = 'true';
+                }
+            } else {
+                // User is logged out
+                authBtn.classList.remove('hidden');
+                userDropdown.classList.add('hidden');
+            }
+        }
+
+        // --- Supabase Auth Logic ---
+        async function handleSignUp(email, password) {
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                });
+                if (error) throw error;
+                showAuthFeedback('Success! Please check your email for a confirmation link.', false);
+                signupForm.reset();
+            } catch (error) {
+                showAuthFeedback(error.message);
+            }
+        }
+
+        async function handleLogin(email, password) {
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+                if (error) throw error;
+                closeAuthModal();
+            } catch (error) {
+                showAuthFeedback(error.message);
+            }
+        }
+
+        async function handleOAuthLogin(provider) {
+            try {
+                const { error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: provider,
+                });
+                if (error) throw error;
+            } catch (error) {
+                showAuthFeedback('Error with social login: ' + error.message);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) throw error;
+                // The onAuthStateChange listener will handle the UI update
+            } catch (error) {
+                alert('Error logging out: ' + error.message);
+            }
+        }
+
+        // --- Auth Event Listeners ---
+        authBtn.addEventListener('click', openAuthModal);
+        closeAuthModalBtn.addEventListener('click', closeAuthModal);
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) closeAuthModal();
+        });
+
+        switchAuthModeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (loginForm.classList.contains('hidden')) {
+                switchToLogin();
+            } else {
+                switchToSignUp();
+            }
+        });
+
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSignUp(
+                document.getElementById('signup-email').value,
+                document.getElementById('signup-password').value
+            );
+        });
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleLogin(
+                document.getElementById('login-email').value,
+                document.getElementById('login-password').value
+            );
+        });
+
+        googleLoginBtn.addEventListener('click', () => handleOAuthLogin('google'));
+
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleLogout();
+        });
+
+        // --- Check auth state on page load and when it changes ---
+        supabaseClient.auth.onAuthStateChange((_event, session) => {
+            const user = session ? session.user : null;
+            updateUserUI(user);
+        });
+
         // --- Initialization ---
         initializeMap();
         await loadCitiesAndInitialRestaurants();
