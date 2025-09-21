@@ -34,9 +34,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const signupForm = document.getElementById('signup-form');
         const googleLoginBtn = document.getElementById('google-login-btn');
 
-        const userDropdown = document.getElementById('user-dropdown');
-        const userEmailEl = document.getElementById('user-email');
-        const logoutBtn = document.getElementById('logout-btn');
+        // Note: userDropdown, userEmailEl, and logoutBtn are no longer used
+        // We now use a simple logout button instead of a dropdown
 
         // --- Auth UI Logic ---
         function openAuthModal() {
@@ -75,22 +74,38 @@ document.addEventListener('DOMContentLoaded', async function() {
         // --- Auth State Management ---
         function updateUserUI(user) {
             if (user) {
-                // User is logged in
+                // User is logged in - show logout button instead of login button
                 authBtn.classList.add('hidden');
-                userDropdown.classList.remove('hidden');
-                userEmailEl.textContent = user.email;
                 
-                // Use a flag to prevent multiple event listeners
-                if (!authContainer.dataset.listenerAttached) {
-                    authContainer.addEventListener('click', () => {
-                        userDropdown.classList.toggle('hidden');
+                // Create or update logout button
+                let logoutButton = document.getElementById('logout-button');
+                if (!logoutButton) {
+                    logoutButton = document.createElement('button');
+                    logoutButton.id = 'logout-button';
+                    logoutButton.className = 'bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors';
+                    logoutButton.innerHTML = 'Logout';
+                    
+                    // Insert after auth button
+                    authBtn.parentNode.insertBefore(logoutButton, authBtn.nextSibling);
+                    
+                    // Add click event
+                    logoutButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        handleLogout();
                     });
-                    authContainer.dataset.listenerAttached = 'true';
                 }
+                
+                logoutButton.classList.remove('hidden');
+                
             } else {
-                // User is logged out
+                // User is logged out - show login button
                 authBtn.classList.remove('hidden');
-                userDropdown.classList.add('hidden');
+                
+                // Hide logout button if it exists
+                const logoutButton = document.getElementById('logout-button');
+                if (logoutButton) {
+                    logoutButton.classList.add('hidden');
+                }
             }
         }
 
@@ -195,10 +210,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             handleOAuthLogin('google');
         });
 
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleLogout();
-        });
+        // Note: logoutBtn event listener removed - we now create the logout button dynamically
 
         // --- Handle OAuth redirects ---
         async function handleOAuthRedirect() {
