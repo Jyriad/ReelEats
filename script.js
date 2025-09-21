@@ -126,6 +126,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             try {
                 const { error } = await supabaseClient.auth.signInWithOAuth({
                     provider: provider,
+                    options: {
+                        redirectTo: `${window.location.origin}${window.location.pathname}`
+                    }
                 });
                 if (error) throw error;
             } catch (error) {
@@ -182,11 +185,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             handleLogout();
         });
 
+        // --- Handle OAuth redirects ---
+        async function handleOAuthRedirect() {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+            
+            if (accessToken && refreshToken) {
+                console.log('OAuth redirect detected, processing...');
+                
+                // Clear the hash from URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // The session will be automatically set by Supabase
+                // The onAuthStateChange listener will handle the UI update
+            }
+        }
+
         // --- Check auth state on page load and when it changes ---
         supabaseClient.auth.onAuthStateChange((_event, session) => {
             const user = session ? session.user : null;
             updateUserUI(user);
         });
+
+        // Handle OAuth redirect on page load
+        handleOAuthRedirect();
 
         // --- Initialization ---
         initializeMap();
