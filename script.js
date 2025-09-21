@@ -308,8 +308,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         async function toggleFavorite(restaurantId) {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) {
-                alert('Please log in to save your favorites!');
-                openAuthModal(); // Open the login modal
+                alert('Please create an account to save your favorites!');
+                openAuthModal(); // Open the auth modal
+                switchToSignUp(); // Switch to sign-up form
                 return;
             }
 
