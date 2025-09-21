@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeMap();
         await loadCitiesAndInitialRestaurants();
         setupCuisineFilter();
+        setupAdminLogin();
         
         // Handle window resize to ensure proper filter behavior
         window.addEventListener('resize', function() {
@@ -33,8 +34,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // On mobile, hide desktop filter
             if (window.innerWidth < 768) {
-                filterDesktop.classList.add('hidden');
-                filterModal.classList.add('hidden');
+                if (filterDesktop) filterDesktop.classList.add('hidden');
+                if (filterModal) filterModal.classList.add('hidden');
             }
         });
 
@@ -822,6 +823,101 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 }
             });
+        }
+
+        // Setup admin login functionality
+        function setupAdminLogin() {
+            const adminLink = document.getElementById('admin-link');
+            const loginModal = document.getElementById('admin-login-modal');
+            const loginForm = document.getElementById('admin-login-form');
+            const cancelBtn = document.getElementById('cancel-login');
+            const errorDiv = document.getElementById('login-error');
+            
+            // Open login modal when admin link is clicked
+            adminLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Admin link clicked, opening login modal');
+                loginModal.classList.remove('hidden');
+                loginModal.classList.add('flex');
+            });
+            
+            // Close modal when cancel is clicked
+            cancelBtn.addEventListener('click', function() {
+                closeLoginModal();
+            });
+            
+            // Close modal when clicking outside
+            loginModal.addEventListener('click', function(e) {
+                if (e.target === loginModal) {
+                    closeLoginModal();
+                }
+            });
+            
+            // Handle form submission
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handleAdminLogin();
+            });
+            
+            function closeLoginModal() {
+                loginModal.classList.add('hidden');
+                loginModal.classList.remove('flex');
+                loginForm.reset();
+                errorDiv.classList.add('hidden');
+            }
+            
+            async function handleAdminLogin() {
+                const email = document.getElementById('admin-email').value;
+                const password = document.getElementById('admin-password').value;
+                
+                try {
+                    console.log('Attempting admin login for:', email);
+                    console.log('Password length:', password.length);
+                    
+                    // Test Supabase connection first
+                    console.log('Testing Supabase connection...');
+                    const { data: testData, error: testError } = await supabaseClient.auth.getSession();
+                    console.log('Supabase connection test result:', { testData, testError });
+                    
+                    // Sign in with Supabase
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (error) {
+                        console.error('Supabase auth error:', error);
+                        console.error('Error code:', error.status);
+                        console.error('Error message:', error.message);
+                        throw error;
+                    }
+                    
+                    console.log('Login successful, checking admin status...');
+                    
+                    // Check if user has admin role
+                    const { data: userRole, error: roleError } = await supabaseClient
+                        .from('user_roles')
+                        .select('role')
+                        .eq('user_id', data.user.id)
+                        .eq('role', 'admin')
+                        .single();
+                    
+                    if (roleError || !userRole) {
+                        throw new Error('Access denied. Admin privileges required.');
+                    }
+                    
+                    console.log('Admin access granted, redirecting to admin panel');
+                    
+                    // Close modal and redirect
+                    closeLoginModal();
+                    window.location.href = 'admin.html';
+                    
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorDiv.textContent = error.message || 'Login failed. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                }
+            }
         }
 
         function displayRestaurants(restaurants) {

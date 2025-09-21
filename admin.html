@@ -511,6 +511,104 @@
         </div>
     </div>
 
-    <script src="admin.js?v=109"></script>
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Check authentication before showing admin content
+        async function checkAdminAuth() {
+            try {
+                // First try to get the current session
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                
+                if (sessionError) {
+                    console.log('Session error:', sessionError);
+                    return false;
+                }
+
+                if (!session) {
+                    console.log('No active session found.');
+                    return false;
+                }
+
+                // Check if session is still valid (not expired)
+                const now = Math.floor(Date.now() / 1000);
+                if (session.expires_at && session.expires_at < now) {
+                    console.log('Session expired, attempting refresh...');
+                    
+                    // Try to refresh the session
+                    const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+                    
+                    if (refreshError || !refreshData.session) {
+                        console.log('Session refresh failed:', refreshError);
+                        return false;
+                    }
+                    
+                    console.log('Session refreshed successfully');
+                }
+
+                // Get the user from the session
+                const user = session.user;
+                console.log('Checking admin role for user:', user.id);
+                
+                // Check if user has admin role
+                const { data: userRole, error: roleError } = await supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', user.id)
+                    .eq('role', 'admin')
+                    .single();
+                
+                if (roleError || !userRole) {
+                    throw new Error('Admin access required');
+                }
+                
+                console.log('Admin access verified');
+                return true;
+                
+            } catch (error) {
+                console.error('Admin auth check failed:', error);
+                
+                // Hide admin content and show login message
+                document.body.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center bg-gray-50">
+                        <div class="text-center">
+                            <h1 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+                            <p class="text-gray-600 mb-6">You need admin privileges to access this page.</p>
+                            <a href="index.html" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                Return to Map
+                            </a>
+                        </div>
+                    </div>
+                `;
+                return false;
+            }
+        }
+        
+        // Run auth check when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Starting admin auth check...');
+            const isAuthenticated = await checkAdminAuth();
+            console.log('Auth check result:', isAuthenticated);
+            
+            if (isAuthenticated) {
+                console.log('Loading admin.js...');
+                // Load admin script only if authenticated
+                const script = document.createElement('script');
+                script.src = 'admin.js?v=111';
+                script.onload = function() {
+                    console.log('admin.js loaded successfully');
+                };
+                script.onerror = function() {
+                    console.error('Failed to load admin.js');
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('Not authenticated, not loading admin.js');
+            }
+        });
+    </script>
 </body>
 </html>

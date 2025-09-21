@@ -1,12 +1,47 @@
 // Admin Panel JavaScript
-const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Note: SUPABASE_URL, SUPABASE_ANON_KEY, and supabaseClient are declared in admin.html
 
-// Check if user is authenticated
+// admin.js
+
+// Check if user is authenticated AND has the 'admin' role
 async function checkAuth() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    return session;
+    // First, check if there is a logged-in user session
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !session) {
+        console.log('No active session found.');
+        return false; // Not authenticated
+    }
+
+    // If there is a session, check if that user has the 'admin' role
+    const user = session.user;
+    console.log('Checking roles for user:', user.id);
+
+    try {
+        const { data: userRole, error: roleError } = await supabaseClient
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('role', 'admin')
+            .single(); // Use .single() to get one record or null
+
+        if (roleError && roleError.code !== 'PGRST116') {
+            // PGRST116 means no rows found, which is not an actual error for us here.
+            // Throw any other errors.
+            throw roleError;
+        }
+
+        if (userRole) {
+            console.log('Admin role confirmed for user.');
+            return session; // User is an admin, return the session object
+        } else {
+            console.log('User does not have admin role.');
+            return false; // User is logged in, but not an admin
+        }
+
+    } catch (error) {
+        console.error('Error checking user role:', error);
+        return false;
+    }
 }
 
 // Simple admin login
@@ -50,10 +85,15 @@ async function adminLogout() {
 }
 
 // Initialize admin panel
-document.addEventListener('DOMContentLoaded', async function() {
+async function initializeAdminPanel() {
+    console.log('Admin panel initializing...');
+    
     // Check if user is authenticated
     const session = await checkAuth();
+    console.log('Auth check result:', session);
+    
     if (!session) {
+        console.log('No session, attempting admin login...');
         const loginSuccess = await adminLogin();
         if (!loginSuccess) {
             document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Authentication required for admin panel.</p></div>';
@@ -61,10 +101,37 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    await loadDashboardData();
-    await loadCitiesForSelect();
-    await loadRecentRestaurants();
-    await loadRestaurantsWithoutVideos();
+    try {
+        console.log('Loading dashboard data...');
+        await loadDashboardData();
+        console.log('Dashboard data loaded successfully');
+    } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+    }
+    
+    try {
+        console.log('Loading cities...');
+        await loadCitiesForSelect();
+        console.log('Cities loaded successfully');
+    } catch (error) {
+        console.error('Failed to load cities:', error);
+    }
+    
+    try {
+        console.log('Loading recent restaurants...');
+        await loadRecentRestaurants();
+        console.log('Recent restaurants loaded successfully');
+    } catch (error) {
+        console.error('Failed to load recent restaurants:', error);
+    }
+    
+    try {
+        console.log('Loading restaurants without videos...');
+        await loadRestaurantsWithoutVideos();
+        console.log('Restaurants without videos loaded successfully');
+    } catch (error) {
+        console.error('Failed to load restaurants without videos:', error);
+    }
     
     // Load videos for management with error handling
     try {
@@ -80,15 +147,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Set up event listeners
     setupEventListeners();
-    
-    // Check database status
-    checkDatabaseStatus();
-    
-    // Set up cuisine selection after a short delay to ensure DOM is ready
-    setTimeout(() => {
-        setupCuisineSelection();
-    }, 100);
-});
+}
+
+// Run when DOM is ready or immediately if already ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAdminPanel);
+} else {
+    initializeAdminPanel();
+}
 
 // Load dashboard statistics
 async function loadDashboardData() {
