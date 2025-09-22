@@ -229,13 +229,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             handleOAuthLogin('google');
         });
 
-        // Add Facebook login button event listener
-        const facebookLoginBtn = document.getElementById('facebook-login-btn');
-        facebookLoginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log('Facebook login button clicked');
-            handleOAuthLogin('facebook');
-        });
 
         // Note: logoutBtn event listener removed - we now create the logout button dynamically
 
