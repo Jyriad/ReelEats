@@ -229,6 +229,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             handleOAuthLogin('google');
         });
 
+        // Add Facebook login button event listener
+        const facebookLoginBtn = document.getElementById('facebook-login-btn');
+        facebookLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Facebook login button clicked');
+            handleOAuthLogin('facebook');
+        });
+
         // Note: logoutBtn event listener removed - we now create the logout button dynamically
 
         // --- Handle OAuth redirects ---
@@ -308,7 +316,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         async function toggleFavorite(restaurantId) {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) {
-                alert('Please create an account to save your favorites!');
                 openAuthModal(); // Open the auth modal
                 switchToSignUp(); // Switch to sign-up form
                 return;
