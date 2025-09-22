@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let mapInitialized = false; // Prevent double initialization
         let allCuisines = []; // Store all available cuisines for filtering
         let favoritedRestaurants = new Set();
+        let markerClusterGroup; // Marker cluster group for map clustering
 
         // --- Authentication ---
         const authContainer = document.getElementById('auth-container');
@@ -371,6 +372,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     subdomains: 'abcd',
                     maxZoom: 20
                 }).addTo(map);
+
+                // Initialize the marker cluster group
+                markerClusterGroup = L.markerClusterGroup();
+                map.addLayer(markerClusterGroup);
                 
                 // Add geolocation functionality
                 addUserLocationMarker();
@@ -1228,8 +1233,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function displayRestaurants(restaurants) {
             restaurantList.innerHTML = '';
-            restaurantMarkers.forEach(marker => map.removeLayer(marker));
-            restaurantMarkers = [];
+            markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
+            restaurantMarkers = []; // Also clear the local array
 
             if (restaurants.length === 0) {
                 restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
@@ -1239,10 +1244,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             restaurants.forEach((restaurant, index) => {
                 const listItem = createListItem(restaurant, index);
                 restaurantList.appendChild(listItem);
-                
+
                 const marker = createNumberedMarker(restaurant, index);
-                marker.addTo(map);
-                restaurantMarkers.push(marker);
+                restaurantMarkers.push(marker); // Keep track of markers for other interactions
+                markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
             });
         }
         
