@@ -332,6 +332,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     favoritedRestaurants.delete(restaurantId);
                     favoriteBtn?.classList.remove('favorited');
+                    // Refresh markers to update gold border
+                    displayRestaurants(currentRestaurants);
                 }
             } else {
                 // Add to favorites
@@ -344,6 +346,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     favoritedRestaurants.add(restaurantId);
                     favoriteBtn?.classList.add('favorited');
+                    // Refresh markers to update gold border
+                    displayRestaurants(currentRestaurants);
                 }
             }
         }
@@ -1324,9 +1328,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         function createNumberedMarker(restaurant, index) {
             // Create a custom numbered icon
             const number = index + 1; // Start numbering from 1
+            const isFavorited = favoritedRestaurants.has(restaurant.id);
+            const favoritedClass = isFavorited ? 'favorited' : '';
             const icon = L.divIcon({
                 className: 'numbered-marker',
-                html: `<div class="numbered-marker-content">${number}</div>`,
+                html: `<div class="numbered-marker-content ${favoritedClass}">${number}</div>`,
                 iconSize: [30, 30],
                 iconAnchor: [15, 15]
             });
