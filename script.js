@@ -20,6 +20,270 @@ document.addEventListener('DOMContentLoaded', async function() {
         let map; // Define map in a broader scope
         let mapInitialized = false; // Prevent double initialization
         let allCuisines = []; // Store all available cuisines for filtering
+        let favoritedRestaurants = new Set();
+
+        // --- Authentication ---
+        const authContainer = document.getElementById('auth-container');
+        const authBtn = document.getElementById('auth-btn');
+        const authModal = document.getElementById('auth-modal');
+        const closeAuthModalBtn = document.getElementById('close-auth-modal');
+        const switchAuthModeLink = document.getElementById('switch-auth-mode');
+        const authTitle = document.getElementById('auth-title');
+        const authFeedback = document.getElementById('auth-feedback');
+
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+
+        // Note: userDropdown, userEmailEl, and logoutBtn are no longer used
+        // We now use a simple logout button instead of a dropdown
+
+        // --- Auth UI Logic ---
+        function openAuthModal() {
+            authModal.classList.remove('hidden');
+            authModal.classList.add('flex');
+        }
+
+        function closeAuthModal() {
+            authModal.classList.add('hidden');
+            authModal.classList.remove('flex');
+            authFeedback.classList.add('hidden'); // Hide feedback on close
+        }
+
+        function switchToSignUp() {
+            loginForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+            authTitle.textContent = 'Sign Up';
+            switchAuthModeLink.textContent = 'Already have an account? Login';
+            authFeedback.classList.add('hidden');
+        }
+
+        function switchToLogin() {
+            signupForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            authTitle.textContent = 'Login';
+            switchAuthModeLink.textContent = 'Need an account? Sign Up';
+            authFeedback.classList.add('hidden');
+        }
+
+        function showAuthFeedback(message, isError = true) {
+            authFeedback.textContent = message;
+            authFeedback.className = isError ? 'text-sm text-red-500 mb-4' : 'text-sm text-green-500 mb-4';
+            authFeedback.classList.remove('hidden');
+        }
+
+        // --- Auth State Management ---
+        async function updateUserUI(user) {
+            if (user) {
+                // User is logged in - show logout button instead of login button
+                authBtn.classList.add('hidden');
+                
+                // Create or update logout button
+                let logoutButton = document.getElementById('logout-button');
+                if (!logoutButton) {
+                    logoutButton = document.createElement('button');
+                    logoutButton.id = 'logout-button';
+                    logoutButton.className = 'bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors';
+                    logoutButton.innerHTML = 'Logout';
+                    
+                    // Insert after auth button
+                    authBtn.parentNode.insertBefore(logoutButton, authBtn.nextSibling);
+                    
+                    // Add click event
+                    logoutButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        handleLogout();
+                    });
+                }
+                
+                logoutButton.classList.remove('hidden');
+
+                // Fetch user's favorites
+                const { data, error } = await supabaseClient
+                    .from('user_favorites')
+                    .select('restaurant_id')
+                    .eq('user_id', user.id);
+
+                if (error) {
+                    console.error('Error fetching favorites:', error);
+                } else {
+                    favoritedRestaurants = new Set(data.map(fav => fav.restaurant_id));
+                }
+
+                // Re-display restaurants to show correct favorite status
+                displayRestaurants(currentRestaurants);
+                
+            } else {
+                // User is logged out - show login button
+                authBtn.classList.remove('hidden');
+                
+                // Hide logout button if it exists
+                const logoutButton = document.getElementById('logout-button');
+                if (logoutButton) {
+                    logoutButton.classList.add('hidden');
+                }
+                
+                favoritedRestaurants.clear(); // Clear favorites on logout
+                displayRestaurants(currentRestaurants); // Re-display to remove favorite icons
+            }
+        }
+
+        // --- Supabase Auth Logic ---
+        async function handleSignUp(email, password) {
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                });
+                if (error) throw error;
+                showAuthFeedback('Success! Please check your email for a confirmation link.', false);
+                signupForm.reset();
+            } catch (error) {
+                showAuthFeedback(error.message);
+            }
+        }
+
+        async function handleLogin(email, password) {
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+                if (error) throw error;
+                closeAuthModal();
+            } catch (error) {
+                showAuthFeedback(error.message);
+            }
+        }
+
+        async function handleOAuthLogin(provider) {
+            try {
+                console.log('Starting OAuth login with provider:', provider);
+                console.log('Current URL:', window.location.href);
+                
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: provider,
+                    options: {
+                        redirectTo: window.location.href
+                    }
+                });
+                
+                if (error) {
+                    console.error('OAuth error:', error);
+                    throw error;
+                }
+                
+                console.log('OAuth redirect initiated:', data);
+                
+            } catch (error) {
+                console.error('OAuth login failed:', error);
+                showAuthFeedback('Error with social login: ' + error.message);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) throw error;
+                // The onAuthStateChange listener will handle the UI update
+            } catch (error) {
+                alert('Error logging out: ' + error.message);
+            }
+        }
+
+        // --- Auth Event Listeners ---
+        authBtn.addEventListener('click', openAuthModal);
+        closeAuthModalBtn.addEventListener('click', closeAuthModal);
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) closeAuthModal();
+        });
+
+        switchAuthModeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (loginForm.classList.contains('hidden')) {
+                switchToLogin();
+            } else {
+                switchToSignUp();
+            }
+        });
+
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSignUp(
+                document.getElementById('signup-email').value,
+                document.getElementById('signup-password').value
+            );
+        });
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleLogin(
+                document.getElementById('login-email').value,
+                document.getElementById('login-password').value
+            );
+        });
+
+        googleLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Google login button clicked');
+            handleOAuthLogin('google');
+        });
+
+
+        // Note: logoutBtn event listener removed - we now create the logout button dynamically
+
+        // --- Handle OAuth redirects ---
+        async function handleOAuthRedirect() {
+            // Check for OAuth tokens in URL hash
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+            const error = hashParams.get('error');
+            
+            if (error) {
+                console.error('OAuth error in URL:', error);
+                showAuthFeedback('OAuth authentication failed: ' + error);
+                // Clear the hash
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+            
+            if (accessToken && refreshToken) {
+                console.log('OAuth redirect detected, processing tokens...');
+                
+                try {
+                    // Set the session manually
+                    const { data, error } = await supabaseClient.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                    
+                    if (error) {
+                        console.error('Error setting session:', error);
+                        showAuthFeedback('Failed to complete authentication: ' + error.message);
+                    } else {
+                        console.log('OAuth authentication successful:', data);
+                        // Close the auth modal if it's open
+                        closeAuthModal();
+                    }
+                } catch (error) {
+                    console.error('Error processing OAuth tokens:', error);
+                    showAuthFeedback('Failed to complete authentication: ' + error.message);
+                }
+                
+                // Clear the hash from URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // --- Check auth state on page load and when it changes ---
+        supabaseClient.auth.onAuthStateChange((_event, session) => {
+            const user = session ? session.user : null;
+            updateUserUI(user);
+        });
+
+        // Handle OAuth redirect on page load
+        handleOAuthRedirect();
 
         // --- Initialization ---
         initializeMap();
@@ -40,6 +304,48 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
 
         // --- Core Functions ---
+
+        // Add this new function to script.js
+        async function toggleFavorite(restaurantId) {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                openAuthModal(); // Open the auth modal
+                switchToSignUp(); // Switch to sign-up form
+                return;
+            }
+
+            const userId = session.user.id;
+            const isFavorited = favoritedRestaurants.has(restaurantId);
+            const favoriteBtn = document.querySelector(`.favorite-btn[data-restaurant-id="${restaurantId}"]`);
+
+            if (isFavorited) {
+                // Remove from favorites
+                const { error } = await supabaseClient
+                    .from('user_favorites')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('restaurant_id', restaurantId);
+
+                if (error) {
+                    console.error('Error removing favorite:', error);
+                } else {
+                    favoritedRestaurants.delete(restaurantId);
+                    favoriteBtn?.classList.remove('favorited');
+                }
+            } else {
+                // Add to favorites
+                const { error } = await supabaseClient
+                    .from('user_favorites')
+                    .insert({ user_id: userId, restaurant_id: restaurantId });
+
+                if (error) {
+                    console.error('Error adding favorite:', error);
+                } else {
+                    favoritedRestaurants.add(restaurantId);
+                    favoriteBtn?.classList.add('favorited');
+                }
+            }
+        }
 
         function initializeMap() {
             if (mapInitialized) {
@@ -942,32 +1248,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         function createListItem(restaurant, index) {
             const listItem = document.createElement('div');
-            listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start';
+            // Add position: relative to the list item for the button
+            listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start relative';
             listItem.dataset.restaurantId = restaurant.id;
-            
-            // Create cuisine tags
+
+            const isFavorited = favoritedRestaurants.has(restaurant.id);
+            const favoriteClass = isFavorited ? 'favorited' : '';
+            const number = index + 1;
+
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
                 ? restaurant.cuisines.map(cuisine => 
                     `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${cuisine}</span>`
                   ).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
-            
-            // Calculate distance if user location is available (both mobile and desktop)
+
             let distanceHtml = '';
             if (window.userLocation) {
-                const distance = calculateDistance(
-                    window.userLocation.lat, 
-                    window.userLocation.lon, 
-                    restaurant.lat, 
-                    restaurant.lon
-                );
+                const distance = calculateDistance(window.userLocation.lat, window.userLocation.lon, restaurant.lat, restaurant.lon);
                 distanceHtml = `<div class="mt-1 text-xs text-gray-500 flex items-center">
                     <span class="mr-1">📍</span>
                     <span>${distance} away</span>
                 </div>`;
             }
-            
-            const number = index + 1; // Start numbering from 1
+
             listItem.innerHTML = `
                 <div class="flex-shrink-0 mr-3">
                     <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
@@ -975,25 +1278,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-gray-900 text-base md:text-lg font-bold truncate">${restaurant.name}</h3>
+                    <h3 class="text-gray-900 text-base md:text-lg font-bold truncate pr-8">${restaurant.name}</h3>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
-                    <div class="mt-2 flex flex-wrap">
-                        ${cuisineTags}
-                    </div>
+                    <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
                     ${distanceHtml}
                 </div>
+                <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                </button>
             `;
-            listItem.addEventListener('click', () => {
-                // Remove active class from all cards
-                document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {
-                    card.classList.remove('active-list-item');
-                });
-                // Add active class to clicked card
+
+            // Main click event to open video
+            listItem.addEventListener('click', (e) => {
+                // Prevent opening video if the favorite button was clicked
+                if (e.target.closest('.favorite-btn')) return;
+
+                document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
                 listItem.classList.add('active-list-item');
-                
                 showVideoFor(restaurant);
                 map.flyTo([restaurant.lat, restaurant.lon], 15);
             });
+
+            // Event listener for the favorite button
+            const favoriteBtn = listItem.querySelector('.favorite-btn');
+            favoriteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent the main card click event from firing
+                toggleFavorite(restaurant.id);
+            });
+
             return listItem;
         }
 
