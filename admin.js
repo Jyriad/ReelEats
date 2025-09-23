@@ -753,8 +753,10 @@ async function handleAddRestaurant(e) {
             console.log('🎬 TikTok URL provided, adding video for restaurant:', restaurant.id);
             
             try {
-                // Extract video ID from TikTok URL
+                // Extract video ID and creator handle from TikTok URL
                 const videoId = extractTikTokVideoId(tiktokUrl);
+                const authorHandle = extractTikTokCreatorHandle(tiktokUrl);
+                
                 if (!videoId) {
                     console.warn('⚠️ Could not extract video ID from TikTok URL, skipping video creation');
                     showStatus('Restaurant added, but TikTok URL was invalid. You can add the video manually.', 'warning');
@@ -768,7 +770,8 @@ async function handleAddRestaurant(e) {
                         .insert([{
                             restaurant_id: restaurant.id,
                             embed_html: embedHtml,
-                            is_featured: true // Always featured when added via restaurant form
+                            is_featured: true, // Always featured when added via restaurant form
+                            author_handle: authorHandle
                         }]);
                     
                     if (tiktokError) {
@@ -1350,6 +1353,8 @@ async function handleAddTikTok(e) {
     
     try {
         const videoId = extractTikTokVideoId(tiktokUrl);
+        const authorHandle = extractTikTokCreatorHandle(tiktokUrl);
+        
         if (!videoId) {
             showStatus('Invalid TikTok URL - could not extract video ID', 'error');
             return;
@@ -1360,7 +1365,8 @@ async function handleAddTikTok(e) {
         console.log('🎬 Attempting to insert TikTok with data:', {
             restaurant_id: parseInt(restaurantId),
             embed_html: embedHtml,
-            is_featured: isFeatured
+            is_featured: isFeatured,
+            author_handle: authorHandle
         });
 
         const { error } = await supabaseClient
@@ -1368,7 +1374,8 @@ async function handleAddTikTok(e) {
             .insert([{
                 restaurant_id: parseInt(restaurantId),
                 embed_html: embedHtml,
-                is_featured: isFeatured
+                is_featured: isFeatured,
+                author_handle: authorHandle
             }]);
         
         if (error) throw error;
@@ -1451,6 +1458,14 @@ function selectRestaurant(id, name) {
 // Extract TikTok video ID from URL
 function extractTikTokVideoId(url) {
     const match = url.match(/\/video\/(\d+)/);
+    return match ? match[1] : null;
+}
+
+function extractTikTokCreatorHandle(url) {
+    // Extract the creator handle from TikTok URL
+    // Example: https://www.tiktok.com/@cajapanesepancakes/video/7294745895676022048
+    // Should return: @cajapanesepancakes
+    const match = url.match(/tiktok\.com\/(@[^\/]+)/);
     return match ? match[1] : null;
 }
 

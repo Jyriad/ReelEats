@@ -867,11 +867,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Filter restaurants by selected cuisines (multiple selection)
         function filterRestaurantsByCuisines() {
             const selectedCuisines = getSelectedCuisines();
-            console.log('Filtering restaurants with cuisines:', selectedCuisines);
             
             if (selectedCuisines.length === 0) {
                 // Show all restaurants if no cuisines selected
-                console.log('No cuisines selected, showing all restaurants');
                 displayRestaurants(currentRestaurants);
                 // Fit map to show all restaurants
                 fitMapToRestaurants(currentRestaurants);
@@ -885,10 +883,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
                         restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
                     );
-                    console.log(`Restaurant ${restaurant.name} (${restaurant.cuisines.map(c => c.name).join(', ')}) matches:`, hasMatchingCuisine);
                     return hasMatchingCuisine;
                 });
-                console.log(`Filtered ${filteredRestaurants.length} restaurants from ${currentRestaurants.length} total`);
                 displayRestaurants(filteredRestaurants);
                 // Fit map to show filtered restaurants
                 fitMapToRestaurants(filteredRestaurants);
@@ -1055,9 +1051,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Apply desktop filter
         function applyDesktopFilter() {
-            console.log('Applying desktop filter...');
             const selectedCuisines = getSelectedCuisines();
-            console.log('Selected cuisines:', selectedCuisines);
             
             // Apply the filter
             filterRestaurantsByCuisines();
@@ -1276,11 +1270,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function fitMapToRestaurants(restaurants) {
             if (!map || !restaurants || restaurants.length === 0) {
-                console.log('🗺️ Cannot fit map - no map or no restaurants');
                 return;
             }
-
-            console.log(`🗺️ Fitting map to ${restaurants.length} restaurants`);
             
             // Create a LatLngBounds object to contain all restaurant locations
             const bounds = L.latLngBounds();
@@ -1295,8 +1286,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 padding: [20, 20], // Add 20px padding around the bounds
                 maxZoom: 16 // Don't zoom in too close if there are only a few restaurants
             });
-            
-            console.log('✅ Map fitted to restaurants');
         }
 
         function displayRestaurants(restaurants) {
@@ -1565,57 +1554,27 @@ function showVideoFor(restaurant) {
         function scrollToRestaurant(restaurantId) {
             // Only scroll on desktop (when the side panel is visible)
             if (window.innerWidth < 768) {
-                console.log('📱 Mobile detected, skipping scroll');
                 return; // Don't scroll on mobile
             }
             
-            console.log(`🔍 Looking for restaurant card with ID: ${restaurantId}`);
             const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+            if (!restaurantCard) return;
             
-            if (!restaurantCard) {
-                console.log('❌ Restaurant card not found');
-                return;
-            }
-            
-            console.log('✅ Restaurant card found:', restaurantCard);
-            
-            // Get the restaurant list container
             const restaurantList = document.getElementById('restaurant-list');
-            if (!restaurantList) {
-                console.log('❌ Restaurant list container not found');
-                return;
-            }
-            
-            console.log('✅ Restaurant list container found');
+            if (!restaurantList) return;
             
             // Wait a bit for any layout changes to complete
             setTimeout(() => {
-                // Calculate the position to scroll to
                 const cardTop = restaurantCard.offsetTop;
                 const cardHeight = restaurantCard.offsetHeight;
                 const containerHeight = restaurantList.offsetHeight;
-                const currentScrollTop = restaurantList.scrollTop;
-                
-                console.log('📊 Scroll calculations:', {
-                    cardTop,
-                    cardHeight,
-                    containerHeight,
-                    currentScrollTop
-                });
-                
-                // Center the card in the visible area
                 const scrollPosition = cardTop - (containerHeight / 2) + (cardHeight / 2);
                 
-                console.log(`📍 Scrolling to position: ${scrollPosition}`);
-                
-                // Smooth scroll to the restaurant card
                 restaurantList.scrollTo({
                     top: Math.max(0, scrollPosition),
                     behavior: 'smooth'
                 });
-                
-                console.log(`✅ Scrolled to restaurant ${restaurantId}`);
-            }, 100); // Small delay to ensure layout is stable
+            }, 100);
         }
 
         function closeVideo() {
@@ -1779,4 +1738,230 @@ function showVideoFor(restaurant) {
         document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
     }
 });
+
+// ========================================
+// TEST SUITE - Run with runAllTests()
+// ========================================
+
+// Test result tracking
+let testResults = {
+    passed: 0,
+    failed: 0,
+    total: 0
+};
+
+// Test helper functions
+function testPass(testName) {
+    testResults.passed++;
+    testResults.total++;
+    console.log(`✅ ${testName}`);
+}
+
+function testFail(testName, error = '') {
+    testResults.failed++;
+    testResults.total++;
+    console.log(`❌ ${testName}${error ? ` - ${error}` : ''}`);
+}
+
+function testSummary() {
+    console.log('\n' + '='.repeat(50));
+    console.log('🧪 TEST SUMMARY');
+    console.log('='.repeat(50));
+    console.log(`✅ Passed: ${testResults.passed}`);
+    console.log(`❌ Failed: ${testResults.failed}`);
+    console.log(`📊 Total: ${testResults.total}`);
+    console.log(`📈 Success Rate: ${((testResults.passed / testResults.total) * 100).toFixed(1)}%`);
+    console.log('='.repeat(50));
+    
+    if (testResults.failed === 0) {
+        console.log('🎉 All tests passed!');
+    } else {
+        console.log('⚠️ Some tests failed. Check the details above.');
+    }
+}
+
+// Individual test functions
+async function testSupabaseConnection() {
+    try {
+        const { data, error } = await supabaseClient.from('cities').select('*').limit(1);
+        if (error) throw error;
+        testPass('Supabase Connection');
+    } catch (error) {
+        testFail('Supabase Connection', error.message);
+    }
+}
+
+function testMapInitialization() {
+    try {
+        if (map && mapInitialized) {
+            testPass('Map Initialization');
+        } else {
+            throw new Error('Map not initialized');
+        }
+    } catch (error) {
+        testFail('Map Initialization', error.message);
+    }
+}
+
+function testRestaurantDataLoading() {
+    try {
+        if (currentRestaurants && currentRestaurants.length > 0) {
+            testPass('Restaurant Data Loading');
+        } else {
+            throw new Error('No restaurant data loaded');
+        }
+    } catch (error) {
+        testFail('Restaurant Data Loading', error.message);
+    }
+}
+
+function testCuisineDataStructure() {
+    try {
+        if (currentRestaurants && currentRestaurants.length > 0) {
+            const sampleRestaurant = currentRestaurants[0];
+            if (sampleRestaurant.cuisines && Array.isArray(sampleRestaurant.cuisines)) {
+                if (sampleRestaurant.cuisines.length > 0) {
+                    const sampleCuisine = sampleRestaurant.cuisines[0];
+                    if (sampleCuisine.name && sampleCuisine.icon) {
+                        testPass('Cuisine Data Structure');
+                    } else {
+                        throw new Error('Cuisine data missing name or icon');
+                    }
+                } else {
+                    testPass('Cuisine Data Structure (no cuisines)');
+                }
+            } else {
+                throw new Error('Cuisines array not found');
+            }
+        } else {
+            throw new Error('No restaurant data to test');
+        }
+    } catch (error) {
+        testFail('Cuisine Data Structure', error.message);
+    }
+}
+
+function testMarkerCreation() {
+    try {
+        if (restaurantMarkers && restaurantMarkers.length > 0) {
+            testPass('Marker Creation');
+        } else {
+            throw new Error('No markers created');
+        }
+    } catch (error) {
+        testFail('Marker Creation', error.message);
+    }
+}
+
+function testClusterGroup() {
+    try {
+        if (markerClusterGroup) {
+            testPass('Marker Cluster Group');
+        } else {
+            throw new Error('Marker cluster group not initialized');
+        }
+    } catch (error) {
+        testFail('Marker Cluster Group', error.message);
+    }
+}
+
+function testFilterFunctionality() {
+    try {
+        const filterToggle = document.getElementById('filter-toggle-btn');
+        const desktopFilter = document.getElementById('desktop-filter-modal');
+        const mobileFilter = document.getElementById('filter-modal');
+        
+        if (filterToggle && desktopFilter && mobileFilter) {
+            testPass('Filter UI Elements');
+        } else {
+            throw new Error('Filter UI elements missing');
+        }
+    } catch (error) {
+        testFail('Filter UI Elements', error.message);
+    }
+}
+
+function testAuthenticationUI() {
+    try {
+        const authContainer = document.getElementById('auth-container');
+        const authModal = document.getElementById('auth-modal');
+        const authBtn = document.getElementById('auth-btn');
+        
+        if (authContainer && authModal && authBtn) {
+            testPass('Authentication UI');
+        } else {
+            throw new Error('Authentication UI elements missing');
+        }
+    } catch (error) {
+        testFail('Authentication UI', error.message);
+    }
+}
+
+function testVideoModal() {
+    try {
+        const videoModal = document.getElementById('video-modal');
+        const videoContainer = document.getElementById('video-container');
+        
+        if (videoModal && videoContainer) {
+            testPass('Video Modal');
+        } else {
+            throw new Error('Video modal elements missing');
+        }
+    } catch (error) {
+        testFail('Video Modal', error.message);
+    }
+}
+
+function testRestaurantList() {
+    try {
+        const restaurantList = document.getElementById('restaurant-list');
+        if (restaurantList) {
+            testPass('Restaurant List Container');
+        } else {
+            throw new Error('Restaurant list container missing');
+        }
+    } catch (error) {
+        testFail('Restaurant List Container', error.message);
+    }
+}
+
+function testCitySelector() {
+    try {
+        const citySelect = document.getElementById('city-select');
+        if (citySelect) {
+            testPass('City Selector');
+        } else {
+            throw new Error('City selector missing');
+        }
+    } catch (error) {
+        testFail('City Selector', error.message);
+    }
+}
+
+// Main test runner
+async function runAllTests() {
+    console.log('🧪 Starting ReelEats Test Suite...\n');
+    testResults = { passed: 0, failed: 0, total: 0 };
+    
+    // Core functionality tests
+    await testSupabaseConnection();
+    testMapInitialization();
+    testRestaurantDataLoading();
+    testCuisineDataStructure();
+    testMarkerCreation();
+    testClusterGroup();
+    
+    // UI tests
+    testFilterFunctionality();
+    testAuthenticationUI();
+    testVideoModal();
+    testRestaurantList();
+    testCitySelector();
+    
+    // Show summary
+    testSummary();
+}
+
+// Make test runner available globally
+window.runAllTests = runAllTests;
 
