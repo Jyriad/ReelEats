@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .from('restaurant_cuisines')
                 .select(`
                     restaurant_id,
-                    cuisines (name, icon)
+                    cuisines (name, icon, color_background, color_text)
                 `)
                 .in('restaurant_id', restaurantIds);
 
@@ -587,10 +587,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (!cuisineMap.has(rc.restaurant_id)) {
                         cuisineMap.set(rc.restaurant_id, []);
                     }
-                    cuisineMap.get(rc.restaurant_id).push({
-                        name: rc.cuisines.name,
-                        icon: rc.cuisines.icon || '🍽️'
-                    });
+                    // Push the whole cuisine object
+                    if (rc.cuisines) {
+                        cuisineMap.get(rc.restaurant_id).push(rc.cuisines);
+                    }
                 });
             }
 
@@ -873,6 +873,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Show all restaurants if no cuisines selected
                 console.log('No cuisines selected, showing all restaurants');
                 displayRestaurants(currentRestaurants);
+                // Fit map to show all restaurants
+                fitMapToRestaurants(currentRestaurants);
             } else {
                 // Filter restaurants that have ANY of the selected cuisines
                 const filteredRestaurants = currentRestaurants.filter(restaurant => {
@@ -888,6 +890,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
                 console.log(`Filtered ${filteredRestaurants.length} restaurants from ${currentRestaurants.length} total`);
                 displayRestaurants(filteredRestaurants);
+                // Fit map to show filtered restaurants
+                fitMapToRestaurants(filteredRestaurants);
             }
         }
         
@@ -915,6 +919,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             updateSelectedCount();
             displayRestaurants(currentRestaurants);
+            // Fit map to show all restaurants when filter is cleared
+            fitMapToRestaurants(currentRestaurants);
         }
         
         // Setup filter toggle functionality
@@ -1268,6 +1274,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        function fitMapToRestaurants(restaurants) {
+            if (!map || !restaurants || restaurants.length === 0) {
+                console.log('🗺️ Cannot fit map - no map or no restaurants');
+                return;
+            }
+
+            console.log(`🗺️ Fitting map to ${restaurants.length} restaurants`);
+            
+            // Create a LatLngBounds object to contain all restaurant locations
+            const bounds = L.latLngBounds();
+            
+            // Add each restaurant's location to the bounds
+            restaurants.forEach(restaurant => {
+                bounds.extend([restaurant.lat, restaurant.lon]);
+            });
+            
+            // Fit the map to show all restaurants with some padding
+            map.fitBounds(bounds, {
+                padding: [20, 20], // Add 20px padding around the bounds
+                maxZoom: 16 // Don't zoom in too close if there are only a few restaurants
+            });
+            
+            console.log('✅ Map fitted to restaurants');
+        }
+
         function displayRestaurants(restaurants) {
             restaurantList.innerHTML = '';
             markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
@@ -1299,9 +1330,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             const number = index + 1;
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
-                ? restaurant.cuisines.map(cuisine => 
-                    `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${cuisine.name}</span>`
-                  ).join('')
+                ? restaurant.cuisines.map(cuisine => {
+                    // Use the new color values, with fallbacks just in case
+                    const bgColor = cuisine.color_background || '#E5E7EB'; // Default to light gray
+                    const textColor = cuisine.color_text || '#1F2937';     // Default to dark gray
+                    return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1" 
+                                  style="background-color: ${bgColor}; color: ${textColor};">
+                                ${cuisine.name}
+                            </span>`;
+                }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
 
             let distanceHtml = '';
