@@ -936,17 +936,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Update filter button appearance based on active filters
         function updateFilterButtonAppearance() {
-            const filterBtn = document.getElementById('filter-toggle-btn');
             const selectedCuisines = getSelectedCuisines();
             const hasActiveFilters = selectedCuisines.length > 0;
             
-            // Find or create the count element
-            let countElement = filterBtn.querySelector('.filter-count');
-            if (!countElement) {
-                countElement = document.createElement('div');
-                countElement.className = 'filter-count ml-2 px-2 py-1 bg-blue-500 bg-opacity-20 rounded-full text-xs font-medium';
-                filterBtn.appendChild(countElement);
-            }
+            // Use the existing count element
+            const countElement = document.getElementById('selected-count');
+            if (!countElement) return;
             
             if (hasActiveFilters) {
                 // Show count
