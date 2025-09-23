@@ -1962,6 +1962,18 @@ async function runAllTests() {
     testSummary();
 }
 
+// Auto-run tests after page loads
+async function autoRunTests() {
+    // Wait a bit for everything to initialize
+    setTimeout(async () => {
+        console.log('🚀 Auto-running tests after page load...\n');
+        await runAllTests();
+    }, 2000); // 2 second delay to ensure everything is loaded
+}
+
 // Make test runner available globally
 window.runAllTests = runAllTests;
+
+// Auto-run tests on page load
+autoRunTests();
 
