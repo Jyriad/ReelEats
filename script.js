@@ -897,6 +897,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         function filterRestaurantsByCuisines() {
             const selectedCuisines = getSelectedCuisines();
             
+            // Update filter button appearance
+            updateFilterButtonAppearance();
+            
             if (selectedCuisines.length === 0) {
                 // Show all restaurants if no cuisines selected
                 displayRestaurants(currentRestaurants);
@@ -931,6 +934,38 @@ document.addEventListener('DOMContentLoaded', async function() {
             return Array.from(allCheckboxes).map(checkbox => checkbox.value);
         }
         
+        // Update filter button appearance based on active filters
+        function updateFilterButtonAppearance() {
+            const filterBtn = document.getElementById('filter-toggle-btn');
+            const selectedCuisines = getSelectedCuisines();
+            const hasActiveFilters = selectedCuisines.length > 0;
+            
+            if (hasActiveFilters) {
+                // Add active filter styling
+                filterBtn.classList.add('bg-gradient-to-r', 'from-orange-600', 'to-orange-700', 'hover:from-orange-700', 'hover:to-orange-800');
+                filterBtn.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
+                
+                // Add filter indicator
+                const existingIndicator = filterBtn.querySelector('.filter-indicator');
+                if (!existingIndicator) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'filter-indicator absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white';
+                    filterBtn.style.position = 'relative';
+                    filterBtn.appendChild(indicator);
+                }
+            } else {
+                // Remove active filter styling
+                filterBtn.classList.remove('bg-gradient-to-r', 'from-orange-600', 'to-orange-700', 'hover:from-orange-700', 'hover:to-orange-800');
+                filterBtn.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
+                
+                // Remove filter indicator
+                const existingIndicator = filterBtn.querySelector('.filter-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+            }
+        }
+
         // Clear all cuisine filters
         function clearAllCuisineFilters() {
             const checkboxes = document.querySelectorAll('.cuisine-checkbox');
@@ -943,6 +978,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
             updateSelectedCount();
+            updateFilterButtonAppearance();
             displayRestaurants(currentRestaurants);
             // Fit map to show all restaurants when filter is cleared
             fitMapToRestaurants(currentRestaurants);
@@ -1805,6 +1841,39 @@ function showVideoFor(restaurant) {
         });
         closeVideoBtn.addEventListener('click', closeVideo);
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        
+        // Check location availability and hide button if not supported
+        function checkLocationAvailability() {
+            const locationBtn = document.getElementById('location-btn');
+            if (!locationBtn) return;
+            
+            // Check if geolocation is supported
+            if (!navigator.geolocation) {
+                console.log('Geolocation not supported, hiding location button');
+                locationBtn.style.display = 'none';
+                return;
+            }
+            
+            // Test geolocation permission
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // Permission granted, keep button visible
+                    console.log('Location permission granted');
+                    locationBtn.style.display = 'block';
+                },
+                function(error) {
+                    // Permission denied or error, hide button
+                    console.log('Location permission denied or error:', error.message);
+                    locationBtn.style.display = 'none';
+                },
+                {
+                    timeout: 1000, // Quick timeout for permission check
+                    maximumAge: 0 // Don't use cached location
+                }
+            );
+        }
+        
+        checkLocationAvailability();
         
         // Location button event listener
         const locationBtn = document.getElementById('location-btn');
