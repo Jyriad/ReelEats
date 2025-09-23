@@ -1453,6 +1453,9 @@ function showVideoFor(restaurant) {
     // Show modal
     videoModal.classList.add('show');
     
+    // Scroll to the restaurant in the side panel (desktop only)
+    scrollToRestaurant(restaurant.id);
+    
     if (videoId) {
         // Try direct iframe approach first
         console.log('Trying direct iframe approach...');
@@ -1520,6 +1523,36 @@ function showVideoFor(restaurant) {
         }, 100);
     }
 }
+
+        function scrollToRestaurant(restaurantId) {
+            // Only scroll on desktop (when the side panel is visible)
+            if (window.innerWidth < 768) {
+                return; // Don't scroll on mobile
+            }
+            
+            const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+            if (restaurantCard) {
+                // Get the restaurant list container
+                const restaurantList = document.getElementById('restaurant-list');
+                if (restaurantList) {
+                    // Calculate the position to scroll to
+                    const cardTop = restaurantCard.offsetTop;
+                    const cardHeight = restaurantCard.offsetHeight;
+                    const containerHeight = restaurantList.offsetHeight;
+                    
+                    // Center the card in the visible area
+                    const scrollPosition = cardTop - (containerHeight / 2) + (cardHeight / 2);
+                    
+                    // Smooth scroll to the restaurant card
+                    restaurantList.scrollTo({
+                        top: Math.max(0, scrollPosition),
+                        behavior: 'smooth'
+                    });
+                    
+                    console.log(`📍 Scrolled to restaurant ${restaurantId}`);
+                }
+            }
+        }
 
         function closeVideo() {
             videoModal.classList.remove('show');
