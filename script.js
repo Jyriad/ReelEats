@@ -881,9 +881,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                     // Check if restaurant has at least one of the selected cuisines
                     const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
-                        restaurant.cuisines.includes(selectedCuisine)
+                        restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
                     );
-                    console.log(`Restaurant ${restaurant.name} (${restaurant.cuisines}) matches:`, hasMatchingCuisine);
+                    console.log(`Restaurant ${restaurant.name} (${restaurant.cuisines.map(c => c.name).join(', ')}) matches:`, hasMatchingCuisine);
                     return hasMatchingCuisine;
                 });
                 console.log(`Filtered ${filteredRestaurants.length} restaurants from ${currentRestaurants.length} total`);
@@ -1300,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
                 ? restaurant.cuisines.map(cuisine => 
-                    `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${cuisine}</span>`
+                    `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${cuisine.name}</span>`
                   ).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
 
