@@ -5,6 +5,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        loadWatchedVideos(); // Load watched videos from localStorage
+        
         // --- UI Element References ---
         const mapElement = document.getElementById('map');
         const restaurantList = document.getElementById('restaurant-list');
@@ -23,6 +25,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.allCuisines = []; // Store all available cuisines for filtering
         window.favoritedRestaurants = new Set();
         window.markerClusterGroup = null; // Marker cluster group for map clustering
+        
+        // Watched videos state management
+        let watchedVideos = new Set();
+        
+        // Load watched videos from localStorage
+        function loadWatchedVideos() {
+            const watched = localStorage.getItem('reelEats_watchedVideos');
+            if (watched) {
+                watchedVideos = new Set(JSON.parse(watched));
+            }
+        }
+        
+        // Add video to watched list and save to localStorage
+        function addVideoToWatched(restaurantId) {
+            watchedVideos.add(restaurantId);
+            localStorage.setItem('reelEats_watchedVideos', JSON.stringify([...watchedVideos]));
+        }
+        
+        // Create watched icon element
+        function createWatchedIcon() {
+            const iconWrapper = document.createElement('div');
+            iconWrapper.className = 'watched-icon';
+            iconWrapper.title = 'You have watched this video';
+            iconWrapper.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+            `;
+            return iconWrapper;
+        }
         
         // Local references for backward compatibility
         let currentRestaurants = window.currentRestaurants;
@@ -1438,6 +1470,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 unhighlightMarker(restaurant.id);
             });
 
+            // Check if video has been watched and add icon if necessary
+            if (watchedVideos.has(restaurant.id)) {
+                const watchedIcon = createWatchedIcon();
+                listItem.appendChild(watchedIcon);
+            }
+
             return listItem;
         }
 
@@ -1577,6 +1615,14 @@ function showVideoFor(restaurant) {
         videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
         videoModal.classList.add('show');
         return;
+    }
+
+    // Mark the video as watched and update the UI
+    addVideoToWatched(restaurant.id);
+    const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
+    if (listItem && !listItem.querySelector('.watched-icon')) {
+        const watchedIcon = createWatchedIcon();
+        listItem.appendChild(watchedIcon);
     }
 
     // Extract video ID from embed HTML

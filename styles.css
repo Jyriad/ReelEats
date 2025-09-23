@@ -461,6 +461,20 @@ html, body {
     border-radius: 50%;
 }
 
+/* Watched Video Icon Styles */
+.watched-icon {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 3.5rem; /* Position it to the left of the favorite button */
+    color: #4ade80; /* A bright green color */
+    z-index: 10;
+}
+
+.watched-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
 .numbered-marker-content {
     background: none;
     color: inherit;
