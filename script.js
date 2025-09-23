@@ -1334,9 +1334,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Use the new color values, with fallbacks just in case
                     const bgColor = cuisine.color_background || '#E5E7EB'; // Default to light gray
                     const textColor = cuisine.color_text || '#1F2937';     // Default to dark gray
+                    const icon = cuisine.icon || '🍽️'; // Default to fork and knife emoji
                     return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1" 
                                   style="background-color: ${bgColor}; color: ${textColor};">
-                                ${cuisine.name}
+                                ${icon} ${cuisine.name}
                             </span>`;
                 }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
