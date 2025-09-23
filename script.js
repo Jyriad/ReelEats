@@ -1360,8 +1360,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const icon = L.divIcon({
                 className: 'numbered-marker',
                 html: `<div class="numbered-marker-content ${favoritedClass}">${displayContent}</div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
