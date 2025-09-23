@@ -358,7 +358,7 @@ async function loadAndDisplayCuisines(containerId, preselectedCuisines = []) {
                 id,
                 name,
                 icon,
-                cuisines ( id, name, icon, color )
+                cuisines ( id, name, icon, color_background, color_text )
             `)
             .order('name');
 
@@ -370,9 +370,13 @@ async function loadAndDisplayCuisines(containerId, preselectedCuisines = []) {
             const categorySection = document.createElement('div');
             let buttonsHtml = category.cuisines.map(cuisine => {
                 const isSelected = preselectedCuisines.includes(cuisine.name);
-                const selectedClass = isSelected ? 'selected bg-blue-500 text-white border-blue-500' : `border-${cuisine.color}-300 hover:bg-${cuisine.color}-50 bg-${cuisine.color}-50`;
+                const bgColor = cuisine.color_background || '#E5E7EB';
+                const textColor = cuisine.color_text || '#1F2937';
+                const selectedClass = isSelected ? 'selected' : '';
                 return `
-                    <button type="button" class="cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" data-cuisine="${cuisine.name}">
+                    <button type="button" class="cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" 
+                            data-cuisine="${cuisine.name}"
+                            style="background-color: ${isSelected ? '#3B82F6' : bgColor}; color: ${isSelected ? 'white' : textColor};">
                         ${cuisine.icon || '🍽️'} ${cuisine.name}
                     </button>
                 `;

@@ -15,13 +15,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         const citySelect = document.getElementById('city-select');
         
         // --- State Management ---
-        let currentRestaurants = [];
-        let restaurantMarkers = [];
-        let map; // Define map in a broader scope
-        let mapInitialized = false; // Prevent double initialization
-        let allCuisines = []; // Store all available cuisines for filtering
-        let favoritedRestaurants = new Set();
-        let markerClusterGroup; // Marker cluster group for map clustering
+        // State management - Global scope for tests
+        window.currentRestaurants = [];
+        window.restaurantMarkers = [];
+        window.map = null; // Define map in a broader scope
+        window.mapInitialized = false; // Prevent double initialization
+        window.allCuisines = []; // Store all available cuisines for filtering
+        window.favoritedRestaurants = new Set();
+        window.markerClusterGroup = null; // Marker cluster group for map clustering
+        
+        // Local references for backward compatibility
+        let currentRestaurants = window.currentRestaurants;
+        let restaurantMarkers = window.restaurantMarkers;
+        let map = window.map;
+        let mapInitialized = window.mapInitialized;
+        let allCuisines = window.allCuisines;
+        let favoritedRestaurants = window.favoritedRestaurants;
+        let markerClusterGroup = window.markerClusterGroup;
 
         // --- Authentication ---
         const authContainer = document.getElementById('auth-container');
@@ -378,7 +388,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }).addTo(map);
 
                 // Initialize the marker cluster group with tighter clustering
-                markerClusterGroup = L.markerClusterGroup({
+                window.markerClusterGroup = L.markerClusterGroup({
                     maxClusterRadius: 20, // Only cluster markers within 20 pixels of each other
                     disableClusteringAtZoom: 18, // Disable clustering at high zoom levels
                     spiderfyOnMaxZoom: true, // Show individual markers when zoomed in
@@ -386,12 +396,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
                     chunkedLoading: true // Load markers in chunks for better performance
                 });
-                map.addLayer(markerClusterGroup);
+                map.addLayer(window.markerClusterGroup);
+                markerClusterGroup = window.markerClusterGroup;
                 
                 // Add geolocation functionality
                 addUserLocationMarker();
                 
-                mapInitialized = true;
+                window.mapInitialized = true;
+                mapInitialized = window.mapInitialized;
                 console.log('Map initialized successfully');
             } catch (error) {
                 console.error('Map initialization error:', error);
@@ -594,11 +606,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
 
-            currentRestaurants = restaurants.map(r => ({
+            window.currentRestaurants = restaurants.map(r => ({
                 ...r,
                 tiktok_embed_html: tiktokMap.get(r.id) || null,
                 cuisines: cuisineMap.get(r.id) || []
             }));
+            currentRestaurants = window.currentRestaurants;
             
             displayRestaurants(currentRestaurants);
         }
@@ -1291,7 +1304,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         function displayRestaurants(restaurants) {
             restaurantList.innerHTML = '';
             markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
-            restaurantMarkers = []; // Also clear the local array
+            window.restaurantMarkers = []; // Also clear the local array
+            restaurantMarkers = window.restaurantMarkers;
 
             if (restaurants.length === 0) {
                 restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
@@ -1303,7 +1317,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 restaurantList.appendChild(listItem);
 
                 const marker = createNumberedMarker(restaurant, index);
-                restaurantMarkers.push(marker); // Keep track of markers for other interactions
+                window.restaurantMarkers.push(marker); // Keep track of markers for other interactions
+                restaurantMarkers = window.restaurantMarkers;
                 markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
             });
         }
@@ -1793,7 +1808,7 @@ async function testSupabaseConnection() {
 
 function testMapInitialization() {
     try {
-        if (map && mapInitialized) {
+        if (window.map && window.mapInitialized) {
             testPass('Map Initialization');
         } else {
             throw new Error('Map not initialized');
@@ -1805,7 +1820,7 @@ function testMapInitialization() {
 
 function testRestaurantDataLoading() {
     try {
-        if (currentRestaurants && currentRestaurants.length > 0) {
+        if (window.currentRestaurants && window.currentRestaurants.length > 0) {
             testPass('Restaurant Data Loading');
         } else {
             throw new Error('No restaurant data loaded');
@@ -1817,8 +1832,8 @@ function testRestaurantDataLoading() {
 
 function testCuisineDataStructure() {
     try {
-        if (currentRestaurants && currentRestaurants.length > 0) {
-            const sampleRestaurant = currentRestaurants[0];
+        if (window.currentRestaurants && window.currentRestaurants.length > 0) {
+            const sampleRestaurant = window.currentRestaurants[0];
             if (sampleRestaurant.cuisines && Array.isArray(sampleRestaurant.cuisines)) {
                 if (sampleRestaurant.cuisines.length > 0) {
                     const sampleCuisine = sampleRestaurant.cuisines[0];
@@ -1843,7 +1858,7 @@ function testCuisineDataStructure() {
 
 function testMarkerCreation() {
     try {
-        if (restaurantMarkers && restaurantMarkers.length > 0) {
+        if (window.restaurantMarkers && window.restaurantMarkers.length > 0) {
             testPass('Marker Creation');
         } else {
             throw new Error('No markers created');
@@ -1855,7 +1870,7 @@ function testMarkerCreation() {
 
 function testClusterGroup() {
     try {
-        if (markerClusterGroup) {
+        if (window.markerClusterGroup) {
             testPass('Marker Cluster Group');
         } else {
             throw new Error('Marker cluster group not initialized');
