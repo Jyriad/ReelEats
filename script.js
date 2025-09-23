@@ -632,111 +632,59 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // Populate cuisine filter with all available cuisines
-        function populateCuisineFilter() {
-            // Define cuisine categories with better organization
-            const cuisineCategories = [
-                {
-                    title: 'Asian Cuisines',
-                    emoji: '🍜',
-                    color: 'orange',
-                    cuisines: [
-                        { name: 'Asian', emoji: '🍜' },
-                        { name: 'Chinese', emoji: '🥢' },
-                        { name: 'Japanese', emoji: '🍣' },
-                        { name: 'Korean', emoji: '🥘' },
-                        { name: 'Thai', emoji: '🌶️' },
-                        { name: 'Vietnamese', emoji: '🍲' },
-                        { name: 'Taiwanese', emoji: '🥟' },
-                        { name: 'Sushi', emoji: '🍱' },
-                        { name: 'Poke', emoji: '🐟' }
-                    ]
-                },
-                {
-                    title: 'European & Mediterranean',
-                    emoji: '🍝',
-                    color: 'blue',
-                    cuisines: [
-                        { name: 'Italian', emoji: '🍝' },
-                        { name: 'Greek', emoji: '🫒' },
-                        { name: 'Pizza', emoji: '🍕' },
-                        { name: 'British', emoji: '🇬🇧' },
-                        { name: 'French', emoji: '🥐' }
-                    ]
-                },
-                {
-                    title: 'American & Comfort Food',
-                    emoji: '🍔',
-                    color: 'red',
-                    cuisines: [
-                        { name: 'American', emoji: '🍔' },
-                        { name: 'Burgers', emoji: '🍔' },
-                        { name: 'BBQ', emoji: '🥩' },
-                        { name: 'Comfort food', emoji: '🍗' },
-                        { name: 'Fast food', emoji: '⚡' },
-                        { name: 'Wings', emoji: '🍗' },
-                        { name: 'Soul food', emoji: '❤️' },
-                        { name: 'Hawaiian', emoji: '🏄' }
-                    ]
-                },
-                {
-                    title: 'International',
-                    emoji: '🌍',
-                    color: 'green',
-                    cuisines: [
-                        { name: 'Mexican', emoji: '🌮' },
-                        { name: 'Caribbean', emoji: '🏝️' },
-                        { name: 'Indian', emoji: '🍛' },
-                        { name: 'Middle Eastern', emoji: '🥙' }
-                    ]
-                },
-                {
-                    title: 'Healthy & Specialized',
-                    emoji: '🥗',
-                    color: 'emerald',
-                    cuisines: [
-                        { name: 'Healthy', emoji: '🥗' },
-                        { name: 'Vegan', emoji: '🌱' },
-                        { name: 'Salads', emoji: '🥙' },
-                        { name: 'Fine dining', emoji: '🍾' }
-                    ]
-                },
-                {
-                    title: 'Drinks & Desserts',
-                    emoji: '☕',
-                    color: 'purple',
-                    cuisines: [
-                        { name: 'Coffee', emoji: '☕' },
-                        { name: 'Bubble tea', emoji: '🧋' },
-                        { name: 'Smoothies', emoji: '🥤' },
-                        { name: 'Ice cream', emoji: '🍦' }
-                    ]
-                },
-                {
-                    title: 'Other',
-                    emoji: '🍽️',
-                    color: 'gray',
-                    cuisines: [
-                        { name: 'Breakfast', emoji: '🍳' },
-                        { name: 'Bakery', emoji: '🥐' },
-                        { name: 'Seafood', emoji: '🐟' },
-                        { name: 'Sandwich', emoji: '🥪' },
-                        { name: 'Soup', emoji: '🍲' },
-                        { name: 'Desserts', emoji: '🍰' },
-                        { name: 'Street food', emoji: '🌭' }
-                    ]
-                }
-            ];
-            
-            // Flatten all cuisines for filtering logic
-            allCuisines = cuisineCategories.flatMap(category => 
-                category.cuisines.map(cuisine => cuisine.name)
-            );
-            
-            // Populate desktop filter with categories
-            populateDesktopFilterWithCategories(cuisineCategories);
-            
-            // Populate mobile filter (simple list)
-            populateFilterContainer('cuisine-filter-container-mobile');
+        async function populateCuisineFilter() {
+            try {
+                console.log('🍽️ Loading cuisines for filter from database...');
+                
+                // Fetch all categories and their cuisines from database
+                const { data: categories, error } = await supabaseClient
+                    .from('cuisine_categories')
+                    .select(`
+                        id,
+                        name,
+                        icon,
+                        cuisines ( id, name, icon, color_background, color_text )
+                    `)
+                    .order('name');
+
+                if (error) throw error;
+
+                console.log('🍽️ Loaded cuisine categories:', categories.length);
+
+                // Transform database data to match expected format
+                const cuisineCategories = categories.map(category => ({
+                    title: category.name,
+                    emoji: category.icon || '🍽️',
+                    color: 'blue', // Default color for categories
+                    cuisines: category.cuisines.map(cuisine => ({
+                        name: cuisine.name,
+                        emoji: cuisine.icon || '🍽️',
+                        color_background: cuisine.color_background,
+                        color_text: cuisine.color_text
+                    }))
+                }));
+                
+                // Flatten all cuisines for filtering logic
+                window.allCuisines = cuisineCategories.flatMap(category => 
+                    category.cuisines.map(cuisine => cuisine.name)
+                );
+                allCuisines = window.allCuisines;
+                
+                // Populate desktop filter with categories
+                populateDesktopFilterWithCategories(cuisineCategories);
+                
+                // Populate mobile filter with categories
+                populateMobileFilterWithCategories(cuisineCategories);
+                
+                console.log('🍽️ Cuisine filter populated successfully');
+            } catch (error) {
+                console.error('🍽️ Error loading cuisines for filter:', error);
+                // Fallback to empty state
+                window.allCuisines = [];
+                allCuisines = window.allCuisines;
+                populateDesktopFilterWithCategories([]);
+                populateMobileFilterWithCategories([]);
+            }
         }
         
         // Populate desktop filter with beautiful categories
@@ -777,11 +725,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     checkbox.className = 'cuisine-checkbox absolute inset-0 opacity-0 cursor-pointer z-10';
                     
                     const cardContent = document.createElement('div');
-                    cardContent.className = 'cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md bg-white h-full';
+                    const bgColor = cuisine.color_background || '#F3F4F6';
+                    const textColor = cuisine.color_text || '#374151';
+                    cardContent.className = 'cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md h-full';
+                    cardContent.style.backgroundColor = bgColor;
+                    cardContent.style.color = textColor;
                     cardContent.innerHTML = `
                         <div class="text-center">
                             <div class="text-2xl mb-2">${cuisine.emoji}</div>
-                            <div class="text-sm font-medium text-gray-700">${cuisine.name}</div>
+                            <div class="text-sm font-medium">${cuisine.name}</div>
                         </div>
                     `;
                     
@@ -838,6 +790,70 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 countElement.classList.add('hidden');
             }
+        }
+        
+        // Populate mobile filter with categories
+        function populateMobileFilterWithCategories(cuisineCategories) {
+            const container = document.getElementById('cuisine-filter-container-mobile');
+            if (!container) {
+                console.error('Mobile filter container not found!');
+                return;
+            }
+            
+            console.log('Populating mobile filter with categories:', cuisineCategories.length);
+            container.innerHTML = '';
+            
+            cuisineCategories.forEach(category => {
+                const categorySection = document.createElement('div');
+                categorySection.className = 'mb-6';
+                
+                // Category header
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'flex items-center space-x-2 pb-2 mb-3 border-b border-gray-200';
+                categoryHeader.innerHTML = `
+                    <span class="text-xl">${category.emoji}</span>
+                    <h4 class="text-base font-semibold text-gray-800">${category.title}</h4>
+                `;
+                
+                // Cuisine list
+                const cuisineList = document.createElement('div');
+                cuisineList.className = 'space-y-2';
+                
+                category.cuisines.forEach(cuisine => {
+                    const cuisineItem = document.createElement('div');
+                    cuisineItem.className = 'flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `mobile-cuisine-${cuisine.name}`;
+                    checkbox.value = cuisine.name;
+                    checkbox.className = 'cuisine-checkbox mr-3 text-blue-600 focus:ring-blue-500';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `mobile-cuisine-${cuisine.name}`;
+                    label.className = 'flex items-center flex-1 cursor-pointer';
+                    
+                    const bgColor = cuisine.color_background || '#F3F4F6';
+                    const textColor = cuisine.color_text || '#374151';
+                    
+                    label.innerHTML = `
+                        <span class="text-lg mr-2">${cuisine.emoji}</span>
+                        <span class="text-sm font-medium" style="color: ${textColor};">${cuisine.name}</span>
+                    `;
+                    
+                    // Add subtle background color
+                    cuisineItem.style.backgroundColor = bgColor;
+                    cuisineItem.style.opacity = '0.8';
+                    
+                    cuisineItem.appendChild(checkbox);
+                    cuisineItem.appendChild(label);
+                    cuisineList.appendChild(cuisineItem);
+                });
+                
+                categorySection.appendChild(categoryHeader);
+                categorySection.appendChild(cuisineList);
+                container.appendChild(categorySection);
+            });
         }
         
         // Populate a specific filter container with checkboxes (for mobile)
@@ -1408,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
                 icon: icon,
-                title: firstCuisine ? `${firstCuisine.name} - ${restaurant.name}` : `${index + 1}. ${restaurant.name}`
+                title: restaurant.name
             });
             
             marker.on('click', () => {
