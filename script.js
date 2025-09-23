@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let mapInitialized = false; // Prevent double initialization
         let allCuisines = []; // Store all available cuisines for filtering
         let favoritedRestaurants = new Set();
+        let markerClusterGroup; // Marker cluster group for map clustering
 
         // --- Authentication ---
         const authContainer = document.getElementById('auth-container');
@@ -331,6 +332,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     favoritedRestaurants.delete(restaurantId);
                     favoriteBtn?.classList.remove('favorited');
+                    // Refresh markers to update gold border
+                    displayRestaurants(currentRestaurants);
                 }
             } else {
                 // Add to favorites
@@ -343,6 +346,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     favoritedRestaurants.add(restaurantId);
                     favoriteBtn?.classList.add('favorited');
+                    // Refresh markers to update gold border
+                    displayRestaurants(currentRestaurants);
                 }
             }
         }
@@ -371,6 +376,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     subdomains: 'abcd',
                     maxZoom: 20
                 }).addTo(map);
+
+                // Initialize the marker cluster group with tighter clustering
+                markerClusterGroup = L.markerClusterGroup({
+                    maxClusterRadius: 20, // Only cluster markers within 20 pixels of each other
+                    disableClusteringAtZoom: 18, // Disable clustering at high zoom levels
+                    spiderfyOnMaxZoom: true, // Show individual markers when zoomed in
+                    showCoverageOnHover: false, // Don't show coverage area on hover
+                    zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
+                    chunkedLoading: true // Load markers in chunks for better performance
+                });
+                map.addLayer(markerClusterGroup);
                 
                 // Add geolocation functionality
                 addUserLocationMarker();
@@ -549,7 +565,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .from('restaurant_cuisines')
                 .select(`
                     restaurant_id,
-                    cuisines (name)
+                    cuisines (name, icon, color_background, color_text)
                 `)
                 .in('restaurant_id', restaurantIds);
 
@@ -571,7 +587,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (!cuisineMap.has(rc.restaurant_id)) {
                         cuisineMap.set(rc.restaurant_id, []);
                     }
-                    cuisineMap.get(rc.restaurant_id).push(rc.cuisines.name);
+                    // Push the whole cuisine object
+                    if (rc.cuisines) {
+                        cuisineMap.get(rc.restaurant_id).push(rc.cuisines);
+                    }
                 });
             }
 
@@ -854,6 +873,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Show all restaurants if no cuisines selected
                 console.log('No cuisines selected, showing all restaurants');
                 displayRestaurants(currentRestaurants);
+                // Fit map to show all restaurants
+                fitMapToRestaurants(currentRestaurants);
             } else {
                 // Filter restaurants that have ANY of the selected cuisines
                 const filteredRestaurants = currentRestaurants.filter(restaurant => {
@@ -862,13 +883,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                     // Check if restaurant has at least one of the selected cuisines
                     const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
-                        restaurant.cuisines.includes(selectedCuisine)
+                        restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
                     );
-                    console.log(`Restaurant ${restaurant.name} (${restaurant.cuisines}) matches:`, hasMatchingCuisine);
+                    console.log(`Restaurant ${restaurant.name} (${restaurant.cuisines.map(c => c.name).join(', ')}) matches:`, hasMatchingCuisine);
                     return hasMatchingCuisine;
                 });
                 console.log(`Filtered ${filteredRestaurants.length} restaurants from ${currentRestaurants.length} total`);
                 displayRestaurants(filteredRestaurants);
+                // Fit map to show filtered restaurants
+                fitMapToRestaurants(filteredRestaurants);
             }
         }
         
@@ -896,6 +919,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             updateSelectedCount();
             displayRestaurants(currentRestaurants);
+            // Fit map to show all restaurants when filter is cleared
+            fitMapToRestaurants(currentRestaurants);
         }
         
         // Setup filter toggle functionality
@@ -1140,9 +1165,32 @@ document.addEventListener('DOMContentLoaded', async function() {
             const errorDiv = document.getElementById('login-error');
             
             // Open login modal when admin link is clicked
-            adminLink.addEventListener('click', function(e) {
+            adminLink.addEventListener('click', async function(e) {
                 e.preventDefault();
-                console.log('Admin link clicked, opening login modal');
+                console.log('Admin link clicked');
+                
+                // Check if user is already logged in and has admin privileges
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session && session.user) {
+                    try {
+                        const { data: userRole, error: roleError } = await supabaseClient
+                            .from('user_roles')
+                            .select('role')
+                            .eq('user_id', session.user.id)
+                            .eq('role', 'admin')
+                            .single();
+                        
+                        if (userRole) {
+                            console.log('User already has admin privileges, redirecting to admin panel');
+                            window.location.href = 'admin.html';
+                            return;
+                        }
+                    } catch (error) {
+                        console.log('Error checking admin role:', error);
+                    }
+                }
+                
+                console.log('Opening login modal');
                 loginModal.classList.remove('hidden');
                 loginModal.classList.add('flex');
             });
@@ -1226,10 +1274,35 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        function fitMapToRestaurants(restaurants) {
+            if (!map || !restaurants || restaurants.length === 0) {
+                console.log('🗺️ Cannot fit map - no map or no restaurants');
+                return;
+            }
+
+            console.log(`🗺️ Fitting map to ${restaurants.length} restaurants`);
+            
+            // Create a LatLngBounds object to contain all restaurant locations
+            const bounds = L.latLngBounds();
+            
+            // Add each restaurant's location to the bounds
+            restaurants.forEach(restaurant => {
+                bounds.extend([restaurant.lat, restaurant.lon]);
+            });
+            
+            // Fit the map to show all restaurants with some padding
+            map.fitBounds(bounds, {
+                padding: [20, 20], // Add 20px padding around the bounds
+                maxZoom: 16 // Don't zoom in too close if there are only a few restaurants
+            });
+            
+            console.log('✅ Map fitted to restaurants');
+        }
+
         function displayRestaurants(restaurants) {
             restaurantList.innerHTML = '';
-            restaurantMarkers.forEach(marker => map.removeLayer(marker));
-            restaurantMarkers = [];
+            markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
+            restaurantMarkers = []; // Also clear the local array
 
             if (restaurants.length === 0) {
                 restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
@@ -1239,10 +1312,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             restaurants.forEach((restaurant, index) => {
                 const listItem = createListItem(restaurant, index);
                 restaurantList.appendChild(listItem);
-                
+
                 const marker = createNumberedMarker(restaurant, index);
-                marker.addTo(map);
-                restaurantMarkers.push(marker);
+                restaurantMarkers.push(marker); // Keep track of markers for other interactions
+                markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
             });
         }
         
@@ -1257,9 +1330,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             const number = index + 1;
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
-                ? restaurant.cuisines.map(cuisine => 
-                    `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${cuisine}</span>`
-                  ).join('')
+                ? restaurant.cuisines.map(cuisine => {
+                    // Use the new color values, with fallbacks just in case
+                    const bgColor = cuisine.color_background || '#E5E7EB'; // Default to light gray
+                    const textColor = cuisine.color_text || '#1F2937';     // Default to dark gray
+                    return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1" 
+                                  style="background-color: ${bgColor}; color: ${textColor};">
+                                ${cuisine.name}
+                            </span>`;
+                }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
 
             let distanceHtml = '';
@@ -1310,18 +1389,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function createNumberedMarker(restaurant, index) {
-            // Create a custom numbered icon
-            const number = index + 1; // Start numbering from 1
+            // Get the first cuisine icon, fallback to number if no cuisines
+            const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
+            const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
+            const isFavorited = favoritedRestaurants.has(restaurant.id);
+            const favoritedClass = isFavorited ? 'favorited' : '';
             const icon = L.divIcon({
                 className: 'numbered-marker',
-                html: `<div class="numbered-marker-content">${number}</div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
+                html: `<div class="numbered-marker-content ${favoritedClass}">${displayContent}</div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
                 icon: icon,
-                title: `${number}. ${restaurant.name}`
+                title: firstCuisine ? `${firstCuisine.name} - ${restaurant.name}` : `${index + 1}. ${restaurant.name}`
             });
             
             marker.on('click', () => {
@@ -1408,6 +1490,9 @@ function showVideoFor(restaurant) {
     // Show modal
     videoModal.classList.add('show');
     
+    // Scroll to the restaurant in the side panel (desktop only)
+    scrollToRestaurant(restaurant.id);
+    
     if (videoId) {
         // Try direct iframe approach first
         console.log('Trying direct iframe approach...');
@@ -1475,6 +1560,62 @@ function showVideoFor(restaurant) {
         }, 100);
     }
 }
+
+        function scrollToRestaurant(restaurantId) {
+            // Only scroll on desktop (when the side panel is visible)
+            if (window.innerWidth < 768) {
+                console.log('📱 Mobile detected, skipping scroll');
+                return; // Don't scroll on mobile
+            }
+            
+            console.log(`🔍 Looking for restaurant card with ID: ${restaurantId}`);
+            const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+            
+            if (!restaurantCard) {
+                console.log('❌ Restaurant card not found');
+                return;
+            }
+            
+            console.log('✅ Restaurant card found:', restaurantCard);
+            
+            // Get the restaurant list container
+            const restaurantList = document.getElementById('restaurant-list');
+            if (!restaurantList) {
+                console.log('❌ Restaurant list container not found');
+                return;
+            }
+            
+            console.log('✅ Restaurant list container found');
+            
+            // Wait a bit for any layout changes to complete
+            setTimeout(() => {
+                // Calculate the position to scroll to
+                const cardTop = restaurantCard.offsetTop;
+                const cardHeight = restaurantCard.offsetHeight;
+                const containerHeight = restaurantList.offsetHeight;
+                const currentScrollTop = restaurantList.scrollTop;
+                
+                console.log('📊 Scroll calculations:', {
+                    cardTop,
+                    cardHeight,
+                    containerHeight,
+                    currentScrollTop
+                });
+                
+                // Center the card in the visible area
+                const scrollPosition = cardTop - (containerHeight / 2) + (cardHeight / 2);
+                
+                console.log(`📍 Scrolling to position: ${scrollPosition}`);
+                
+                // Smooth scroll to the restaurant card
+                restaurantList.scrollTo({
+                    top: Math.max(0, scrollPosition),
+                    behavior: 'smooth'
+                });
+                
+                console.log(`✅ Scrolled to restaurant ${restaurantId}`);
+            }, 100); // Small delay to ensure layout is stable
+        }
 
         function closeVideo() {
             videoModal.classList.remove('show');

@@ -93,10 +93,40 @@ async function initializeAdminPanel() {
     console.log('Auth check result:', session);
     
     if (!session) {
-        console.log('No session, attempting admin login...');
-        const loginSuccess = await adminLogin();
-        if (!loginSuccess) {
-            document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Authentication required for admin panel.</p></div>';
+        console.log('No session, checking for existing user session...');
+        
+        // Check if there's an existing session from the main app
+        const { data: { session: existingSession }, error: sessionError } = await supabaseClient.auth.getSession();
+        
+        if (existingSession && existingSession.user) {
+            console.log('Found existing session, checking admin role...');
+            
+            // Check if this user has admin role
+            try {
+                const { data: userRole, error: roleError } = await supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', existingSession.user.id)
+                    .eq('role', 'admin')
+                    .single();
+                
+                if (userRole) {
+                    console.log('Existing user has admin role, proceeding...');
+                    // User is already authenticated and has admin role, proceed
+                } else {
+                    console.log('Existing user does not have admin role');
+                    document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Admin privileges required.</p><a href="index.html">Return to Map</a></div>';
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking admin role:', error);
+                document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Error verifying admin privileges.</p><a href="index.html">Return to Map</a></div>';
+                return;
+            }
+        } else {
+            console.log('No existing session, redirecting to main app for login...');
+            // No existing session, redirect to main app
+            window.location.href = 'index.html';
             return;
         }
     }
@@ -143,6 +173,15 @@ async function initializeAdminPanel() {
         if (container) {
             container.innerHTML = '<p class="text-gray-500 text-center py-8">No videos available</p>';
         }
+    }
+    
+    // Load cuisines for the add restaurant form
+    try {
+        console.log('Loading cuisines...');
+        await loadAndDisplayCuisines('cuisine-selection');
+        console.log('Cuisines loaded successfully');
+    } catch (error) {
+        console.error('Failed to load cuisines:', error);
     }
     
     // Set up event listeners
@@ -306,10 +345,64 @@ function selectRestaurantForTikTok(restaurantId, restaurantName) {
     showStatus(`Selected "${restaurantName}" - ready to add TikTok video!`, 'success');
 }
 
+// Load and display cuisines dynamically from database
+async function loadAndDisplayCuisines(containerId, preselectedCuisines = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    try {
+        // Fetch all categories and their cuisines in one go
+        let { data: categories, error } = await supabaseClient
+            .from('cuisine_categories')
+            .select(`
+                id,
+                name,
+                icon,
+                cuisines ( id, name, icon, color )
+            `)
+            .order('name');
+
+        if (error) throw error;
+
+        container.innerHTML = ''; // Clear existing content
+
+        categories.forEach(category => {
+            const categorySection = document.createElement('div');
+            let buttonsHtml = category.cuisines.map(cuisine => {
+                const isSelected = preselectedCuisines.includes(cuisine.name);
+                const selectedClass = isSelected ? 'selected bg-blue-500 text-white border-blue-500' : `border-${cuisine.color}-300 hover:bg-${cuisine.color}-50 bg-${cuisine.color}-50`;
+                return `
+                    <button type="button" class="cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" data-cuisine="${cuisine.name}">
+                        ${cuisine.icon || '🍽️'} ${cuisine.name}
+                    </button>
+                `;
+            }).join('');
+
+            categorySection.innerHTML = `
+                <h4 class="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                    <span class="text-lg mr-2">${category.icon || '📁'}</span> ${category.name}
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    ${buttonsHtml}
+                </div>
+            `;
+            container.appendChild(categorySection);
+        });
+
+        // Re-attach event listeners to the new buttons
+        setupCuisineSelection(containerId);
+
+    } catch (error) {
+        console.error('Error loading cuisines:', error);
+        container.innerHTML = '<p class="text-red-500">Error: Could not load cuisines from the database.</p>';
+    }
+}
+
 // Set up cuisine selection functionality
-function setupCuisineSelection() {
+function setupCuisineSelection(containerId = null) {
     console.log('🍽️ Setting up cuisine selection...');
-    const cuisineButtons = document.querySelectorAll('.cuisine-btn');
+    const selector = containerId ? `#${containerId} .cuisine-btn` : '.cuisine-btn';
+    const cuisineButtons = document.querySelectorAll(selector);
     console.log('🍽️ Found cuisine buttons:', cuisineButtons.length);
     
     cuisineButtons.forEach((button, index) => {
@@ -2000,9 +2093,15 @@ async function editRestaurant(restaurantId) {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
         modal.innerHTML = `
-            <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+            <div class="relative top-0 mx-auto p-5 border w-full h-full shadow-lg rounded-md bg-white overflow-y-auto">
                 <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Restaurant</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Edit Restaurant</h3>
+                        <button type="button" onclick="closeEditModal()" 
+                                class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                            ×
+                        </button>
+                    </div>
                     
                     <form id="edit-restaurant-form" class="space-y-4">
                         <input type="hidden" id="edit-restaurant-id" value="${restaurant.id}">
@@ -2062,7 +2161,7 @@ async function editRestaurant(restaurantId) {
                         <!-- Cuisine Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-3">Cuisines (Select all that apply)</label>
-                            <div id="edit-cuisine-selection" class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 space-y-4">
+                            <div id="edit-cuisine-selection" class="border border-gray-200 rounded-lg p-4 space-y-4">
                                 <!-- Cuisine buttons will be populated here -->
                             </div>
                             <p class="text-xs text-gray-500 mt-1">Click cuisines to select/deselect. Selected cuisines will be highlighted in blue.</p>
@@ -2114,7 +2213,7 @@ async function editRestaurant(restaurantId) {
         await populateCityDropdown('edit-restaurant-city', restaurant.city_id);
         
         // Populate cuisine selection
-        populateEditCuisineSelection(currentCuisines);
+        await populateEditCuisineSelection(currentCuisines);
         
         // Set up event listeners for edit form
         setupEditFormEventListeners();
@@ -2196,150 +2295,10 @@ async function saveRestaurantChanges(restaurantId) {
 }
 
 // Populate cuisine selection for edit form
-function populateEditCuisineSelection(currentCuisines) {
+async function populateEditCuisineSelection(currentCuisines) {
     console.log('🍽️ Populating edit cuisine selection with current cuisines:', currentCuisines);
-    const cuisineSelection = document.getElementById('edit-cuisine-selection');
-    
-    if (!cuisineSelection) {
-        console.error('🍽️ Edit cuisine selection container not found!');
-        return;
-    }
-    
-    // Get the same cuisine structure as the create form
-    const cuisineCategories = [
-        {
-            title: 'Asian Cuisines',
-            emoji: '🍜',
-            cuisines: [
-                { name: 'Asian', color: 'orange' },
-                { name: 'Chinese', color: 'red' },
-                { name: 'Japanese', color: 'yellow' },
-                { name: 'Korean', color: 'red' },
-                { name: 'Thai', color: 'orange' },
-                { name: 'Vietnamese', color: 'green' },
-                { name: 'Taiwanese', color: 'blue' },
-                { name: 'Sushi', color: 'yellow' },
-                { name: 'Poke', color: 'orange' }
-            ]
-        },
-        {
-            title: 'European & Mediterranean',
-            emoji: '🍝',
-            cuisines: [
-                { name: 'Italian', color: 'green' },
-                { name: 'Greek', color: 'blue' },
-                { name: 'Pizza', color: 'yellow' },
-                { name: 'British', color: 'blue' },
-                { name: 'French', color: 'purple' }
-            ]
-        },
-        {
-            title: 'American & Comfort Food',
-            emoji: '🍔',
-            cuisines: [
-                { name: 'American', color: 'red' },
-                { name: 'Burgers', color: 'yellow' },
-                { name: 'BBQ', color: 'orange' },
-                { name: 'Comfort food', color: 'yellow' },
-                { name: 'Fast food', color: 'red' },
-                { name: 'Wings', color: 'orange' },
-                { name: 'Soul food', color: 'purple' },
-                { name: 'Hawaiian', color: 'green' }
-            ]
-        },
-        {
-            title: 'Latin American',
-            emoji: '🌮',
-            cuisines: [
-                { name: 'Mexican', color: 'red' },
-                { name: 'Caribbean', color: 'orange' }
-            ]
-        },
-        {
-            title: 'Middle Eastern & Indian',
-            emoji: '🍛',
-            cuisines: [
-                { name: 'Indian', color: 'yellow' },
-                { name: 'Middle Eastern', color: 'orange' }
-            ]
-        },
-        {
-            title: 'Specialty & Dietary',
-            emoji: '🥗',
-            cuisines: [
-                { name: 'Healthy', color: 'green' },
-                { name: 'Vegan', color: 'green' },
-                { name: 'Salads', color: 'green' },
-                { name: 'Fine dining', color: 'purple' }
-            ]
-        },
-        {
-            title: 'Beverages & Snacks',
-            emoji: '☕',
-            cuisines: [
-                { name: 'Coffee', color: 'amber' },
-                { name: 'Bubble tea', color: 'pink' },
-                { name: 'Smoothies', color: 'green' },
-                { name: 'Ice cream', color: 'yellow' }
-            ]
-        },
-        {
-            title: 'Breakfast & Bakery',
-            emoji: '🥐',
-            cuisines: [
-                { name: 'Breakfast', color: 'yellow' },
-                { name: 'Bakery', color: 'amber' }
-            ]
-        },
-        {
-            title: 'Other Specialties',
-            emoji: '🍽️',
-            cuisines: [
-                { name: 'Seafood', color: 'blue' },
-                { name: 'Sandwich', color: 'yellow' },
-                { name: 'Soup', color: 'orange' },
-                { name: 'Desserts', color: 'pink' },
-                { name: 'Street food', color: 'orange' }
-            ]
-        }
-    ];
-
-    let html = '';
-    cuisineCategories.forEach(category => {
-        html += `
-            <div>
-                <h4 class="text-sm font-semibold text-gray-800 mb-2 flex items-center">
-                    <span class="text-lg mr-2">${category.emoji}</span> ${category.title}
-                </h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-        `;
-        
-        category.cuisines.forEach(cuisine => {
-            const isSelected = currentCuisines.includes(cuisine.name);
-            const selectedClass = isSelected ? 'selected bg-blue-500 text-white border-blue-500' : `border-${cuisine.color}-300 hover:bg-${cuisine.color}-50 bg-${cuisine.color}-50`;
-            
-            // Get emoji for cuisine
-            const emoji = getCuisineEmoji(cuisine.name);
-            
-            html += `
-                <button type="button" class="edit-cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" data-cuisine="${cuisine.name}">
-                    ${emoji} ${cuisine.name}
-                </button>
-            `;
-        });
-        
-        html += `
-                </div>
-            </div>
-        `;
-    });
-    
-    console.log('🍽️ Setting edit cuisine selection HTML...');
-    cuisineSelection.innerHTML = html;
-    console.log('🍽️ Edit cuisine selection HTML set, found buttons:', document.querySelectorAll('.edit-cuisine-btn').length);
-    
-    // Set up cuisine button event listeners
-    setupEditCuisineSelection();
+    // The container ID inside the edit modal is 'edit-cuisine-selection'
+    await loadAndDisplayCuisines('edit-cuisine-selection', currentCuisines);
 }
 
 // Set up cuisine selection for edit form
@@ -2395,44 +2354,11 @@ function setupEditCuisineSelection() {
     });
 }
 
-// Get cuisine color for edit form
-function getCuisineColor(cuisineName) {
-    const colorMap = {
-        'Asian': 'orange', 'Chinese': 'red', 'Japanese': 'yellow', 'Korean': 'red',
-        'Thai': 'orange', 'Vietnamese': 'green', 'Taiwanese': 'blue', 'Sushi': 'yellow',
-        'Poke': 'orange', 'Italian': 'green', 'Greek': 'blue', 'Pizza': 'yellow',
-        'American': 'red', 'Burgers': 'yellow', 'BBQ': 'orange', 'Comfort food': 'yellow',
-        'Fast food': 'red', 'Wings': 'orange', 'Soul food': 'purple', 'Hawaiian': 'green',
-        'Mexican': 'red', 'Caribbean': 'orange', 'Indian': 'yellow', 'Middle Eastern': 'orange',
-        'Healthy': 'green', 'Vegan': 'green', 'Salads': 'green', 'Fine dining': 'purple',
-        'Coffee': 'amber', 'Bubble tea': 'pink', 'Smoothies': 'green', 'Ice cream': 'yellow',
-        'Breakfast': 'yellow', 'Bakery': 'amber', 'Seafood': 'blue', 'Sandwich': 'yellow',
-        'Soup': 'orange', 'Desserts': 'pink', 'Street food': 'orange'
-    };
-    return colorMap[cuisineName] || 'gray';
-}
 
-// Get cuisine emoji for edit form
-function getCuisineEmoji(cuisineName) {
-    const emojiMap = {
-        'Asian': '🍜', 'Chinese': '🥢', 'Japanese': '🍣', 'Korean': '🥘',
-        'Thai': '🌶️', 'Vietnamese': '🍲', 'Taiwanese': '🥟', 'Sushi': '🍱',
-        'Poke': '🐟', 'Italian': '🍝', 'Greek': '🫒', 'Pizza': '🍕',
-        'American': '🇺🇸', 'Burgers': '🍔', 'BBQ': '🥩', 'Comfort food': '🍽️',
-        'Fast food': '⚡', 'Wings': '🍗', 'Soul food': '❤️', 'Hawaiian': '🏄',
-        'Mexican': '🌮', 'Caribbean': '🏝️', 'Indian': '🍛', 'Middle Eastern': '🥙',
-        'Healthy': '🥗', 'Vegan': '🌱', 'Salads': '🥙', 'Fine dining': '🍾',
-        'Coffee': '☕', 'Bubble tea': '🧋', 'Smoothies': '🥤', 'Ice cream': '🍦',
-        'Breakfast': '🍳', 'Bakery': '🥐', 'Seafood': '🐟', 'Sandwich': '🥪',
-        'Soup': '🍲', 'Desserts': '🍰', 'Street food': '🌭',
-        'British': '🇬🇧', 'French': '🥐'
-    };
-    return emojiMap[cuisineName] || '🍽️';
-}
 
 // Get selected cuisines from edit form
 function getSelectedEditCuisines() {
-    const selectedButtons = document.querySelectorAll('.edit-cuisine-btn.selected');
+    const selectedButtons = document.querySelectorAll('#edit-cuisine-selection .cuisine-btn.selected');
     const cuisines = Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
     console.log('🍽️ getSelectedEditCuisines() called, found:', cuisines);
     return cuisines;
@@ -2441,12 +2367,12 @@ function getSelectedEditCuisines() {
 // Debug function to test edit cuisine selection
 function debugEditCuisineSelection() {
     console.log('🍽️ Debug: Edit cuisine selection status');
-    console.log('🍽️ Total edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn').length);
-    console.log('🍽️ Selected edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn.selected').length);
+    console.log('🍽️ Total edit cuisine buttons:', document.querySelectorAll('#edit-cuisine-selection .cuisine-btn').length);
+    console.log('🍽️ Selected edit cuisine buttons:', document.querySelectorAll('#edit-cuisine-selection .cuisine-btn.selected').length);
     console.log('🍽️ Selected cuisines:', getSelectedEditCuisines());
     
     // Test clicking a button
-    const firstButton = document.querySelector('.edit-cuisine-btn');
+    const firstButton = document.querySelector('#edit-cuisine-selection .cuisine-btn');
     if (firstButton) {
         console.log('🍽️ Testing click on first button:', firstButton.dataset.cuisine);
         firstButton.click();
