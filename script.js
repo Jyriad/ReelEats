@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .from('restaurant_cuisines')
                 .select(`
                     restaurant_id,
-                    cuisines (name)
+                    cuisines (name, icon)
                 `)
                 .in('restaurant_id', restaurantIds);
 
@@ -587,7 +587,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (!cuisineMap.has(rc.restaurant_id)) {
                         cuisineMap.set(rc.restaurant_id, []);
                     }
-                    cuisineMap.get(rc.restaurant_id).push(rc.cuisines.name);
+                    cuisineMap.get(rc.restaurant_id).push({
+                        name: rc.cuisines.name,
+                        icon: rc.cuisines.icon || '🍽️'
+                    });
                 });
             }
 
@@ -1349,20 +1352,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function createNumberedMarker(restaurant, index) {
-            // Create a custom numbered icon
-            const number = index + 1; // Start numbering from 1
+            // Get the first cuisine icon, fallback to number if no cuisines
+            const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
+            const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const favoritedClass = isFavorited ? 'favorited' : '';
             const icon = L.divIcon({
                 className: 'numbered-marker',
-                html: `<div class="numbered-marker-content ${favoritedClass}">${number}</div>`,
+                html: `<div class="numbered-marker-content ${favoritedClass}">${displayContent}</div>`,
                 iconSize: [30, 30],
                 iconAnchor: [15, 15]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
                 icon: icon,
-                title: `${number}. ${restaurant.name}`
+                title: firstCuisine ? `${firstCuisine.name} - ${restaurant.name}` : `${index + 1}. ${restaurant.name}`
             });
             
             marker.on('click', () => {
