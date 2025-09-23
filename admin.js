@@ -376,6 +376,8 @@ async function loadAndDisplayCuisines(containerId, preselectedCuisines = []) {
                 return `
                     <button type="button" class="cuisine-btn px-3 py-2 text-xs border rounded-full transition-colors ${selectedClass}" 
                             data-cuisine="${cuisine.name}"
+                            data-bg-color="${bgColor}"
+                            data-text-color="${textColor}"
                             style="background-color: ${isSelected ? '#3B82F6' : bgColor}; color: ${isSelected ? 'white' : textColor};">
                         ${cuisine.icon || '🍽️'} ${cuisine.name}
                     </button>
@@ -427,21 +429,18 @@ function setupCuisineSelection(containerId = null) {
             if (button.classList.contains('selected')) {
                 // Deselect
                 button.classList.remove('selected');
-                button.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
-                // Restore original color based on data-cuisine
-                const cuisineName = button.dataset.cuisine;
-                const originalColor = getCuisineColor(cuisineName);
-                button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
-                console.log('🍽️ Deselected:', cuisineName);
+                // Restore original styling from data attributes
+                const bgColor = button.dataset.bgColor || '#E5E7EB';
+                const textColor = button.dataset.textColor || '#1F2937';
+                button.style.backgroundColor = bgColor;
+                button.style.color = textColor;
+                console.log('🍽️ Deselected:', button.dataset.cuisine);
             } else {
                 // Select
                 button.classList.add('selected');
-                button.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
-                // Remove original color classes
-                const cuisineName = button.dataset.cuisine;
-                const originalColor = getCuisineColor(cuisineName);
-                button.classList.remove(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
-                console.log('🍽️ Selected:', cuisineName);
+                button.style.backgroundColor = '#3B82F6';
+                button.style.color = 'white';
+                console.log('🍽️ Selected:', button.dataset.cuisine);
             }
             
             // Debug: Show current selection
@@ -458,31 +457,18 @@ function getSelectedCuisines() {
 }
 
 // Get cuisine color for create form
-function getCuisineColor(cuisineName) {
-    const colorMap = {
-        'Asian': 'orange', 'Chinese': 'red', 'Japanese': 'yellow', 'Korean': 'red',
-        'Thai': 'orange', 'Vietnamese': 'green', 'Taiwanese': 'blue', 'Sushi': 'yellow',
-        'Poke': 'orange', 'Italian': 'green', 'Greek': 'blue', 'Pizza': 'yellow',
-        'American': 'red', 'Burgers': 'yellow', 'BBQ': 'orange', 'Comfort food': 'yellow',
-        'Fast food': 'red', 'Wings': 'orange', 'Soul food': 'purple', 'Hawaiian': 'green',
-        'Mexican': 'red', 'Caribbean': 'orange', 'Indian': 'yellow', 'Middle Eastern': 'orange',
-        'Healthy': 'green', 'Vegan': 'green', 'Salads': 'green', 'Fine dining': 'purple',
-        'Coffee': 'amber', 'Bubble tea': 'pink', 'Smoothies': 'green', 'Ice cream': 'yellow',
-        'Breakfast': 'yellow', 'Bakery': 'amber', 'Seafood': 'blue', 'Sandwich': 'yellow',
-        'Soup': 'orange', 'Desserts': 'pink', 'Street food': 'orange'
-    };
-    return colorMap[cuisineName] || 'gray';
-}
+// Note: getCuisineColor function removed - now using database colors via data attributes
 
 // Reset cuisine selection
 function resetCuisineSelection() {
     const cuisineButtons = document.querySelectorAll('.cuisine-btn');
     cuisineButtons.forEach(button => {
-        button.classList.remove('selected', 'bg-blue-500', 'text-white', 'border-blue-500');
-        // Restore original color based on data-cuisine
-        const cuisineName = button.dataset.cuisine;
-        const originalColor = getCuisineColor(cuisineName);
-        button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
+        button.classList.remove('selected');
+        // Restore original styling from data attributes
+        const bgColor = button.dataset.bgColor || '#E5E7EB';
+        const textColor = button.dataset.textColor || '#1F2937';
+        button.style.backgroundColor = bgColor;
+        button.style.color = textColor;
     });
 }
 
@@ -2349,21 +2335,18 @@ function setupEditCuisineSelection() {
             if (button.classList.contains('selected')) {
                 // Deselect
                 button.classList.remove('selected');
-                button.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
-                // Restore original color based on data-cuisine
-                const cuisineName = button.dataset.cuisine;
-                const originalColor = getCuisineColor(cuisineName);
-                button.classList.add(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
-                console.log('🍽️ Deselected edit cuisine:', cuisineName);
+                // Restore original styling from data attributes
+                const bgColor = button.dataset.bgColor || '#E5E7EB';
+                const textColor = button.dataset.textColor || '#1F2937';
+                button.style.backgroundColor = bgColor;
+                button.style.color = textColor;
+                console.log('🍽️ Deselected edit cuisine:', button.dataset.cuisine);
             } else {
                 // Select
                 button.classList.add('selected');
-                button.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
-                // Remove original color classes
-                const cuisineName = button.dataset.cuisine;
-                const originalColor = getCuisineColor(cuisineName);
-                button.classList.remove(`border-${originalColor}-300`, `hover:bg-${originalColor}-50`, `bg-${originalColor}-50`);
-                console.log('🍽️ Selected edit cuisine:', cuisineName);
+                button.style.backgroundColor = '#3B82F6';
+                button.style.color = 'white';
+                console.log('🍽️ Selected edit cuisine:', button.dataset.cuisine);
             }
             
             // Debug: Show current selection
