@@ -1527,31 +1527,57 @@ function showVideoFor(restaurant) {
         function scrollToRestaurant(restaurantId) {
             // Only scroll on desktop (when the side panel is visible)
             if (window.innerWidth < 768) {
+                console.log('📱 Mobile detected, skipping scroll');
                 return; // Don't scroll on mobile
             }
             
+            console.log(`🔍 Looking for restaurant card with ID: ${restaurantId}`);
             const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
-            if (restaurantCard) {
-                // Get the restaurant list container
-                const restaurantList = document.getElementById('restaurant-list');
-                if (restaurantList) {
-                    // Calculate the position to scroll to
-                    const cardTop = restaurantCard.offsetTop;
-                    const cardHeight = restaurantCard.offsetHeight;
-                    const containerHeight = restaurantList.offsetHeight;
-                    
-                    // Center the card in the visible area
-                    const scrollPosition = cardTop - (containerHeight / 2) + (cardHeight / 2);
-                    
-                    // Smooth scroll to the restaurant card
-                    restaurantList.scrollTo({
-                        top: Math.max(0, scrollPosition),
-                        behavior: 'smooth'
-                    });
-                    
-                    console.log(`📍 Scrolled to restaurant ${restaurantId}`);
-                }
+            
+            if (!restaurantCard) {
+                console.log('❌ Restaurant card not found');
+                return;
             }
+            
+            console.log('✅ Restaurant card found:', restaurantCard);
+            
+            // Get the restaurant list container
+            const restaurantList = document.getElementById('restaurant-list');
+            if (!restaurantList) {
+                console.log('❌ Restaurant list container not found');
+                return;
+            }
+            
+            console.log('✅ Restaurant list container found');
+            
+            // Wait a bit for any layout changes to complete
+            setTimeout(() => {
+                // Calculate the position to scroll to
+                const cardTop = restaurantCard.offsetTop;
+                const cardHeight = restaurantCard.offsetHeight;
+                const containerHeight = restaurantList.offsetHeight;
+                const currentScrollTop = restaurantList.scrollTop;
+                
+                console.log('📊 Scroll calculations:', {
+                    cardTop,
+                    cardHeight,
+                    containerHeight,
+                    currentScrollTop
+                });
+                
+                // Center the card in the visible area
+                const scrollPosition = cardTop - (containerHeight / 2) + (cardHeight / 2);
+                
+                console.log(`📍 Scrolling to position: ${scrollPosition}`);
+                
+                // Smooth scroll to the restaurant card
+                restaurantList.scrollTo({
+                    top: Math.max(0, scrollPosition),
+                    behavior: 'smooth'
+                });
+                
+                console.log(`✅ Scrolled to restaurant ${restaurantId}`);
+            }, 100); // Small delay to ensure layout is stable
         }
 
         function closeVideo() {

@@ -237,7 +237,11 @@ html, body {
     transform: translateY(-1px) !important;
 }
 /* Isolate list rendering for perf */
-#restaurant-list { contain: content; }
+#restaurant-list { 
+    contain: content; 
+    overflow-y: auto;
+    max-height: calc(100vh - 120px); /* Account for header and some padding */
+}
 /* Mobile drawer resizing */
 @media (max-width: 767px) {
     :root { --drawer-height: 33vh; }
