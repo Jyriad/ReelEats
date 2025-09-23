@@ -1842,7 +1842,7 @@ function showVideoFor(restaurant) {
         closeVideoBtn.addEventListener('click', closeVideo);
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
         
-        // Check location availability and hide button if not supported
+        // Check location availability and hide button only if user denies permission
         function checkLocationAvailability() {
             const locationBtn = document.getElementById('location-btn');
             if (!locationBtn) return;
@@ -1862,9 +1862,15 @@ function showVideoFor(restaurant) {
                     locationBtn.style.display = 'block';
                 },
                 function(error) {
-                    // Permission denied or error, hide button
-                    console.log('Location permission denied or error:', error.message);
-                    locationBtn.style.display = 'none';
+                    // Only hide button if user explicitly denied permission
+                    if (error.code === error.PERMISSION_DENIED) {
+                        console.log('Location permission explicitly denied, hiding button');
+                        locationBtn.style.display = 'none';
+                    } else {
+                        // Other errors (timeout, unavailable, etc.) - keep button visible
+                        console.log('Location error (not permission denied):', error.message);
+                        locationBtn.style.display = 'block';
+                    }
                 },
                 {
                     timeout: 1000, // Quick timeout for permission check
