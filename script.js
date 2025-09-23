@@ -940,30 +940,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             const selectedCuisines = getSelectedCuisines();
             const hasActiveFilters = selectedCuisines.length > 0;
             
+            // Find or create the count element
+            let countElement = filterBtn.querySelector('.filter-count');
+            if (!countElement) {
+                countElement = document.createElement('div');
+                countElement.className = 'filter-count ml-2 px-2 py-1 bg-blue-500 bg-opacity-20 rounded-full text-xs font-medium';
+                filterBtn.appendChild(countElement);
+            }
+            
             if (hasActiveFilters) {
-                // Add active filter styling with better contrast
-                filterBtn.classList.add('bg-gradient-to-r', 'from-emerald-600', 'to-emerald-700', 'hover:from-emerald-700', 'hover:to-emerald-800', 'ring-2', 'ring-emerald-300', 'ring-opacity-50');
-                filterBtn.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
-                
-                // Add filter indicator with better visibility
-                const existingIndicator = filterBtn.querySelector('.filter-indicator');
-                if (!existingIndicator) {
-                    const indicator = document.createElement('div');
-                    indicator.className = 'filter-indicator absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-emerald-600 flex items-center justify-center';
-                    indicator.innerHTML = '<div class="w-2 h-2 bg-emerald-600 rounded-full"></div>';
-                    filterBtn.style.position = 'relative';
-                    filterBtn.appendChild(indicator);
-                }
+                // Show count
+                countElement.textContent = selectedCuisines.length;
+                countElement.classList.remove('hidden');
             } else {
-                // Remove active filter styling
-                filterBtn.classList.remove('bg-gradient-to-r', 'from-emerald-600', 'to-emerald-700', 'hover:from-emerald-700', 'hover:to-emerald-800', 'ring-2', 'ring-emerald-300', 'ring-opacity-50');
-                filterBtn.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
-                
-                // Remove filter indicator
-                const existingIndicator = filterBtn.querySelector('.filter-indicator');
-                if (existingIndicator) {
-                    existingIndicator.remove();
-                }
+                // Hide count
+                countElement.classList.add('hidden');
             }
         }
 
