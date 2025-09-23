@@ -2093,9 +2093,15 @@ async function editRestaurant(restaurantId) {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
         modal.innerHTML = `
-            <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+            <div class="relative top-0 mx-auto p-5 border w-full h-full shadow-lg rounded-md bg-white overflow-y-auto">
                 <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Restaurant</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Edit Restaurant</h3>
+                        <button type="button" onclick="closeEditModal()" 
+                                class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                            ×
+                        </button>
+                    </div>
                     
                     <form id="edit-restaurant-form" class="space-y-4">
                         <input type="hidden" id="edit-restaurant-id" value="${restaurant.id}">
@@ -2155,7 +2161,7 @@ async function editRestaurant(restaurantId) {
                         <!-- Cuisine Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-3">Cuisines (Select all that apply)</label>
-                            <div id="edit-cuisine-selection" class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 space-y-4">
+                            <div id="edit-cuisine-selection" class="border border-gray-200 rounded-lg p-4 space-y-4">
                                 <!-- Cuisine buttons will be populated here -->
                             </div>
                             <p class="text-xs text-gray-500 mt-1">Click cuisines to select/deselect. Selected cuisines will be highlighted in blue.</p>
