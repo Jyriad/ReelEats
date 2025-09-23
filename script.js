@@ -1406,6 +1406,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 toggleFavorite(restaurant.id);
             });
 
+            // Add hover effects to highlight corresponding marker
+            listItem.addEventListener('mouseenter', () => {
+                highlightMarker(restaurant.id);
+            });
+
+            listItem.addEventListener('mouseleave', () => {
+                unhighlightMarker(restaurant.id);
+            });
+
             return listItem;
         }
 
@@ -1441,6 +1450,51 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showVideoFor(restaurant);
             });
             return marker;
+        }
+
+        // Highlight marker on map when hovering over restaurant card
+        function highlightMarker(restaurantId) {
+            // Find the marker for this restaurant
+            const marker = window.restaurantMarkers.find(m => {
+                // Check if this marker belongs to the restaurant
+                const markerLat = m.getLatLng().lat;
+                const markerLon = m.getLatLng().lng;
+                return window.currentRestaurants.some(restaurant => 
+                    restaurant.id === restaurantId && 
+                    Math.abs(restaurant.lat - markerLat) < 0.0001 && 
+                    Math.abs(restaurant.lon - markerLon) < 0.0001
+                );
+            });
+
+            if (marker) {
+                // Add highlight class to the marker's icon
+                const iconElement = marker.getElement();
+                if (iconElement) {
+                    iconElement.classList.add('highlighted');
+                }
+            }
+        }
+
+        // Remove highlight from marker when mouse leaves restaurant card
+        function unhighlightMarker(restaurantId) {
+            // Find the marker for this restaurant
+            const marker = window.restaurantMarkers.find(m => {
+                const markerLat = m.getLatLng().lat;
+                const markerLon = m.getLatLng().lng;
+                return window.currentRestaurants.some(restaurant => 
+                    restaurant.id === restaurantId && 
+                    Math.abs(restaurant.lat - markerLat) < 0.0001 && 
+                    Math.abs(restaurant.lon - markerLon) < 0.0001
+                );
+            });
+
+            if (marker) {
+                // Remove highlight class from the marker's icon
+                const iconElement = marker.getElement();
+                if (iconElement) {
+                    iconElement.classList.remove('highlighted');
+                }
+            }
         }
 
         // Calculate distance between two coordinates using Haversine formula
