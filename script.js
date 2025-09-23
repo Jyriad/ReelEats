@@ -1156,9 +1156,32 @@ document.addEventListener('DOMContentLoaded', async function() {
             const errorDiv = document.getElementById('login-error');
             
             // Open login modal when admin link is clicked
-            adminLink.addEventListener('click', function(e) {
+            adminLink.addEventListener('click', async function(e) {
                 e.preventDefault();
-                console.log('Admin link clicked, opening login modal');
+                console.log('Admin link clicked');
+                
+                // Check if user is already logged in and has admin privileges
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session && session.user) {
+                    try {
+                        const { data: userRole, error: roleError } = await supabaseClient
+                            .from('user_roles')
+                            .select('role')
+                            .eq('user_id', session.user.id)
+                            .eq('role', 'admin')
+                            .single();
+                        
+                        if (userRole) {
+                            console.log('User already has admin privileges, redirecting to admin panel');
+                            window.location.href = 'admin.html';
+                            return;
+                        }
+                    } catch (error) {
+                        console.log('Error checking admin role:', error);
+                    }
+                }
+                
+                console.log('Opening login modal');
                 loginModal.classList.remove('hidden');
                 loginModal.classList.add('flex');
             });

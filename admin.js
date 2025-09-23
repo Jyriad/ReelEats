@@ -93,10 +93,40 @@ async function initializeAdminPanel() {
     console.log('Auth check result:', session);
     
     if (!session) {
-        console.log('No session, attempting admin login...');
-        const loginSuccess = await adminLogin();
-        if (!loginSuccess) {
-            document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Authentication required for admin panel.</p></div>';
+        console.log('No session, checking for existing user session...');
+        
+        // Check if there's an existing session from the main app
+        const { data: { session: existingSession }, error: sessionError } = await supabaseClient.auth.getSession();
+        
+        if (existingSession && existingSession.user) {
+            console.log('Found existing session, checking admin role...');
+            
+            // Check if this user has admin role
+            try {
+                const { data: userRole, error: roleError } = await supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', existingSession.user.id)
+                    .eq('role', 'admin')
+                    .single();
+                
+                if (userRole) {
+                    console.log('Existing user has admin role, proceeding...');
+                    // User is already authenticated and has admin role, proceed
+                } else {
+                    console.log('Existing user does not have admin role');
+                    document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Admin privileges required.</p><a href="index.html">Return to Map</a></div>';
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking admin role:', error);
+                document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Error verifying admin privileges.</p><a href="index.html">Return to Map</a></div>';
+                return;
+            }
+        } else {
+            console.log('No existing session, redirecting to main app for login...');
+            // No existing session, redirect to main app
+            window.location.href = 'index.html';
             return;
         }
     }
@@ -2322,7 +2352,7 @@ function setupEditCuisineSelection() {
 
 // Get selected cuisines from edit form
 function getSelectedEditCuisines() {
-    const selectedButtons = document.querySelectorAll('.edit-cuisine-btn.selected');
+    const selectedButtons = document.querySelectorAll('#edit-cuisine-selection .cuisine-btn.selected');
     const cuisines = Array.from(selectedButtons).map(btn => btn.dataset.cuisine);
     console.log('🍽️ getSelectedEditCuisines() called, found:', cuisines);
     return cuisines;
@@ -2331,12 +2361,12 @@ function getSelectedEditCuisines() {
 // Debug function to test edit cuisine selection
 function debugEditCuisineSelection() {
     console.log('🍽️ Debug: Edit cuisine selection status');
-    console.log('🍽️ Total edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn').length);
-    console.log('🍽️ Selected edit cuisine buttons:', document.querySelectorAll('.edit-cuisine-btn.selected').length);
+    console.log('🍽️ Total edit cuisine buttons:', document.querySelectorAll('#edit-cuisine-selection .cuisine-btn').length);
+    console.log('🍽️ Selected edit cuisine buttons:', document.querySelectorAll('#edit-cuisine-selection .cuisine-btn.selected').length);
     console.log('🍽️ Selected cuisines:', getSelectedEditCuisines());
     
     // Test clicking a button
-    const firstButton = document.querySelector('.edit-cuisine-btn');
+    const firstButton = document.querySelector('#edit-cuisine-selection .cuisine-btn');
     if (firstButton) {
         console.log('🍽️ Testing click on first button:', firstButton.dataset.cuisine);
         firstButton.click();
