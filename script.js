@@ -1170,17 +1170,25 @@ document.addEventListener('DOMContentLoaded', async function() {
             const selectedCuisines = getSelectedCuisines();
             const hasActiveFilters = selectedCuisines.length > 0;
             
-            // Use the existing count element
+            // Update count element
             const countElement = document.getElementById('selected-count');
-            if (!countElement) return;
+            const subtitleElement = document.getElementById('filter-subtitle');
             
             if (hasActiveFilters) {
                 // Show count
                 countElement.textContent = selectedCuisines.length;
                 countElement.classList.remove('hidden');
+                
+                // Update subtitle
+                if (selectedCuisines.length === 1) {
+                    subtitleElement.textContent = selectedCuisines[0];
+                } else {
+                    subtitleElement.textContent = `${selectedCuisines.length} cuisines selected`;
+                }
             } else {
-                // Hide count
+                // Hide count and reset subtitle
                 countElement.classList.add('hidden');
+                subtitleElement.textContent = 'All cuisines';
             }
         }
 
