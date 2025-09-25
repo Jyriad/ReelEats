@@ -1596,6 +1596,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 restaurantMarkers = window.restaurantMarkers;
                 markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
             });
+            
+            // Update restaurant cards with distance information if user location is available
+            updateRestaurantCardsWithDistance();
         }
         
         function createListItem(restaurant, index) {
@@ -1621,14 +1624,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
 
+            // Distance will be added by updateRestaurantCardsWithDistance() when user location is available
             let distanceHtml = '';
-            if (window.userLocation) {
-                const distance = calculateDistance(window.userLocation.lat, window.userLocation.lon, restaurant.lat, restaurant.lon);
-                distanceHtml = `<div class="mt-1 text-xs text-gray-500 flex items-center">
-                    <span class="mr-1">📍</span>
-                    <span>${distance} away</span>
-                </div>`;
-            }
 
             listItem.innerHTML = `
                 <div class="flex-shrink-0 mr-3">
