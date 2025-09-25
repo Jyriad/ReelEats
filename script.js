@@ -9,19 +9,73 @@ document.addEventListener('DOMContentLoaded', async function() {
         const mapElement = document.getElementById('map');
         const restaurantList = document.getElementById('restaurant-list');
         const videoModal = document.getElementById('video-modal');
-        const videoContainer = videoModal.querySelector('.video-container');
+        const videoContainer = videoModal ? videoModal.querySelector('.video-container') : null;
         const videoTitleEl = document.getElementById('video-title');
-        const closeVideoBtn = videoModal.querySelector('.close-video-btn');
+        const closeVideoBtn = videoModal ? videoModal.querySelector('.close-video-btn') : null;
         const citySelect = document.getElementById('city-select');
         
+        // Check if essential elements exist
+        if (!mapElement) {
+            throw new Error('Map element not found');
+        }
+        if (!restaurantList) {
+            throw new Error('Restaurant list element not found');
+        }
+        if (!videoModal) {
+            throw new Error('Video modal element not found');
+        }
+        
         // --- State Management ---
-        let currentRestaurants = [];
-        let restaurantMarkers = [];
-        let map; // Define map in a broader scope
-        let mapInitialized = false; // Prevent double initialization
-        let allCuisines = []; // Store all available cuisines for filtering
-        let favoritedRestaurants = new Set();
-        let markerClusterGroup; // Marker cluster group for map clustering
+        // State management - Global scope for tests
+        window.currentRestaurants = [];
+        window.restaurantMarkers = [];
+        window.map = null; // Define map in a broader scope
+        window.mapInitialized = false; // Prevent double initialization
+        window.allCuisines = []; // Store all available cuisines for filtering
+        window.favoritedRestaurants = new Set();
+        window.markerClusterGroup = null; // Marker cluster group for map clustering
+        
+        // Watched videos state management
+        let watchedVideos = new Set();
+        
+        // Load watched videos from localStorage
+        function loadWatchedVideos() {
+            const watched = localStorage.getItem('reelEats_watchedVideos');
+            if (watched) {
+                watchedVideos = new Set(JSON.parse(watched));
+            }
+        }
+        
+        // Load watched videos now that the variable is declared
+        loadWatchedVideos();
+        
+        // Add video to watched list and save to localStorage
+        function addVideoToWatched(restaurantId) {
+            watchedVideos.add(restaurantId);
+            localStorage.setItem('reelEats_watchedVideos', JSON.stringify([...watchedVideos]));
+        }
+        
+        // Create watched icon element
+        function createWatchedIcon() {
+            const iconWrapper = document.createElement('div');
+            iconWrapper.className = 'watched-icon';
+            iconWrapper.title = 'You have watched this video';
+            iconWrapper.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+            `;
+            return iconWrapper;
+        }
+        
+        // Local references for backward compatibility
+        let currentRestaurants = window.currentRestaurants;
+        let restaurantMarkers = window.restaurantMarkers;
+        let map = window.map;
+        let mapInitialized = window.mapInitialized;
+        let allCuisines = window.allCuisines;
+        let favoritedRestaurants = window.favoritedRestaurants;
+        let markerClusterGroup = window.markerClusterGroup;
 
         // --- Authentication ---
         const authContainer = document.getElementById('auth-container');
@@ -378,7 +432,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }).addTo(map);
 
                 // Initialize the marker cluster group with tighter clustering
-                markerClusterGroup = L.markerClusterGroup({
+                window.markerClusterGroup = L.markerClusterGroup({
                     maxClusterRadius: 20, // Only cluster markers within 20 pixels of each other
                     disableClusteringAtZoom: 18, // Disable clustering at high zoom levels
                     spiderfyOnMaxZoom: true, // Show individual markers when zoomed in
@@ -386,12 +440,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
                     chunkedLoading: true // Load markers in chunks for better performance
                 });
-                map.addLayer(markerClusterGroup);
+                map.addLayer(window.markerClusterGroup);
+                markerClusterGroup = window.markerClusterGroup;
                 
                 // Add geolocation functionality
                 addUserLocationMarker();
                 
-                mapInitialized = true;
+                window.mapInitialized = true;
+                mapInitialized = window.mapInitialized;
                 console.log('Map initialized successfully');
             } catch (error) {
                 console.error('Map initialization error:', error);
@@ -594,11 +650,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
 
-            currentRestaurants = restaurants.map(r => ({
+            window.currentRestaurants = restaurants.map(r => ({
                 ...r,
                 tiktok_embed_html: tiktokMap.get(r.id) || null,
                 cuisines: cuisineMap.get(r.id) || []
             }));
+            currentRestaurants = window.currentRestaurants;
             
             displayRestaurants(currentRestaurants);
         }
@@ -619,111 +676,59 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // Populate cuisine filter with all available cuisines
-        function populateCuisineFilter() {
-            // Define cuisine categories with better organization
-            const cuisineCategories = [
-                {
-                    title: 'Asian Cuisines',
-                    emoji: '🍜',
-                    color: 'orange',
-                    cuisines: [
-                        { name: 'Asian', emoji: '🍜' },
-                        { name: 'Chinese', emoji: '🥢' },
-                        { name: 'Japanese', emoji: '🍣' },
-                        { name: 'Korean', emoji: '🥘' },
-                        { name: 'Thai', emoji: '🌶️' },
-                        { name: 'Vietnamese', emoji: '🍲' },
-                        { name: 'Taiwanese', emoji: '🥟' },
-                        { name: 'Sushi', emoji: '🍱' },
-                        { name: 'Poke', emoji: '🐟' }
-                    ]
-                },
-                {
-                    title: 'European & Mediterranean',
-                    emoji: '🍝',
-                    color: 'blue',
-                    cuisines: [
-                        { name: 'Italian', emoji: '🍝' },
-                        { name: 'Greek', emoji: '🫒' },
-                        { name: 'Pizza', emoji: '🍕' },
-                        { name: 'British', emoji: '🇬🇧' },
-                        { name: 'French', emoji: '🥐' }
-                    ]
-                },
-                {
-                    title: 'American & Comfort Food',
-                    emoji: '🍔',
-                    color: 'red',
-                    cuisines: [
-                        { name: 'American', emoji: '🍔' },
-                        { name: 'Burgers', emoji: '🍔' },
-                        { name: 'BBQ', emoji: '🥩' },
-                        { name: 'Comfort food', emoji: '🍗' },
-                        { name: 'Fast food', emoji: '⚡' },
-                        { name: 'Wings', emoji: '🍗' },
-                        { name: 'Soul food', emoji: '❤️' },
-                        { name: 'Hawaiian', emoji: '🏄' }
-                    ]
-                },
-                {
-                    title: 'International',
-                    emoji: '🌍',
-                    color: 'green',
-                    cuisines: [
-                        { name: 'Mexican', emoji: '🌮' },
-                        { name: 'Caribbean', emoji: '🏝️' },
-                        { name: 'Indian', emoji: '🍛' },
-                        { name: 'Middle Eastern', emoji: '🥙' }
-                    ]
-                },
-                {
-                    title: 'Healthy & Specialized',
-                    emoji: '🥗',
-                    color: 'emerald',
-                    cuisines: [
-                        { name: 'Healthy', emoji: '🥗' },
-                        { name: 'Vegan', emoji: '🌱' },
-                        { name: 'Salads', emoji: '🥙' },
-                        { name: 'Fine dining', emoji: '🍾' }
-                    ]
-                },
-                {
-                    title: 'Drinks & Desserts',
-                    emoji: '☕',
-                    color: 'purple',
-                    cuisines: [
-                        { name: 'Coffee', emoji: '☕' },
-                        { name: 'Bubble tea', emoji: '🧋' },
-                        { name: 'Smoothies', emoji: '🥤' },
-                        { name: 'Ice cream', emoji: '🍦' }
-                    ]
-                },
-                {
-                    title: 'Other',
-                    emoji: '🍽️',
-                    color: 'gray',
-                    cuisines: [
-                        { name: 'Breakfast', emoji: '🍳' },
-                        { name: 'Bakery', emoji: '🥐' },
-                        { name: 'Seafood', emoji: '🐟' },
-                        { name: 'Sandwich', emoji: '🥪' },
-                        { name: 'Soup', emoji: '🍲' },
-                        { name: 'Desserts', emoji: '🍰' },
-                        { name: 'Street food', emoji: '🌭' }
-                    ]
-                }
-            ];
-            
-            // Flatten all cuisines for filtering logic
-            allCuisines = cuisineCategories.flatMap(category => 
-                category.cuisines.map(cuisine => cuisine.name)
-            );
-            
-            // Populate desktop filter with categories
-            populateDesktopFilterWithCategories(cuisineCategories);
-            
-            // Populate mobile filter (simple list)
-            populateFilterContainer('cuisine-filter-container-mobile');
+        async function populateCuisineFilter() {
+            try {
+                console.log('🍽️ Loading cuisines for filter from database...');
+                
+                // Fetch all categories and their cuisines from database
+                const { data: categories, error } = await supabaseClient
+                    .from('cuisine_categories')
+                    .select(`
+                        id,
+                        name,
+                        icon,
+                        cuisines ( id, name, icon, color_background, color_text )
+                    `)
+                    .order('name');
+
+                if (error) throw error;
+
+                console.log('🍽️ Loaded cuisine categories:', categories.length);
+
+                // Transform database data to match expected format
+                const cuisineCategories = categories.map(category => ({
+                    title: category.name,
+                    emoji: category.icon || '🍽️',
+                    color: 'blue', // Default color for categories
+                    cuisines: category.cuisines.map(cuisine => ({
+                        name: cuisine.name,
+                        emoji: cuisine.icon || '🍽️',
+                        color_background: cuisine.color_background,
+                        color_text: cuisine.color_text
+                    }))
+                }));
+                
+                // Flatten all cuisines for filtering logic
+                window.allCuisines = cuisineCategories.flatMap(category => 
+                    category.cuisines.map(cuisine => cuisine.name)
+                );
+                allCuisines = window.allCuisines;
+                
+                // Populate desktop filter with categories
+                populateDesktopFilterWithCategories(cuisineCategories);
+                
+                // Populate mobile filter with categories
+                populateMobileFilterWithCategories(cuisineCategories);
+                
+                console.log('🍽️ Cuisine filter populated successfully');
+            } catch (error) {
+                console.error('🍽️ Error loading cuisines for filter:', error);
+                // Fallback to empty state
+                window.allCuisines = [];
+                allCuisines = window.allCuisines;
+                populateDesktopFilterWithCategories([]);
+                populateMobileFilterWithCategories([]);
+            }
         }
         
         // Populate desktop filter with beautiful categories
@@ -764,11 +769,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     checkbox.className = 'cuisine-checkbox absolute inset-0 opacity-0 cursor-pointer z-10';
                     
                     const cardContent = document.createElement('div');
-                    cardContent.className = 'cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md bg-white h-full';
+                    const bgColor = cuisine.color_background || '#F3F4F6';
+                    const textColor = cuisine.color_text || '#374151';
+                    cardContent.className = 'cuisine-card-content p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 group-hover:border-blue-300 group-hover:shadow-md h-full';
+                    cardContent.style.backgroundColor = bgColor;
+                    cardContent.style.color = textColor;
                     cardContent.innerHTML = `
                         <div class="text-center">
                             <div class="text-2xl mb-2">${cuisine.emoji}</div>
-                            <div class="text-sm font-medium text-gray-700">${cuisine.name}</div>
+                            <div class="text-sm font-medium">${cuisine.name}</div>
                         </div>
                     `;
                     
@@ -827,6 +836,70 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
         
+        // Populate mobile filter with categories
+        function populateMobileFilterWithCategories(cuisineCategories) {
+            const container = document.getElementById('cuisine-filter-container-mobile');
+            if (!container) {
+                console.error('Mobile filter container not found!');
+                return;
+            }
+            
+            console.log('Populating mobile filter with categories:', cuisineCategories.length);
+            container.innerHTML = '';
+            
+            cuisineCategories.forEach(category => {
+                const categorySection = document.createElement('div');
+                categorySection.className = 'mb-6';
+                
+                // Category header
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'flex items-center space-x-2 pb-2 mb-3 border-b border-gray-200';
+                categoryHeader.innerHTML = `
+                    <span class="text-xl">${category.emoji}</span>
+                    <h4 class="text-base font-semibold text-gray-800">${category.title}</h4>
+                `;
+                
+                // Cuisine list
+                const cuisineList = document.createElement('div');
+                cuisineList.className = 'space-y-2';
+                
+                category.cuisines.forEach(cuisine => {
+                    const cuisineItem = document.createElement('div');
+                    cuisineItem.className = 'flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `mobile-cuisine-${cuisine.name}`;
+                    checkbox.value = cuisine.name;
+                    checkbox.className = 'cuisine-checkbox mr-3 text-blue-600 focus:ring-blue-500';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `mobile-cuisine-${cuisine.name}`;
+                    label.className = 'flex items-center flex-1 cursor-pointer';
+                    
+                    const bgColor = cuisine.color_background || '#F3F4F6';
+                    const textColor = cuisine.color_text || '#374151';
+                    
+                    label.innerHTML = `
+                        <span class="text-lg mr-2">${cuisine.emoji}</span>
+                        <span class="text-sm font-medium" style="color: ${textColor};">${cuisine.name}</span>
+                    `;
+                    
+                    // Add subtle background color
+                    cuisineItem.style.backgroundColor = bgColor;
+                    cuisineItem.style.opacity = '0.8';
+                    
+                    cuisineItem.appendChild(checkbox);
+                    cuisineItem.appendChild(label);
+                    cuisineList.appendChild(cuisineItem);
+                });
+                
+                categorySection.appendChild(categoryHeader);
+                categorySection.appendChild(cuisineList);
+                container.appendChild(categorySection);
+            });
+        }
+        
         // Populate a specific filter container with checkboxes (for mobile)
         function populateFilterContainer(containerId) {
             const container = document.getElementById(containerId);
@@ -867,11 +940,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Filter restaurants by selected cuisines (multiple selection)
         function filterRestaurantsByCuisines() {
             const selectedCuisines = getSelectedCuisines();
-            console.log('Filtering restaurants with cuisines:', selectedCuisines);
+            
+            // Update filter button appearance
+            updateFilterButtonAppearance();
             
             if (selectedCuisines.length === 0) {
                 // Show all restaurants if no cuisines selected
-                console.log('No cuisines selected, showing all restaurants');
                 displayRestaurants(currentRestaurants);
                 // Fit map to show all restaurants
                 fitMapToRestaurants(currentRestaurants);
@@ -885,10 +959,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
                         restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
                     );
-                    console.log(`Restaurant ${restaurant.name} (${restaurant.cuisines.map(c => c.name).join(', ')}) matches:`, hasMatchingCuisine);
                     return hasMatchingCuisine;
                 });
-                console.log(`Filtered ${filteredRestaurants.length} restaurants from ${currentRestaurants.length} total`);
                 displayRestaurants(filteredRestaurants);
                 // Fit map to show filtered restaurants
                 fitMapToRestaurants(filteredRestaurants);
@@ -906,6 +978,25 @@ document.addEventListener('DOMContentLoaded', async function() {
             return Array.from(allCheckboxes).map(checkbox => checkbox.value);
         }
         
+        // Update filter button appearance based on active filters
+        function updateFilterButtonAppearance() {
+            const selectedCuisines = getSelectedCuisines();
+            const hasActiveFilters = selectedCuisines.length > 0;
+            
+            // Use the existing count element
+            const countElement = document.getElementById('selected-count');
+            if (!countElement) return;
+            
+            if (hasActiveFilters) {
+                // Show count
+                countElement.textContent = selectedCuisines.length;
+                countElement.classList.remove('hidden');
+            } else {
+                // Hide count
+                countElement.classList.add('hidden');
+            }
+        }
+
         // Clear all cuisine filters
         function clearAllCuisineFilters() {
             const checkboxes = document.querySelectorAll('.cuisine-checkbox');
@@ -918,6 +1009,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
             updateSelectedCount();
+            updateFilterButtonAppearance();
             displayRestaurants(currentRestaurants);
             // Fit map to show all restaurants when filter is cleared
             fitMapToRestaurants(currentRestaurants);
@@ -1055,9 +1147,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Apply desktop filter
         function applyDesktopFilter() {
-            console.log('Applying desktop filter...');
             const selectedCuisines = getSelectedCuisines();
-            console.log('Selected cuisines:', selectedCuisines);
             
             // Apply the filter
             filterRestaurantsByCuisines();
@@ -1276,11 +1366,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function fitMapToRestaurants(restaurants) {
             if (!map || !restaurants || restaurants.length === 0) {
-                console.log('🗺️ Cannot fit map - no map or no restaurants');
                 return;
             }
-
-            console.log(`🗺️ Fitting map to ${restaurants.length} restaurants`);
             
             // Create a LatLngBounds object to contain all restaurant locations
             const bounds = L.latLngBounds();
@@ -1295,14 +1382,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 padding: [20, 20], // Add 20px padding around the bounds
                 maxZoom: 16 // Don't zoom in too close if there are only a few restaurants
             });
-            
-            console.log('✅ Map fitted to restaurants');
         }
 
         function displayRestaurants(restaurants) {
             restaurantList.innerHTML = '';
             markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
-            restaurantMarkers = []; // Also clear the local array
+            window.restaurantMarkers = []; // Also clear the local array
+            restaurantMarkers = window.restaurantMarkers;
 
             if (restaurants.length === 0) {
                 restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
@@ -1314,7 +1400,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 restaurantList.appendChild(listItem);
 
                 const marker = createNumberedMarker(restaurant, index);
-                restaurantMarkers.push(marker); // Keep track of markers for other interactions
+                window.restaurantMarkers.push(marker); // Keep track of markers for other interactions
+                restaurantMarkers = window.restaurantMarkers;
                 markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
             });
         }
@@ -1334,9 +1421,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Use the new color values, with fallbacks just in case
                     const bgColor = cuisine.color_background || '#E5E7EB'; // Default to light gray
                     const textColor = cuisine.color_text || '#1F2937';     // Default to dark gray
+                    const icon = cuisine.icon || '🍽️'; // Default to fork and knife emoji
                     return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1" 
                                   style="background-color: ${bgColor}; color: ${textColor};">
-                                ${cuisine.name}
+                                ${icon} ${cuisine.name}
                             </span>`;
                 }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
@@ -1385,6 +1473,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 toggleFavorite(restaurant.id);
             });
 
+            // Add hover effects to highlight corresponding marker
+            listItem.addEventListener('mouseenter', () => {
+                highlightMarker(restaurant.id);
+            });
+
+            listItem.addEventListener('mouseleave', () => {
+                unhighlightMarker(restaurant.id);
+            });
+
+            // Check if video has been watched and add icon if necessary
+            if (watchedVideos.has(restaurant.id)) {
+                const watchedIcon = createWatchedIcon();
+                listItem.appendChild(watchedIcon);
+            }
+
             return listItem;
         }
 
@@ -1403,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
                 icon: icon,
-                title: firstCuisine ? `${firstCuisine.name} - ${restaurant.name}` : `${index + 1}. ${restaurant.name}`
+                title: restaurant.name
             });
             
             marker.on('click', () => {
@@ -1420,6 +1523,51 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showVideoFor(restaurant);
             });
             return marker;
+        }
+
+        // Highlight marker on map when hovering over restaurant card
+        function highlightMarker(restaurantId) {
+            // Find the marker for this restaurant
+            const marker = window.restaurantMarkers.find(m => {
+                // Check if this marker belongs to the restaurant
+                const markerLat = m.getLatLng().lat;
+                const markerLon = m.getLatLng().lng;
+                return window.currentRestaurants.some(restaurant => 
+                    restaurant.id === restaurantId && 
+                    Math.abs(restaurant.lat - markerLat) < 0.0001 && 
+                    Math.abs(restaurant.lon - markerLon) < 0.0001
+                );
+            });
+
+            if (marker) {
+                // Add highlight class to the marker's icon
+                const iconElement = marker.getElement();
+                if (iconElement) {
+                    iconElement.classList.add('highlighted');
+                }
+            }
+        }
+
+        // Remove highlight from marker when mouse leaves restaurant card
+        function unhighlightMarker(restaurantId) {
+            // Find the marker for this restaurant
+            const marker = window.restaurantMarkers.find(m => {
+                const markerLat = m.getLatLng().lat;
+                const markerLon = m.getLatLng().lng;
+                return window.currentRestaurants.some(restaurant => 
+                    restaurant.id === restaurantId && 
+                    Math.abs(restaurant.lat - markerLat) < 0.0001 && 
+                    Math.abs(restaurant.lon - markerLon) < 0.0001
+                );
+            });
+
+            if (marker) {
+                // Remove highlight class from the marker's icon
+                const iconElement = marker.getElement();
+                if (iconElement) {
+                    iconElement.classList.remove('highlighted');
+                }
+            }
         }
 
         // Calculate distance between two coordinates using Haversine formula
@@ -1474,147 +1622,125 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // script.js
 
-function showVideoFor(restaurant) {
-    if (!restaurant.tiktok_embed_html) {
-        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
-        videoModal.classList.add('show');
-        return;
-    }
+        function showVideoFor(restaurant) {
+            if (!restaurant.tiktok_embed_html) {
+                videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
+                videoModal.classList.add('show');
+                return;
+            }
 
-    // Extract video ID from embed HTML
-    const videoIdMatch = restaurant.tiktok_embed_html.match(/data-video-id="(\d+)"/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-    
-    console.log('🎬 Loading video:', videoId);
+            // Mark the video as watched and update the UI
+            addVideoToWatched(restaurant.id);
+            const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
+            if (listItem && !listItem.querySelector('.watched-icon')) {
+                const watchedIcon = createWatchedIcon();
+                listItem.appendChild(watchedIcon);
+            }
 
-    // Show modal
-    videoModal.classList.add('show');
+            // Extract video ID from embed HTML
+            const videoIdMatch = restaurant.tiktok_embed_html.match(/data-video-id="(\d+)"/);
+            const videoId = videoIdMatch ? videoIdMatch[1] : null;
+            
+            console.log('🎬 Loading video:', videoId);
+
+            // Show modal
+            videoModal.classList.add('show');
+            
+            // Scroll to the restaurant in the side panel (desktop only)
+            scrollToRestaurant(restaurant.id);
     
-    // Scroll to the restaurant in the side panel (desktop only)
-    scrollToRestaurant(restaurant.id);
-    
-    if (videoId) {
-        // Try direct iframe approach first
-        console.log('Trying direct iframe approach...');
-        videoContainer.innerHTML = `
-            <iframe 
-                src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
-                width="330" 
-                height="585" 
-                frameborder="0" 
-                allowfullscreen
-                allow="encrypted-media"
-                style="border: none; background: white;">
-            </iframe>
-        `;
+            if (videoId) {
+                // Try direct iframe approach first
+                console.log('Trying direct iframe approach...');
+                videoContainer.innerHTML = `
+                    <iframe 
+                        src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
+                        width="330" 
+                        height="585" 
+                        frameborder="0" 
+                        allowfullscreen
+                        allow="encrypted-media"
+                        style="border: none; background: white;">
+                    </iframe>
+                `;
         
-        // If iframe doesn't work after 3 seconds, try blockquote approach
-        setTimeout(() => {
-            const iframe = videoContainer.querySelector('iframe');
-            if (iframe) {
-                iframe.onload = () => {
-                    console.log('✅ Direct iframe loaded');
-                };
-                iframe.onerror = () => {
-                    console.log('❌ Direct iframe failed, trying blockquote...');
-                    fallbackToBlockquote();
-                };
-                
-                // Also check if iframe content is loading after 3 seconds
+                // If iframe doesn't work after 3 seconds, try blockquote approach
                 setTimeout(() => {
-                    try {
-                        // Check if iframe has content
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        if (!iframeDoc || iframeDoc.body.children.length === 0) {
-                            console.log('⚠️ Iframe appears empty, trying blockquote...');
+                    const iframe = videoContainer.querySelector('iframe');
+                    if (iframe) {
+                        iframe.onload = () => {
+                            console.log('✅ Direct iframe loaded');
+                        };
+                        iframe.onerror = () => {
+                            console.log('❌ Direct iframe failed, trying blockquote...');
                             fallbackToBlockquote();
-                        }
-                    } catch (e) {
-                        // Cross-origin, which is expected - iframe is probably working
-                        console.log('✅ Iframe cross-origin (likely working)');
+                        };
+                        
+                        // Also check if iframe content is loading after 3 seconds
+                        setTimeout(() => {
+                            try {
+                                // Check if iframe has content
+                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (!iframeDoc || iframeDoc.body.children.length === 0) {
+                                    console.log('⚠️ Iframe appears empty, trying blockquote...');
+                                    fallbackToBlockquote();
+                                }
+                            } catch (e) {
+                                // Cross-origin, which is expected - iframe is probably working
+                                console.log('✅ Iframe cross-origin (likely working)');
+                            }
+                        }, 3000);
                     }
-                }, 3000);
+                }, 100);
+            } else {
+                console.log('No video ID found, using blockquote...');
+                fallbackToBlockquote();
             }
-        }, 100);
-    } else {
-        console.log('No video ID found, using blockquote...');
-        fallbackToBlockquote();
-    }
     
-    function fallbackToBlockquote() {
-        console.log('🔄 Falling back to blockquote approach...');
-        videoContainer.innerHTML = restaurant.tiktok_embed_html;
-        
-        // Make blockquote visible
-        const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-        blockquotes.forEach(bq => {
-            bq.style.visibility = 'visible';
-            bq.style.display = 'block';
-        });
-        
-        // Trigger TikTok script
-        setTimeout(() => {
-            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                window.tiktokEmbed.load();
+            function fallbackToBlockquote() {
+                console.log('🔄 Falling back to blockquote approach...');
+                videoContainer.innerHTML = restaurant.tiktok_embed_html;
+                
+                // Make blockquote visible
+                const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+                blockquotes.forEach(bq => {
+                    bq.style.visibility = 'visible';
+                    bq.style.display = 'block';
+                });
+                
+                // Trigger TikTok script
+                setTimeout(() => {
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        window.tiktokEmbed.load();
+                    }
+                }, 100);
             }
-        }, 100);
-    }
-}
+        }
 
         function scrollToRestaurant(restaurantId) {
             // Only scroll on desktop (when the side panel is visible)
             if (window.innerWidth < 768) {
-                console.log('📱 Mobile detected, skipping scroll');
                 return; // Don't scroll on mobile
             }
             
-            console.log(`🔍 Looking for restaurant card with ID: ${restaurantId}`);
             const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+            if (!restaurantCard) return;
             
-            if (!restaurantCard) {
-                console.log('❌ Restaurant card not found');
-                return;
-            }
-            
-            console.log('✅ Restaurant card found:', restaurantCard);
-            
-            // Get the restaurant list container
             const restaurantList = document.getElementById('restaurant-list');
-            if (!restaurantList) {
-                console.log('❌ Restaurant list container not found');
-                return;
-            }
-            
-            console.log('✅ Restaurant list container found');
+            if (!restaurantList) return;
             
             // Wait a bit for any layout changes to complete
             setTimeout(() => {
-                // Calculate the position to scroll to
                 const cardTop = restaurantCard.offsetTop;
                 const cardHeight = restaurantCard.offsetHeight;
                 const containerHeight = restaurantList.offsetHeight;
-                const currentScrollTop = restaurantList.scrollTop;
-                
-                console.log('📊 Scroll calculations:', {
-                    cardTop,
-                    cardHeight,
-                    containerHeight,
-                    currentScrollTop
-                });
-                
-                // Center the card in the visible area
                 const scrollPosition = cardTop - (containerHeight / 2) + (cardHeight / 2);
                 
-                console.log(`📍 Scrolling to position: ${scrollPosition}`);
-                
-                // Smooth scroll to the restaurant card
                 restaurantList.scrollTo({
                     top: Math.max(0, scrollPosition),
                     behavior: 'smooth'
                 });
-                
-                console.log(`✅ Scrolled to restaurant ${restaurantId}`);
-            }, 100); // Small delay to ensure layout is stable
+            }, 100);
         }
 
         function closeVideo() {
@@ -1761,6 +1887,45 @@ function showVideoFor(restaurant) {
         closeVideoBtn.addEventListener('click', closeVideo);
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
         
+        // Check location availability and hide button only if user denies permission
+        function checkLocationAvailability() {
+            const locationBtn = document.getElementById('location-btn');
+            if (!locationBtn) return;
+            
+            // Check if geolocation is supported
+            if (!navigator.geolocation) {
+                console.log('Geolocation not supported, hiding location button');
+                locationBtn.style.display = 'none';
+                return;
+            }
+            
+            // Test geolocation permission
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // Permission granted, keep button visible
+                    console.log('Location permission granted');
+                    locationBtn.style.display = 'block';
+                },
+                function(error) {
+                    // Only hide button if user explicitly denied permission
+                    if (error.code === error.PERMISSION_DENIED) {
+                        console.log('Location permission explicitly denied, hiding button');
+                        locationBtn.style.display = 'none';
+                    } else {
+                        // Other errors (timeout, unavailable, etc.) - keep button visible
+                        console.log('Location error (not permission denied):', error.message);
+                        locationBtn.style.display = 'block';
+                    }
+                },
+                {
+                    timeout: 1000, // Quick timeout for permission check
+                    maximumAge: 0 // Don't use cached location
+                }
+            );
+        }
+        
+        checkLocationAvailability();
+        
         // Location button event listener
         const locationBtn = document.getElementById('location-btn');
         if (locationBtn) {
@@ -1778,4 +1943,242 @@ function showVideoFor(restaurant) {
         document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
     }
 });
+
+// ========================================
+// TEST SUITE - Run with runAllTests()
+// ========================================
+
+// Test result tracking
+let testResults = {
+    passed: 0,
+    failed: 0,
+    total: 0
+};
+
+// Test helper functions
+function testPass(testName) {
+    testResults.passed++;
+    testResults.total++;
+    console.log(`✅ ${testName}`);
+}
+
+function testFail(testName, error = '') {
+    testResults.failed++;
+    testResults.total++;
+    console.log(`❌ ${testName}${error ? ` - ${error}` : ''}`);
+}
+
+function testSummary() {
+    console.log('\n' + '='.repeat(50));
+    console.log('🧪 TEST SUMMARY');
+    console.log('='.repeat(50));
+    console.log(`✅ Passed: ${testResults.passed}`);
+    console.log(`❌ Failed: ${testResults.failed}`);
+    console.log(`📊 Total: ${testResults.total}`);
+    console.log(`📈 Success Rate: ${((testResults.passed / testResults.total) * 100).toFixed(1)}%`);
+    console.log('='.repeat(50));
+    
+    if (testResults.failed === 0) {
+        console.log('🎉 All tests passed!');
+    } else {
+        console.log('⚠️ Some tests failed. Check the details above.');
+    }
+}
+
+// Individual test functions
+async function testSupabaseConnection() {
+    try {
+        const { data, error } = await supabaseClient.from('cities').select('*').limit(1);
+        if (error) throw error;
+        testPass('Supabase Connection');
+    } catch (error) {
+        testFail('Supabase Connection', error.message);
+    }
+}
+
+function testMapInitialization() {
+    try {
+        if (window.map && window.mapInitialized) {
+            testPass('Map Initialization');
+        } else {
+            throw new Error('Map not initialized');
+        }
+    } catch (error) {
+        testFail('Map Initialization', error.message);
+    }
+}
+
+function testRestaurantDataLoading() {
+    try {
+        if (window.currentRestaurants && window.currentRestaurants.length > 0) {
+            testPass('Restaurant Data Loading');
+        } else {
+            throw new Error('No restaurant data loaded');
+        }
+    } catch (error) {
+        testFail('Restaurant Data Loading', error.message);
+    }
+}
+
+function testCuisineDataStructure() {
+    try {
+        if (window.currentRestaurants && window.currentRestaurants.length > 0) {
+            const sampleRestaurant = window.currentRestaurants[0];
+            if (sampleRestaurant.cuisines && Array.isArray(sampleRestaurant.cuisines)) {
+                if (sampleRestaurant.cuisines.length > 0) {
+                    const sampleCuisine = sampleRestaurant.cuisines[0];
+                    if (sampleCuisine.name && sampleCuisine.icon) {
+                        testPass('Cuisine Data Structure');
+                    } else {
+                        throw new Error('Cuisine data missing name or icon');
+                    }
+                } else {
+                    testPass('Cuisine Data Structure (no cuisines)');
+                }
+            } else {
+                throw new Error('Cuisines array not found');
+            }
+        } else {
+            throw new Error('No restaurant data to test');
+        }
+    } catch (error) {
+        testFail('Cuisine Data Structure', error.message);
+    }
+}
+
+function testMarkerCreation() {
+    try {
+        if (window.restaurantMarkers && window.restaurantMarkers.length > 0) {
+            testPass('Marker Creation');
+        } else {
+            throw new Error('No markers created');
+        }
+    } catch (error) {
+        testFail('Marker Creation', error.message);
+    }
+}
+
+function testClusterGroup() {
+    try {
+        if (window.markerClusterGroup) {
+            testPass('Marker Cluster Group');
+        } else {
+            throw new Error('Marker cluster group not initialized');
+        }
+    } catch (error) {
+        testFail('Marker Cluster Group', error.message);
+    }
+}
+
+function testFilterFunctionality() {
+    try {
+        const filterToggle = document.getElementById('filter-toggle-btn');
+        const desktopFilter = document.getElementById('desktop-filter-modal');
+        const mobileFilter = document.getElementById('filter-modal');
+        
+        if (filterToggle && desktopFilter && mobileFilter) {
+            testPass('Filter UI Elements');
+        } else {
+            throw new Error('Filter UI elements missing');
+        }
+    } catch (error) {
+        testFail('Filter UI Elements', error.message);
+    }
+}
+
+function testAuthenticationUI() {
+    try {
+        const authContainer = document.getElementById('auth-container');
+        const authModal = document.getElementById('auth-modal');
+        const authBtn = document.getElementById('auth-btn');
+        
+        if (authContainer && authModal && authBtn) {
+            testPass('Authentication UI');
+        } else {
+            throw new Error('Authentication UI elements missing');
+        }
+    } catch (error) {
+        testFail('Authentication UI', error.message);
+    }
+}
+
+function testVideoModal() {
+    try {
+        const videoModal = document.getElementById('video-modal');
+        const videoContainer = document.getElementById('video-container');
+        
+        if (videoModal && videoContainer) {
+            testPass('Video Modal');
+        } else {
+            throw new Error('Video modal elements missing');
+        }
+    } catch (error) {
+        testFail('Video Modal', error.message);
+    }
+}
+
+function testRestaurantList() {
+    try {
+        const restaurantList = document.getElementById('restaurant-list');
+        if (restaurantList) {
+            testPass('Restaurant List Container');
+        } else {
+            throw new Error('Restaurant list container missing');
+        }
+    } catch (error) {
+        testFail('Restaurant List Container', error.message);
+    }
+}
+
+function testCitySelector() {
+    try {
+        const citySelect = document.getElementById('city-select');
+        if (citySelect) {
+            testPass('City Selector');
+        } else {
+            throw new Error('City selector missing');
+        }
+    } catch (error) {
+        testFail('City Selector', error.message);
+    }
+}
+
+// Main test runner
+async function runAllTests() {
+    console.log('🧪 Starting ReelEats Test Suite...\n');
+    testResults = { passed: 0, failed: 0, total: 0 };
+    
+    // Core functionality tests
+    await testSupabaseConnection();
+    testMapInitialization();
+    testRestaurantDataLoading();
+    testCuisineDataStructure();
+    testMarkerCreation();
+    testClusterGroup();
+    
+    // UI tests
+    testFilterFunctionality();
+    testAuthenticationUI();
+    testVideoModal();
+    testRestaurantList();
+    testCitySelector();
+    
+    // Show summary
+    testSummary();
+}
+
+// Auto-run tests after page loads
+async function autoRunTests() {
+    // Wait a bit for everything to initialize
+    setTimeout(async () => {
+        console.log('🚀 Auto-running tests after page load...\n');
+        await runAllTests();
+    }, 2000); // 2 second delay to ensure everything is loaded
+}
+
+// Make test runner available globally
+window.runAllTests = runAllTests;
+
+// Auto-run tests on page load
+autoRunTests();
 
