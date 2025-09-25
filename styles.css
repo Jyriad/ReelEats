@@ -465,7 +465,7 @@ html, body {
 .watched-icon {
     position: absolute;
     bottom: 0.75rem;
-    right: 3.5rem; /* Position it to the left of the favorite button */
+    right: 1rem; /* Position it in the bottom right corner */
     color: #6b7280; /* A subtle gray color */
     z-index: 10;
     background: rgba(255, 255, 255, 0.9);
@@ -676,8 +676,8 @@ html, body {
 /* Favorite Icon Styles */
 .favorite-btn {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.5rem;
+    right: 0.5rem;
     cursor: pointer;
     z-index: 10;
     color: #9ca3af; /* Default gray color for the star outline */
