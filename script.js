@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (!restaurants || restaurants.length === 0) {
                 currentRestaurants = [];
-                displayRestaurants([]);
+                displayRestaurants([], false, false); // Not loading, show "no restaurants" message
                 return;
             }
 
@@ -786,7 +786,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             }));
             currentRestaurants = window.currentRestaurants;
             
-            displayRestaurants(currentRestaurants);
+            // Small delay to ensure skeleton loaders are visible before showing real data
+            setTimeout(() => {
+                displayRestaurants(currentRestaurants);
+            }, 100);
         }
 
         // Setup cuisine filter functionality
@@ -1519,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        function displayRestaurants(restaurants, showSkeletons = false) {
+        function displayRestaurants(restaurants, showSkeletons = false, isLoading = false) {
             if (showSkeletons) {
                 showSkeletonLoaders(restaurants.length || 6);
                 return;
@@ -1530,7 +1533,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.restaurantMarkers = []; // Also clear the local array
             restaurantMarkers = window.restaurantMarkers;
 
-            if (restaurants.length === 0) {
+            if (restaurants.length === 0 && !isLoading) {
                 restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
                 return;
             }
