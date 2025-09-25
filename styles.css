@@ -466,13 +466,17 @@ html, body {
     position: absolute;
     bottom: 0.75rem;
     right: 3.5rem; /* Position it to the left of the favorite button */
-    color: #4ade80; /* A bright green color */
+    color: #6b7280; /* A subtle gray color */
     z-index: 10;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    padding: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .watched-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
 }
 
 /* Skeleton Loader Styles */
