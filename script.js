@@ -83,6 +83,39 @@ function showNoVideoMessage(videoContainer, restaurantName) {
     videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurantName}</div>`;
 }
 
+// --- Skeleton Loader Functions ---
+function createSkeletonCard() {
+    const skeletonCard = document.createElement('div');
+    skeletonCard.className = 'skeleton-card';
+    skeletonCard.innerHTML = `
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-tags">
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+            </div>
+        </div>
+        <div class="skeleton-favorite"></div>
+    `;
+    return skeletonCard;
+}
+
+function showSkeletonLoaders(count = 6) {
+    const restaurantList = document.getElementById('restaurant-list');
+    if (!restaurantList) return;
+    
+    restaurantList.innerHTML = '';
+    
+    for (let i = 0; i < count; i++) {
+        const skeletonCard = createSkeletonCard();
+        restaurantList.appendChild(skeletonCard);
+    }
+}
+
 async function testSupabaseConnection() {
     try {
         const { data, error } = await supabaseClient
@@ -625,6 +658,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (citySelect.options.length > 0) {
                 const initialCityId = citySelect.value;
+                // Show skeleton loaders while loading
+                displayRestaurants([], true);
                 await loadRestaurantsForCity(initialCityId);
                 const selectedOption = citySelect.options[citySelect.selectedIndex];
                 map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
@@ -1038,27 +1073,33 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Update filter button appearance
             updateFilterButtonAppearance();
             
-            if (selectedCuisines.length === 0) {
-                // Show all restaurants if no cuisines selected
-                displayRestaurants(currentRestaurants);
-                // Fit map to show all restaurants
-                fitMapToRestaurants(currentRestaurants);
-            } else {
-                // Filter restaurants that have ANY of the selected cuisines
-                const filteredRestaurants = currentRestaurants.filter(restaurant => {
-                    if (!restaurant.cuisines || restaurant.cuisines.length === 0) {
-                        return false;
-                    }
-                    // Check if restaurant has at least one of the selected cuisines
-                    const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
-                        restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
-                    );
-                    return hasMatchingCuisine;
-                });
-                displayRestaurants(filteredRestaurants);
-                // Fit map to show filtered restaurants
-                fitMapToRestaurants(filteredRestaurants);
-            }
+            // Show skeleton loaders briefly for better UX
+            displayRestaurants([], true);
+            
+            // Use setTimeout to show skeleton loading briefly
+            setTimeout(() => {
+                if (selectedCuisines.length === 0) {
+                    // Show all restaurants if no cuisines selected
+                    displayRestaurants(currentRestaurants);
+                    // Fit map to show all restaurants
+                    fitMapToRestaurants(currentRestaurants);
+                } else {
+                    // Filter restaurants that have ANY of the selected cuisines
+                    const filteredRestaurants = currentRestaurants.filter(restaurant => {
+                        if (!restaurant.cuisines || restaurant.cuisines.length === 0) {
+                            return false;
+                        }
+                        // Check if restaurant has at least one of the selected cuisines
+                        const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
+                            restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
+                        );
+                        return hasMatchingCuisine;
+                    });
+                    displayRestaurants(filteredRestaurants);
+                    // Fit map to show filtered restaurants
+                    fitMapToRestaurants(filteredRestaurants);
+                }
+            }, 300); // Brief delay to show skeleton loading
         }
         
         // Get selected cuisines from checkboxes
@@ -1478,7 +1519,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        function displayRestaurants(restaurants) {
+        function displayRestaurants(restaurants, showSkeletons = false) {
+            if (showSkeletons) {
+                showSkeletonLoaders(restaurants.length || 6);
+                return;
+            }
+            
             restaurantList.innerHTML = '';
             markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
             window.restaurantMarkers = []; // Also clear the local array
@@ -1920,6 +1966,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // --- Event Listeners ---
         citySelect.addEventListener('change', async function() {
             const selectedOption = citySelect.options[citySelect.selectedIndex];
+            // Show skeleton loaders while loading
+            displayRestaurants([], true);
             await loadRestaurantsForCity(selectedOption.value);
             map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
         });
