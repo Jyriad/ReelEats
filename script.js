@@ -9,10 +9,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         const mapElement = document.getElementById('map');
         const restaurantList = document.getElementById('restaurant-list');
         const videoModal = document.getElementById('video-modal');
-        const videoContainer = videoModal.querySelector('.video-container');
+        const videoContainer = videoModal ? videoModal.querySelector('.video-container') : null;
         const videoTitleEl = document.getElementById('video-title');
-        const closeVideoBtn = videoModal.querySelector('.close-video-btn');
+        const closeVideoBtn = videoModal ? videoModal.querySelector('.close-video-btn') : null;
         const citySelect = document.getElementById('city-select');
+        
+        // Check if essential elements exist
+        if (!mapElement) {
+            throw new Error('Map element not found');
+        }
+        if (!restaurantList) {
+            throw new Error('Restaurant list element not found');
+        }
+        if (!videoModal) {
+            throw new Error('Video modal element not found');
+        }
         
         // --- State Management ---
         // State management - Global scope for tests
@@ -1611,100 +1622,100 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // script.js
 
-function showVideoFor(restaurant) {
-    if (!restaurant.tiktok_embed_html) {
-        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
-        videoModal.classList.add('show');
-        return;
-    }
+        function showVideoFor(restaurant) {
+            if (!restaurant.tiktok_embed_html) {
+                videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
+                videoModal.classList.add('show');
+                return;
+            }
 
-    // Mark the video as watched and update the UI
-    addVideoToWatched(restaurant.id);
-    const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
-    if (listItem && !listItem.querySelector('.watched-icon')) {
-        const watchedIcon = createWatchedIcon();
-        listItem.appendChild(watchedIcon);
-    }
+            // Mark the video as watched and update the UI
+            addVideoToWatched(restaurant.id);
+            const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
+            if (listItem && !listItem.querySelector('.watched-icon')) {
+                const watchedIcon = createWatchedIcon();
+                listItem.appendChild(watchedIcon);
+            }
 
-    // Extract video ID from embed HTML
-    const videoIdMatch = restaurant.tiktok_embed_html.match(/data-video-id="(\d+)"/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-    
-    console.log('🎬 Loading video:', videoId);
+            // Extract video ID from embed HTML
+            const videoIdMatch = restaurant.tiktok_embed_html.match(/data-video-id="(\d+)"/);
+            const videoId = videoIdMatch ? videoIdMatch[1] : null;
+            
+            console.log('🎬 Loading video:', videoId);
 
-    // Show modal
-    videoModal.classList.add('show');
+            // Show modal
+            videoModal.classList.add('show');
+            
+            // Scroll to the restaurant in the side panel (desktop only)
+            scrollToRestaurant(restaurant.id);
     
-    // Scroll to the restaurant in the side panel (desktop only)
-    scrollToRestaurant(restaurant.id);
-    
-    if (videoId) {
-        // Try direct iframe approach first
-        console.log('Trying direct iframe approach...');
-        videoContainer.innerHTML = `
-            <iframe 
-                src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
-                width="330" 
-                height="585" 
-                frameborder="0" 
-                allowfullscreen
-                allow="encrypted-media"
-                style="border: none; background: white;">
-            </iframe>
-        `;
+            if (videoId) {
+                // Try direct iframe approach first
+                console.log('Trying direct iframe approach...');
+                videoContainer.innerHTML = `
+                    <iframe 
+                        src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
+                        width="330" 
+                        height="585" 
+                        frameborder="0" 
+                        allowfullscreen
+                        allow="encrypted-media"
+                        style="border: none; background: white;">
+                    </iframe>
+                `;
         
-        // If iframe doesn't work after 3 seconds, try blockquote approach
-        setTimeout(() => {
-            const iframe = videoContainer.querySelector('iframe');
-            if (iframe) {
-                iframe.onload = () => {
-                    console.log('✅ Direct iframe loaded');
-                };
-                iframe.onerror = () => {
-                    console.log('❌ Direct iframe failed, trying blockquote...');
-                    fallbackToBlockquote();
-                };
-                
-                // Also check if iframe content is loading after 3 seconds
+                // If iframe doesn't work after 3 seconds, try blockquote approach
                 setTimeout(() => {
-                    try {
-                        // Check if iframe has content
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        if (!iframeDoc || iframeDoc.body.children.length === 0) {
-                            console.log('⚠️ Iframe appears empty, trying blockquote...');
+                    const iframe = videoContainer.querySelector('iframe');
+                    if (iframe) {
+                        iframe.onload = () => {
+                            console.log('✅ Direct iframe loaded');
+                        };
+                        iframe.onerror = () => {
+                            console.log('❌ Direct iframe failed, trying blockquote...');
                             fallbackToBlockquote();
-                        }
-                    } catch (e) {
-                        // Cross-origin, which is expected - iframe is probably working
-                        console.log('✅ Iframe cross-origin (likely working)');
+                        };
+                        
+                        // Also check if iframe content is loading after 3 seconds
+                        setTimeout(() => {
+                            try {
+                                // Check if iframe has content
+                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (!iframeDoc || iframeDoc.body.children.length === 0) {
+                                    console.log('⚠️ Iframe appears empty, trying blockquote...');
+                                    fallbackToBlockquote();
+                                }
+                            } catch (e) {
+                                // Cross-origin, which is expected - iframe is probably working
+                                console.log('✅ Iframe cross-origin (likely working)');
+                            }
+                        }, 3000);
                     }
-                }, 3000);
+                }, 100);
+            } else {
+                console.log('No video ID found, using blockquote...');
+                fallbackToBlockquote();
             }
-        }, 100);
-    } else {
-        console.log('No video ID found, using blockquote...');
-        fallbackToBlockquote();
-    }
     
-    function fallbackToBlockquote() {
-        console.log('🔄 Falling back to blockquote approach...');
-        videoContainer.innerHTML = restaurant.tiktok_embed_html;
-        
-        // Make blockquote visible
-        const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-        blockquotes.forEach(bq => {
-            bq.style.visibility = 'visible';
-            bq.style.display = 'block';
-        });
-        
-        // Trigger TikTok script
-        setTimeout(() => {
-            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                window.tiktokEmbed.load();
+            function fallbackToBlockquote() {
+                console.log('🔄 Falling back to blockquote approach...');
+                videoContainer.innerHTML = restaurant.tiktok_embed_html;
+                
+                // Make blockquote visible
+                const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+                blockquotes.forEach(bq => {
+                    bq.style.visibility = 'visible';
+                    bq.style.display = 'block';
+                });
+                
+                // Trigger TikTok script
+                setTimeout(() => {
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        window.tiktokEmbed.load();
+                    }
+                }, 100);
             }
-        }, 100);
-    }
-}
+        }
 
         function scrollToRestaurant(restaurantId) {
             // Only scroll on desktop (when the side panel is visible)
