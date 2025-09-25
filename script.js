@@ -1,13 +1,101 @@
-// --- Import Shared Modules ---
-import { CONFIG } from './config.js';
-import { supabaseClient, testSupabaseConnection as testConnection } from './supabaseClient.js';
-import { 
-    extractVideoId, 
-    createVideoIframe, 
-    handleIframeLoading, 
-    loadVideoWithBlockquote, 
-    showNoVideoMessage 
-} from './videoHelpers.js';
+// --- Supabase Client Initialization (Fallback) ---
+const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- Configuration Constants ---
+const CONFIG = {
+    STORAGE_KEYS: {
+        WATCHED_VIDEOS: 'reelEats_watchedVideos',
+        CITY_DATA: 'reelEats_cityData'
+    },
+    VIDEO_CONFIG: {
+        IFRAME_TIMEOUT: 3000,
+        FALLBACK_DELAY: 100
+    }
+};
+
+// --- Video Helper Functions ---
+function extractVideoId(embedHtml) {
+    const videoIdMatch = embedHtml.match(/data-video-id="(\d+)"/);
+    return videoIdMatch ? videoIdMatch[1] : null;
+}
+
+function createVideoIframe(videoId) {
+    return `
+        <iframe 
+            src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
+            width="330" 
+            height="585" 
+            frameborder="0" 
+            allowfullscreen
+            allow="encrypted-media"
+            style="border: none; background: white;">
+        </iframe>
+    `;
+}
+
+function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
+    setTimeout(() => {
+        const iframe = videoContainer.querySelector('iframe');
+        if (iframe) {
+            iframe.onload = () => {
+                console.log('✅ Direct iframe loaded');
+            };
+            iframe.onerror = () => {
+                console.log('❌ Direct iframe failed, trying blockquote...');
+                fallbackFunction();
+            };
+            
+            setTimeout(() => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (!iframeDoc || iframeDoc.body.children.length === 0) {
+                        console.log('⚠️ Iframe appears empty, trying blockquote...');
+                        fallbackFunction();
+                    }
+                } catch (e) {
+                    console.log('✅ Iframe cross-origin (likely working)');
+                }
+            }, CONFIG.VIDEO_CONFIG.IFRAME_TIMEOUT);
+        }
+    }, CONFIG.VIDEO_CONFIG.FALLBACK_DELAY);
+}
+
+function loadVideoWithBlockquote(videoContainer, embedHtml) {
+    console.log('🔄 Loading video with blockquote approach...');
+    videoContainer.innerHTML = embedHtml;
+    
+    const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+    blockquotes.forEach(bq => {
+        bq.style.visibility = 'visible';
+        bq.style.display = 'block';
+    });
+    
+    setTimeout(() => {
+        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+            window.tiktokEmbed.load();
+        }
+    }, CONFIG.VIDEO_CONFIG.FALLBACK_DELAY);
+}
+
+function showNoVideoMessage(videoContainer, restaurantName) {
+    videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurantName}</div>`;
+}
+
+async function testSupabaseConnection() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('cities')
+            .select('id')
+            .limit(1);
+        
+        if (error) throw error;
+        return { testData: data, testError: null };
+    } catch (error) {
+        return { testData: null, testError: error };
+    }
+}
 
 document.addEventListener('DOMContentLoaded', async function() {
     try {
@@ -1937,9 +2025,9 @@ function testSummary() {
 }
 
 // Individual test functions
-async function testSupabaseConnection() {
+async function testSupabaseConnectionTest() {
     try {
-        const result = await testConnection();
+        const result = await testSupabaseConnection();
         if (result.testError) throw result.testError;
         testPass('Supabase Connection');
     } catch (error) {
@@ -2100,7 +2188,7 @@ async function runAllTests() {
     testResults = { passed: 0, failed: 0, total: 0 };
     
     // Core functionality tests
-    await testSupabaseConnection();
+    await testSupabaseConnectionTest();
     testMapInitialization();
     testRestaurantDataLoading();
     testCuisineDataStructure();
