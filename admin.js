@@ -1,5 +1,7 @@
 // Admin Panel JavaScript
-// Note: SUPABASE_URL, SUPABASE_ANON_KEY, and supabaseClient are declared in admin.html
+// Import shared modules
+import { CONFIG } from './config.js';
+import { supabaseClient } from './supabaseClient.js';
 
 // admin.js
 
