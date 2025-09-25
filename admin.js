@@ -268,7 +268,7 @@ async function loadRecentRestaurants() {
         const container = document.getElementById('recent-restaurants');
         
         if (restaurants.length === 0) {
-            container.innerHTML = '<div class="text-sm text-gray-500">No restaurants found</div>';
+            container.innerHTML = '<div class="text-sm text-gray-500">No restaurants found for your selected filters. Try clearing your selection.</div>';
             return;
         }
         
@@ -1413,7 +1413,7 @@ async function handleRestaurantSearch(e) {
         if (error) throw error;
         
         if (restaurants.length === 0) {
-            resultsContainer.innerHTML = '<div class="p-3 text-sm text-gray-500">No restaurants found</div>';
+            resultsContainer.innerHTML = '<div class="p-3 text-sm text-gray-500">No restaurants found for your selected filters. Try clearing your selection.</div>';
         } else {
             resultsContainer.innerHTML = restaurants.map(restaurant => `
                 <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 

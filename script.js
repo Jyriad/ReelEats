@@ -1,7 +1,134 @@
-// --- Supabase Client Initialization ---
+// --- Supabase Client Initialization (Fallback) ---
 const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- Configuration Constants ---
+const CONFIG = {
+    STORAGE_KEYS: {
+        WATCHED_VIDEOS: 'reelEats_watchedVideos',
+        CITY_DATA: 'reelEats_cityData'
+    },
+    VIDEO_CONFIG: {
+        IFRAME_TIMEOUT: 3000,
+        FALLBACK_DELAY: 100
+    }
+};
+
+// --- Video Helper Functions ---
+function extractVideoId(embedHtml) {
+    const videoIdMatch = embedHtml.match(/data-video-id="(\d+)"/);
+    return videoIdMatch ? videoIdMatch[1] : null;
+}
+
+function createVideoIframe(videoId) {
+    return `
+        <iframe 
+            src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
+            width="330" 
+            height="585" 
+            frameborder="0" 
+            allowfullscreen
+            allow="encrypted-media"
+            style="border: none; background: white;">
+        </iframe>
+    `;
+}
+
+function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
+    setTimeout(() => {
+        const iframe = videoContainer.querySelector('iframe');
+        if (iframe) {
+            iframe.onload = () => {
+                console.log('✅ Direct iframe loaded');
+            };
+            iframe.onerror = () => {
+                console.log('❌ Direct iframe failed, trying blockquote...');
+                fallbackFunction();
+            };
+            
+            setTimeout(() => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (!iframeDoc || iframeDoc.body.children.length === 0) {
+                        console.log('⚠️ Iframe appears empty, trying blockquote...');
+                        fallbackFunction();
+                    }
+                } catch (e) {
+                    console.log('✅ Iframe cross-origin (likely working)');
+                }
+            }, CONFIG.VIDEO_CONFIG.IFRAME_TIMEOUT);
+        }
+    }, CONFIG.VIDEO_CONFIG.FALLBACK_DELAY);
+}
+
+function loadVideoWithBlockquote(videoContainer, embedHtml) {
+    console.log('🔄 Loading video with blockquote approach...');
+    videoContainer.innerHTML = embedHtml;
+    
+    const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+    blockquotes.forEach(bq => {
+        bq.style.visibility = 'visible';
+        bq.style.display = 'block';
+    });
+    
+    setTimeout(() => {
+        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+            window.tiktokEmbed.load();
+        }
+    }, CONFIG.VIDEO_CONFIG.FALLBACK_DELAY);
+}
+
+function showNoVideoMessage(videoContainer, restaurantName) {
+    videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurantName}</div>`;
+}
+
+// --- Skeleton Loader Functions ---
+function createSkeletonCard() {
+    const skeletonCard = document.createElement('div');
+    skeletonCard.className = 'skeleton-card';
+    skeletonCard.innerHTML = `
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-tags">
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+            </div>
+        </div>
+        <div class="skeleton-favorite"></div>
+    `;
+    return skeletonCard;
+}
+
+function showSkeletonLoaders(count = 6) {
+    const restaurantList = document.getElementById('restaurant-list');
+    if (!restaurantList) return;
+    
+    restaurantList.innerHTML = '';
+    
+    for (let i = 0; i < count; i++) {
+        const skeletonCard = createSkeletonCard();
+        restaurantList.appendChild(skeletonCard);
+    }
+}
+
+async function testSupabaseConnection() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('cities')
+            .select('id')
+            .limit(1);
+        
+        if (error) throw error;
+        return { testData: data, testError: null };
+    } catch (error) {
+        return { testData: null, testError: error };
+    }
+}
 
 document.addEventListener('DOMContentLoaded', async function() {
     try {
@@ -40,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Load watched videos from localStorage
         function loadWatchedVideos() {
-            const watched = localStorage.getItem('reelEats_watchedVideos');
+            const watched = localStorage.getItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS);
             if (watched) {
                 watchedVideos = new Set(JSON.parse(watched));
             }
@@ -52,7 +179,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Add video to watched list and save to localStorage
         function addVideoToWatched(restaurantId) {
             watchedVideos.add(restaurantId);
-            localStorage.setItem('reelEats_watchedVideos', JSON.stringify([...watchedVideos]));
+            localStorage.setItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS, JSON.stringify([...watchedVideos]));
         }
         
         // Create watched icon element
@@ -62,7 +189,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             iconWrapper.title = 'You have watched this video';
             iconWrapper.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
                 </svg>
             `;
             return iconWrapper;
@@ -165,8 +293,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     favoritedRestaurants = new Set(data.map(fav => fav.restaurant_id));
                 }
 
-                // Re-display restaurants to show correct favorite status
-                displayRestaurants(currentRestaurants);
+                // Re-display restaurants to show correct favorite status (only if restaurants are loaded)
+                if (currentRestaurants && currentRestaurants.length > 0) {
+                    displayRestaurants(currentRestaurants);
+                }
                 
             } else {
                 // User is logged out - show login button
@@ -179,7 +309,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 favoritedRestaurants.clear(); // Clear favorites on logout
-                displayRestaurants(currentRestaurants); // Re-display to remove favorite icons
+                // Re-display to remove favorite icons (only if restaurants are loaded)
+                if (currentRestaurants && currentRestaurants.length > 0) {
+                    displayRestaurants(currentRestaurants);
+                }
             }
         }
 
@@ -386,8 +519,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     favoritedRestaurants.delete(restaurantId);
                     favoriteBtn?.classList.remove('favorited');
-                    // Refresh markers to update gold border
-                    displayRestaurants(currentRestaurants);
+                    // Refresh markers to update gold border (only if restaurants are loaded)
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        displayRestaurants(currentRestaurants);
+                    }
                 }
             } else {
                 // Add to favorites
@@ -479,8 +614,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Store user location globally for distance calculations
                     window.userLocation = { lat: userLat, lon: userLon };
                     
-                    // Center map on user location
-                    map.setView([userLat, userLon], 15);
+                    // Re-order restaurants by distance now that we have user location
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        currentRestaurants.sort((a, b) => {
+                            const distanceA = calculateDistance(userLat, userLon, a.lat, a.lon);
+                            const distanceB = calculateDistance(userLat, userLon, b.lat, b.lon);
+                            return distanceA - distanceB;
+                        });
+                        displayRestaurants(currentRestaurants);
+                        console.log('Restaurants re-ordered by distance from user location');
+                    }
+                    
+                    // Don't center map on user location - keep it centered on selected city
                     
                     // Add user location marker with distinct styling
                     const userIcon = L.divIcon({
@@ -531,6 +676,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (citySelect.options.length > 0) {
                 const initialCityId = citySelect.value;
+                // Show skeleton loaders while loading
+                displayRestaurants([], true);
                 await loadRestaurantsForCity(initialCityId);
                 const selectedOption = citySelect.options[citySelect.selectedIndex];
                 map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
@@ -573,6 +720,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function populateCitySelect(cities) {
             citySelect.innerHTML = '';
+            let londonCity = null;
+            
             cities.forEach(city => {
                 const option = document.createElement('option');
                 option.value = city.id;
@@ -580,7 +729,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 option.dataset.lat = city.lat;
                 option.dataset.lon = city.lon;
                 citySelect.appendChild(option);
+                
+                // Find London city for default selection
+                if (city.name.toLowerCase().includes('london')) {
+                    londonCity = city;
+                }
             });
+            
+            // Set London as default if found, otherwise use first city
+            if (londonCity) {
+                citySelect.value = londonCity.id;
+                console.log('London set as default city');
+            } else if (cities.length > 0) {
+                citySelect.value = cities[0].id;
+                console.log('First city set as default (London not found)');
+            }
         }
         
         async function loadRestaurantsForCity(cityId) {
@@ -599,7 +762,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (!restaurants || restaurants.length === 0) {
                 currentRestaurants = [];
-                displayRestaurants([]);
+                displayRestaurants([], false, false); // Not loading, show "no restaurants" message
                 return;
             }
 
@@ -657,7 +820,25 @@ document.addEventListener('DOMContentLoaded', async function() {
             }));
             currentRestaurants = window.currentRestaurants;
             
-            displayRestaurants(currentRestaurants);
+            // Order restaurants based on geolocation availability
+            if (window.userLocation) {
+                // If user has geolocation, order by distance (closest first)
+                currentRestaurants.sort((a, b) => {
+                    const distanceA = calculateDistance(window.userLocation.lat, window.userLocation.lon, a.lat, a.lon);
+                    const distanceB = calculateDistance(window.userLocation.lat, window.userLocation.lon, b.lat, b.lon);
+                    return distanceA - distanceB;
+                });
+                console.log('Restaurants ordered by distance from user location');
+            } else {
+                // If no geolocation, randomize the order
+                currentRestaurants.sort(() => Math.random() - 0.5);
+                console.log('Restaurants ordered randomly (no geolocation)');
+            }
+            
+            // Small delay to ensure skeleton loaders are visible before showing real data
+            setTimeout(() => {
+                displayRestaurants(currentRestaurants);
+            }, 100);
         }
 
         // Setup cuisine filter functionality
@@ -944,27 +1125,33 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Update filter button appearance
             updateFilterButtonAppearance();
             
-            if (selectedCuisines.length === 0) {
-                // Show all restaurants if no cuisines selected
-                displayRestaurants(currentRestaurants);
-                // Fit map to show all restaurants
-                fitMapToRestaurants(currentRestaurants);
-            } else {
-                // Filter restaurants that have ANY of the selected cuisines
-                const filteredRestaurants = currentRestaurants.filter(restaurant => {
-                    if (!restaurant.cuisines || restaurant.cuisines.length === 0) {
-                        return false;
-                    }
-                    // Check if restaurant has at least one of the selected cuisines
-                    const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
-                        restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
-                    );
-                    return hasMatchingCuisine;
-                });
-                displayRestaurants(filteredRestaurants);
-                // Fit map to show filtered restaurants
-                fitMapToRestaurants(filteredRestaurants);
-            }
+            // Show skeleton loaders briefly for better UX
+            displayRestaurants([], true);
+            
+            // Use setTimeout to show skeleton loading briefly
+            setTimeout(() => {
+                if (selectedCuisines.length === 0) {
+                    // Show all restaurants if no cuisines selected
+                    displayRestaurants(currentRestaurants);
+                    // Fit map to show all restaurants
+                    fitMapToRestaurants(currentRestaurants);
+                } else {
+                    // Filter restaurants that have ANY of the selected cuisines
+                    const filteredRestaurants = currentRestaurants.filter(restaurant => {
+                        if (!restaurant.cuisines || restaurant.cuisines.length === 0) {
+                            return false;
+                        }
+                        // Check if restaurant has at least one of the selected cuisines
+                        const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
+                            restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
+                        );
+                        return hasMatchingCuisine;
+                    });
+                    displayRestaurants(filteredRestaurants);
+                    // Fit map to show filtered restaurants
+                    fitMapToRestaurants(filteredRestaurants);
+                }
+            }, 300); // Brief delay to show skeleton loading
         }
         
         // Get selected cuisines from checkboxes
@@ -983,17 +1170,25 @@ document.addEventListener('DOMContentLoaded', async function() {
             const selectedCuisines = getSelectedCuisines();
             const hasActiveFilters = selectedCuisines.length > 0;
             
-            // Use the existing count element
+            // Update count element
             const countElement = document.getElementById('selected-count');
-            if (!countElement) return;
+            const subtitleElement = document.getElementById('filter-subtitle');
             
             if (hasActiveFilters) {
                 // Show count
                 countElement.textContent = selectedCuisines.length;
                 countElement.classList.remove('hidden');
+                
+                // Update subtitle
+                if (selectedCuisines.length === 1) {
+                    subtitleElement.textContent = selectedCuisines[0];
+                } else {
+                    subtitleElement.textContent = `${selectedCuisines.length} cuisines selected`;
+                }
             } else {
-                // Hide count
+                // Hide count and reset subtitle
                 countElement.classList.add('hidden');
+                subtitleElement.textContent = 'All cuisines';
             }
         }
 
@@ -1384,13 +1579,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        function displayRestaurants(restaurants) {
+        function displayRestaurants(restaurants, showSkeletons = false, isLoading = false) {
+            if (showSkeletons) {
+                showSkeletonLoaders(restaurants.length || 6);
+                return;
+            }
+            
             restaurantList.innerHTML = '';
             markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
             window.restaurantMarkers = []; // Also clear the local array
             restaurantMarkers = window.restaurantMarkers;
 
-            if (restaurants.length === 0) {
+            if (restaurants.length === 0 && !isLoading) {
                 restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
                 return;
             }
@@ -1404,6 +1604,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 restaurantMarkers = window.restaurantMarkers;
                 markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
             });
+            
+            // Update restaurant cards with distance information if user location is available
+            updateRestaurantCardsWithDistance();
         }
         
         function createListItem(restaurant, index) {
@@ -1429,14 +1632,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
 
+            // Distance will be added by updateRestaurantCardsWithDistance() when user location is available
             let distanceHtml = '';
-            if (window.userLocation) {
-                const distance = calculateDistance(window.userLocation.lat, window.userLocation.lon, restaurant.lat, restaurant.lon);
-                distanceHtml = `<div class="mt-1 text-xs text-gray-500 flex items-center">
-                    <span class="mr-1">📍</span>
-                    <span>${distance} away</span>
-                </div>`;
-            }
 
             listItem.innerHTML = `
                 <div class="flex-shrink-0 mr-3">
@@ -1624,7 +1821,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function showVideoFor(restaurant) {
             if (!restaurant.tiktok_embed_html) {
-                videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
+                showNoVideoMessage(videoContainer, restaurant.name);
                 videoModal.classList.add('show');
                 return;
             }
@@ -1638,9 +1835,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
 
             // Extract video ID from embed HTML
-            const videoIdMatch = restaurant.tiktok_embed_html.match(/data-video-id="(\d+)"/);
-            const videoId = videoIdMatch ? videoIdMatch[1] : null;
-            
+            const videoId = extractVideoId(restaurant.tiktok_embed_html);
             console.log('🎬 Loading video:', videoId);
 
             // Show modal
@@ -1652,68 +1847,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (videoId) {
                 // Try direct iframe approach first
                 console.log('Trying direct iframe approach...');
-                videoContainer.innerHTML = `
-                    <iframe 
-                        src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
-                        width="330" 
-                        height="585" 
-                        frameborder="0" 
-                        allowfullscreen
-                        allow="encrypted-media"
-                        style="border: none; background: white;">
-                    </iframe>
-                `;
-        
-                // If iframe doesn't work after 3 seconds, try blockquote approach
-                setTimeout(() => {
-                    const iframe = videoContainer.querySelector('iframe');
-                    if (iframe) {
-                        iframe.onload = () => {
-                            console.log('✅ Direct iframe loaded');
-                        };
-                        iframe.onerror = () => {
-                            console.log('❌ Direct iframe failed, trying blockquote...');
-                            fallbackToBlockquote();
-                        };
-                        
-                        // Also check if iframe content is loading after 3 seconds
-                        setTimeout(() => {
-                            try {
-                                // Check if iframe has content
-                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                                if (!iframeDoc || iframeDoc.body.children.length === 0) {
-                                    console.log('⚠️ Iframe appears empty, trying blockquote...');
-                                    fallbackToBlockquote();
-                                }
-                            } catch (e) {
-                                // Cross-origin, which is expected - iframe is probably working
-                                console.log('✅ Iframe cross-origin (likely working)');
-                            }
-                        }, 3000);
-                    }
-                }, 100);
+                videoContainer.innerHTML = createVideoIframe(videoId);
+                
+                // Handle iframe loading with fallback
+                handleIframeLoading(videoContainer, restaurant.tiktok_embed_html, () => {
+                    loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
+                });
             } else {
                 console.log('No video ID found, using blockquote...');
-                fallbackToBlockquote();
-            }
-    
-            function fallbackToBlockquote() {
-                console.log('🔄 Falling back to blockquote approach...');
-                videoContainer.innerHTML = restaurant.tiktok_embed_html;
-                
-                // Make blockquote visible
-                const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-                blockquotes.forEach(bq => {
-                    bq.style.visibility = 'visible';
-                    bq.style.display = 'block';
-                });
-                
-                // Trigger TikTok script
-                setTimeout(() => {
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                    }
-                }, 100);
+                loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
             }
         }
 
@@ -1881,6 +2023,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // --- Event Listeners ---
         citySelect.addEventListener('change', async function() {
             const selectedOption = citySelect.options[citySelect.selectedIndex];
+            // Show skeleton loaders while loading
+            displayRestaurants([], true);
             await loadRestaurantsForCity(selectedOption.value);
             map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
         });
@@ -1986,10 +2130,10 @@ function testSummary() {
 }
 
 // Individual test functions
-async function testSupabaseConnection() {
+async function testSupabaseConnectionTest() {
     try {
-        const { data, error } = await supabaseClient.from('cities').select('*').limit(1);
-        if (error) throw error;
+        const result = await testSupabaseConnection();
+        if (result.testError) throw result.testError;
         testPass('Supabase Connection');
     } catch (error) {
         testFail('Supabase Connection', error.message);
@@ -2149,7 +2293,7 @@ async function runAllTests() {
     testResults = { passed: 0, failed: 0, total: 0 };
     
     // Core functionality tests
-    await testSupabaseConnection();
+    await testSupabaseConnectionTest();
     testMapInitialization();
     testRestaurantDataLoading();
     testCuisineDataStructure();

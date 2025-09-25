@@ -465,14 +465,115 @@ html, body {
 .watched-icon {
     position: absolute;
     bottom: 0.75rem;
-    right: 3.5rem; /* Position it to the left of the favorite button */
-    color: #4ade80; /* A bright green color */
+    right: 1rem; /* Position it in the bottom right corner */
+    color: #6b7280; /* A subtle gray color */
     z-index: 10;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    padding: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .watched-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Skeleton Loader Styles */
+.skeleton-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-avatar {
+    width: 2rem;
+    height: 2rem;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.skeleton-title {
+    height: 1.25rem;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+    width: 70%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-description {
+    height: 0.875rem;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+    width: 90%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-description:nth-child(3) {
+    width: 60%;
+    margin-bottom: 0.75rem;
+}
+
+.skeleton-tags {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-tag {
+    height: 1.5rem;
+    width: 4rem;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    border-radius: 9999px;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-tag:nth-child(2) {
+    width: 3.5rem;
+}
+
+.skeleton-tag:nth-child(3) {
+    width: 3rem;
+}
+
+.skeleton-favorite {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    border-radius: 0.25rem;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
 }
 
 .numbered-marker-content {
@@ -575,8 +676,8 @@ html, body {
 /* Favorite Icon Styles */
 .favorite-btn {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.5rem;
+    right: 0.5rem;
     cursor: pointer;
     z-index: 10;
     color: #9ca3af; /* Default gray color for the star outline */
@@ -601,27 +702,32 @@ html, body {
     stroke: #f59e0b;
 }
 
-/* Custom Marker Cluster Styles - Red for clusters */
+/* Custom Marker Cluster Styles - Plate icon for clusters */
 .marker-cluster-small,
 .marker-cluster-medium,
 .marker-cluster-large {
-    background-color: #dc2626 !important; /* Solid red background */
-    border: 2px solid white !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
-    border-radius: 50% !important;
+    background: none !important; /* Remove background */
+    border: none !important; /* Remove border */
+    box-shadow: none !important; /* Remove box shadow */
+    border-radius: 0 !important; /* Remove border radius */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
+    position: relative !important;
+    width: 50px !important; /* Larger size to distinguish from individual markers */
+    height: 50px !important;
+    overflow: visible !important; /* Allow elements to extend beyond bounds */
 }
 
 .marker-cluster-small div,
 .marker-cluster-medium div,
 .marker-cluster-large div {
-    background-color: transparent !important; /* Remove inner circle background */
-    color: white !important;
+    background: none !important;
+    color: transparent !important; /* Hide the original number */
     font-weight: bold !important;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
+    font-size: 14px !important;
+    text-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
     display: flex !important;
@@ -632,5 +738,61 @@ html, body {
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1 !important;
+    position: relative !important;
+}
+
+/* Plate icon background - larger size */
+.marker-cluster-small::before,
+.marker-cluster-medium::before,
+.marker-cluster-large::before {
+    content: "🍽️" !important;
+    position: absolute !important;
+    font-size: 40px !important; /* Larger plate icon */
+    z-index: 1 !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+/* Red circle in top-right corner */
+.marker-cluster-small::after,
+.marker-cluster-medium::after,
+.marker-cluster-large::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0px !important;
+    right: 0px !important;
+    width: 18px !important;
+    height: 18px !important;
+    background-color: #dc2626 !important;
+    border: 2px solid white !important;
+    border-radius: 50% !important;
+    z-index: 2 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+}
+
+/* Move the count number to the red circle */
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+    position: absolute !important;
+    top: 0px !important;
+    right: 0px !important;
+    width: 18px !important;
+    height: 18px !important;
+    background-color: #dc2626 !important;
+    color: white !important;
+    border: 2px solid white !important;
+    border-radius: 50% !important;
+    z-index: 3 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    font-weight: bold !important;
+    text-shadow: none !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
