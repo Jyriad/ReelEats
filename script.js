@@ -614,8 +614,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Store user location globally for distance calculations
                     window.userLocation = { lat: userLat, lon: userLon };
                     
-                    // Center map on user location
-                    map.setView([userLat, userLon], 15);
+                    // Re-order restaurants by distance now that we have user location
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        currentRestaurants.sort((a, b) => {
+                            const distanceA = calculateDistance(userLat, userLon, a.lat, a.lon);
+                            const distanceB = calculateDistance(userLat, userLon, b.lat, b.lon);
+                            return distanceA - distanceB;
+                        });
+                        displayRestaurants(currentRestaurants);
+                        console.log('Restaurants re-ordered by distance from user location');
+                    }
+                    
+                    // Don't center map on user location - keep it centered on selected city
                     
                     // Add user location marker with distinct styling
                     const userIcon = L.divIcon({
@@ -710,6 +720,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function populateCitySelect(cities) {
             citySelect.innerHTML = '';
+            let londonCity = null;
+            
             cities.forEach(city => {
                 const option = document.createElement('option');
                 option.value = city.id;
@@ -717,7 +729,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 option.dataset.lat = city.lat;
                 option.dataset.lon = city.lon;
                 citySelect.appendChild(option);
+                
+                // Find London city for default selection
+                if (city.name.toLowerCase().includes('london')) {
+                    londonCity = city;
+                }
             });
+            
+            // Set London as default if found, otherwise use first city
+            if (londonCity) {
+                citySelect.value = londonCity.id;
+                console.log('London set as default city');
+            } else if (cities.length > 0) {
+                citySelect.value = cities[0].id;
+                console.log('First city set as default (London not found)');
+            }
         }
         
         async function loadRestaurantsForCity(cityId) {
@@ -793,6 +819,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 cuisines: cuisineMap.get(r.id) || []
             }));
             currentRestaurants = window.currentRestaurants;
+            
+            // Order restaurants based on geolocation availability
+            if (window.userLocation) {
+                // If user has geolocation, order by distance (closest first)
+                currentRestaurants.sort((a, b) => {
+                    const distanceA = calculateDistance(window.userLocation.lat, window.userLocation.lon, a.lat, a.lon);
+                    const distanceB = calculateDistance(window.userLocation.lat, window.userLocation.lon, b.lat, b.lon);
+                    return distanceA - distanceB;
+                });
+                console.log('Restaurants ordered by distance from user location');
+            } else {
+                // If no geolocation, randomize the order
+                currentRestaurants.sort(() => Math.random() - 0.5);
+                console.log('Restaurants ordered randomly (no geolocation)');
+            }
             
             // Small delay to ensure skeleton loaders are visible before showing real data
             setTimeout(() => {
