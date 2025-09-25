@@ -702,27 +702,31 @@ html, body {
     stroke: #f59e0b;
 }
 
-/* Custom Marker Cluster Styles - Red for clusters */
+/* Custom Marker Cluster Styles - Plate icon for clusters */
 .marker-cluster-small,
 .marker-cluster-medium,
 .marker-cluster-large {
-    background-color: #dc2626 !important; /* Solid red background */
-    border: 2px solid white !important;
+    background: none !important; /* Remove background */
+    border: none !important; /* Remove border */
     box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
-    border-radius: 50% !important;
+    border-radius: 0 !important; /* Remove border radius */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
+    position: relative !important;
+    width: 40px !important;
+    height: 40px !important;
 }
 
 .marker-cluster-small div,
 .marker-cluster-medium div,
 .marker-cluster-large div {
-    background-color: transparent !important; /* Remove inner circle background */
-    color: white !important;
+    background: none !important;
+    color: #333 !important;
     font-weight: bold !important;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
+    font-size: 14px !important;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
     border: none !important;
     border-radius: 0 !important;
     display: flex !important;
@@ -733,5 +737,40 @@ html, body {
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1 !important;
+    position: relative !important;
+}
+
+/* Plate icon background */
+.marker-cluster-small::before,
+.marker-cluster-medium::before,
+.marker-cluster-large::before {
+    content: "🍽️" !important;
+    position: absolute !important;
+    font-size: 32px !important;
+    z-index: 1 !important;
+}
+
+/* Small circle in top corner */
+.marker-cluster-small::after,
+.marker-cluster-medium::after,
+.marker-cluster-large::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 2px !important;
+    right: 2px !important;
+    width: 8px !important;
+    height: 8px !important;
+    background-color: #dc2626 !important;
+    border: 1px solid white !important;
+    border-radius: 50% !important;
+    z-index: 2 !important;
+}
+
+/* Ensure number is above plate icon */
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+    z-index: 3 !important;
+    position: relative !important;
 }
 
