@@ -708,25 +708,26 @@ html, body {
 .marker-cluster-large {
     background: none !important; /* Remove background */
     border: none !important; /* Remove border */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+    box-shadow: none !important; /* Remove box shadow */
     border-radius: 0 !important; /* Remove border radius */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
     position: relative !important;
-    width: 40px !important;
-    height: 40px !important;
+    width: 50px !important; /* Larger size to distinguish from individual markers */
+    height: 50px !important;
+    overflow: visible !important; /* Allow elements to extend beyond bounds */
 }
 
 .marker-cluster-small div,
 .marker-cluster-medium div,
 .marker-cluster-large div {
     background: none !important;
-    color: #333 !important;
+    color: transparent !important; /* Hide the original number */
     font-weight: bold !important;
     font-size: 14px !important;
-    text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
+    text-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
     display: flex !important;
@@ -740,37 +741,58 @@ html, body {
     position: relative !important;
 }
 
-/* Plate icon background */
+/* Plate icon background - larger size */
 .marker-cluster-small::before,
 .marker-cluster-medium::before,
 .marker-cluster-large::before {
     content: "🍽️" !important;
     position: absolute !important;
-    font-size: 32px !important;
+    font-size: 40px !important; /* Larger plate icon */
     z-index: 1 !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
 }
 
-/* Small circle in top corner */
+/* Red circle in top-right corner */
 .marker-cluster-small::after,
 .marker-cluster-medium::after,
 .marker-cluster-large::after {
     content: "" !important;
     position: absolute !important;
-    top: 2px !important;
-    right: 2px !important;
-    width: 8px !important;
-    height: 8px !important;
+    top: 0px !important;
+    right: 0px !important;
+    width: 18px !important;
+    height: 18px !important;
     background-color: #dc2626 !important;
-    border: 1px solid white !important;
+    border: 2px solid white !important;
     border-radius: 50% !important;
     z-index: 2 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 }
 
-/* Ensure number is above plate icon */
+/* Move the count number to the red circle */
 .marker-cluster-small div,
 .marker-cluster-medium div,
 .marker-cluster-large div {
+    position: absolute !important;
+    top: 0px !important;
+    right: 0px !important;
+    width: 18px !important;
+    height: 18px !important;
+    background-color: #dc2626 !important;
+    color: white !important;
+    border: 2px solid white !important;
+    border-radius: 50% !important;
     z-index: 3 !important;
-    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    font-weight: bold !important;
+    text-shadow: none !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
