@@ -5,8 +5,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        loadWatchedVideos(); // Load watched videos from localStorage
-        
         // --- UI Element References ---
         const mapElement = document.getElementById('map');
         const restaurantList = document.getElementById('restaurant-list');
@@ -36,6 +34,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 watchedVideos = new Set(JSON.parse(watched));
             }
         }
+        
+        // Load watched videos now that the variable is declared
+        loadWatchedVideos();
         
         // Add video to watched list and save to localStorage
         function addVideoToWatched(restaurantId) {
