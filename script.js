@@ -1678,6 +1678,78 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
 
+        // Handle quick create collection modal
+        document.getElementById('close-quick-create-modal').addEventListener('click', () => {
+            document.getElementById('quick-create-collection-modal').classList.add('hidden');
+            document.getElementById('quick-create-collection-modal').classList.remove('flex');
+            document.getElementById('quick-create-collection-form').reset();
+            window.quickCreateRestaurantId = null;
+        });
+
+        document.getElementById('cancel-quick-create').addEventListener('click', () => {
+            document.getElementById('quick-create-collection-modal').classList.add('hidden');
+            document.getElementById('quick-create-collection-modal').classList.remove('flex');
+            document.getElementById('quick-create-collection-form').reset();
+            window.quickCreateRestaurantId = null;
+        });
+
+        document.getElementById('quick-create-collection-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const collectionName = document.getElementById('quick-collection-name').value.trim();
+            const restaurantId = window.quickCreateRestaurantId;
+
+            if (collectionName && restaurantId) {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (user) {
+                    try {
+                        // Create the collection
+                        const { data: newCollection, error: createError } = await supabaseClient
+                            .from('user_collections')
+                            .insert({ name: collectionName, user_id: user.id })
+                            .select()
+                            .single();
+
+                        if (createError) {
+                            console.error('Error creating collection:', createError);
+                            alert('Error creating collection. Please try again.');
+                        } else {
+                            // Add restaurant to the new collection
+                            const { error: addError } = await supabaseClient.from('collection_restaurants').insert({
+                                collection_id: newCollection.id,
+                                restaurant_id: restaurantId
+                            });
+
+                            if (addError) {
+                                console.error('Error adding restaurant to collection:', addError);
+                                alert('Collection created but failed to add restaurant. Please try again.');
+                            } else {
+                                alert(`Collection "${collectionName}" created and restaurant added!`);
+                                
+                                // Close modal and reset
+                                document.getElementById('quick-create-collection-modal').classList.add('hidden');
+                                document.getElementById('quick-create-collection-modal').classList.remove('flex');
+                                document.getElementById('quick-create-collection-form').reset();
+                                window.quickCreateRestaurantId = null;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Something went wrong. Please try again.');
+                    }
+                }
+            }
+        });
+
+        // Close quick create modal when clicking outside
+        document.getElementById('quick-create-collection-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('quick-create-collection-modal')) {
+                document.getElementById('quick-create-collection-modal').classList.add('hidden');
+                document.getElementById('quick-create-collection-modal').classList.remove('flex');
+                document.getElementById('quick-create-collection-form').reset();
+                window.quickCreateRestaurantId = null;
+            }
+        });
+
         // Handle showing the 'Add to Collection' popup
         document.getElementById('restaurant-list').addEventListener('click', async (e) => {
             if (e.target.closest('.add-to-collection-btn')) {
@@ -1732,42 +1804,17 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 // Check if it's the create collection option
                 if (e.target.classList.contains('create-collection-option') || e.target.closest('.create-collection-option')) {
+                    // Store the restaurant ID for later use
+                    window.quickCreateRestaurantId = restaurantId;
+                    
                     // Show create collection modal
-                    const collectionName = prompt('Enter collection name:');
-                    if (collectionName && collectionName.trim()) {
-                        const { data: { user } } = await supabaseClient.auth.getUser();
-                        if (user) {
-                            try {
-                                // Create the collection
-                                const { data: newCollection, error: createError } = await supabaseClient
-                                    .from('user_collections')
-                                    .insert({ name: collectionName.trim(), user_id: user.id })
-                                    .select()
-                                    .single();
-
-                                if (createError) {
-                                    console.error('Error creating collection:', createError);
-                                    alert('Error creating collection. Please try again.');
-                                } else {
-                                    // Add restaurant to the new collection
-                                    const { error: addError } = await supabaseClient.from('collection_restaurants').insert({
-                                        collection_id: newCollection.id,
-                                        restaurant_id: restaurantId
-                                    });
-
-                                    if (addError) {
-                                        console.error('Error adding restaurant to collection:', addError);
-                                        alert('Collection created but failed to add restaurant. Please try again.');
-                                    } else {
-                                        alert(`Collection "${collectionName}" created and restaurant added!`);
-                                    }
-                                }
-                            } catch (error) {
-                                console.error('Error:', error);
-                                alert('Something went wrong. Please try again.');
-                            }
-                        }
-                    }
+                    document.getElementById('quick-create-collection-modal').classList.remove('hidden');
+                    document.getElementById('quick-create-collection-modal').classList.add('flex');
+                    
+                    // Focus on the input field
+                    setTimeout(() => {
+                        document.getElementById('quick-collection-name').focus();
+                    }, 100);
                 } else if (collectionId) {
                     // Add to existing collection
                     const { error } = await supabaseClient.from('collection_restaurants').insert({

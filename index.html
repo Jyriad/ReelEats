@@ -12,7 +12,7 @@
     frame-src 'self' https://www.tiktok.com;
     connect-src 'self' https://*.basemaps.cartocdn.com https://jsuxrpnfofkigdfpnuua.supabase.co *.tiktok.com *.byteoversea.com *.tiktokv.com https://unpkg.com;
 ">
-    <title>London Food Map Supabase v1.59</title>
+    <title>London Food Map Supabase v1.60</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -40,7 +40,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-2 md:px-4 shadow flex-shrink-0 z-20">
-        <h1 class="text-lg md:text-2xl font-bold truncate">London Food Map v1.59 🗺️</h1>
+        <h1 class="text-lg md:text-2xl font-bold truncate">London Food Map v1.60 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -298,11 +298,38 @@
         </div>
     </div>
 
+    <!-- Quick Create Collection Modal -->
+    <div id="quick-create-collection-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full m-4">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-xl font-bold text-gray-800">Create Collection</h3>
+                <button id="close-quick-create-modal" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">Create a new collection and add this restaurant to it.</p>
+                <form id="quick-create-collection-form" class="space-y-4">
+                    <div>
+                        <label for="quick-collection-name" class="block text-sm font-medium text-gray-700 mb-2">Collection Name</label>
+                        <input type="text" id="quick-collection-name" placeholder="e.g., My Favorites, Date Night Spots..." required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-quick-create" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                            Create & Add Restaurant
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script async src="https://www.tiktok.com/embed.js"></script>
-    <script src="script.js?v=159"></script>
+    <script src="script.js?v=160"></script>
 </body>
 </html>
 
