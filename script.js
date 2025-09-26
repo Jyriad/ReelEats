@@ -1628,15 +1628,53 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Handle deleting a collection
+        let collectionToDelete = null;
         collectionsList.addEventListener('click', async (e) => {
             if (e.target.classList.contains('delete-collection-btn')) {
                 const collectionId = e.target.dataset.collectionId;
-                if (confirm('Are you sure you want to delete this collection?')) {
+                const collectionName = e.target.closest('.flex').querySelector('.font-semibold').textContent;
+                
+                // Store the collection to delete
+                collectionToDelete = collectionId;
+                
+                // Show custom confirmation modal
+                document.getElementById('collection-name-to-delete').textContent = collectionName;
+                document.getElementById('delete-collection-modal').classList.remove('hidden');
+                document.getElementById('delete-collection-modal').classList.add('flex');
+            }
+        });
+
+        // Handle delete confirmation modal
+        document.getElementById('cancel-delete-collection').addEventListener('click', () => {
+            document.getElementById('delete-collection-modal').classList.add('hidden');
+            document.getElementById('delete-collection-modal').classList.remove('flex');
+            collectionToDelete = null;
+        });
+
+        document.getElementById('confirm-delete-collection').addEventListener('click', async () => {
+            if (collectionToDelete) {
+                try {
                     // First delete items in collection, then the collection itself
-                    await supabaseClient.from('collection_restaurants').delete().eq('collection_id', collectionId);
-                    await supabaseClient.from('user_collections').delete().eq('id', collectionId);
+                    await supabaseClient.from('collection_restaurants').delete().eq('collection_id', collectionToDelete);
+                    await supabaseClient.from('user_collections').delete().eq('id', collectionToDelete);
                     loadUserCollections(); // Refresh list
+                } catch (error) {
+                    console.error('Error deleting collection:', error);
                 }
+                
+                // Close modal
+                document.getElementById('delete-collection-modal').classList.add('hidden');
+                document.getElementById('delete-collection-modal').classList.remove('flex');
+                collectionToDelete = null;
+            }
+        });
+
+        // Close delete modal when clicking outside
+        document.getElementById('delete-collection-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('delete-collection-modal')) {
+                document.getElementById('delete-collection-modal').classList.add('hidden');
+                document.getElementById('delete-collection-modal').classList.remove('flex');
+                collectionToDelete = null;
             }
         });
 
@@ -1789,7 +1827,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
                 </button>
                 <button class="add-to-collection-btn absolute top-4 right-12" data-restaurant-id="${restaurant.id}" title="Add to collection">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
                 </button>
             `;
 
