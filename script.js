@@ -1579,7 +1579,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             toastMessage.textContent = message;
             toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out ${type}`;
             
-            // Show toast
+            // Show toast (remove hidden class)
+            toast.classList.remove('hidden');
+            
+            // Slide in
             setTimeout(() => {
                 toast.classList.add('show');
             }, 100);
@@ -1587,6 +1590,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Hide toast after 3 seconds
             setTimeout(() => {
                 toast.classList.remove('show');
+                // Hide completely after animation
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
             }, 3000);
         }
 
