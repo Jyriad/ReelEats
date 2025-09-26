@@ -684,6 +684,37 @@ html, body {
     transition: all 0.2s ease-in-out;
 }
 
+.add-to-collection-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 3rem; /* Position to the left of the favorite button */
+    cursor: pointer;
+    z-index: 10;
+    color: #9ca3af; /* Default gray color */
+    transition: all 0.2s ease-in-out;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e5e7eb;
+}
+
+.add-to-collection-btn:hover {
+    color: #6366f1; /* Purple color on hover */
+    background-color: rgba(99, 102, 241, 0.1);
+    border-color: #6366f1;
+    transform: scale(1.1);
+}
+
+.add-to-collection-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
 .favorite-btn svg {
     width: 24px;
     height: 24px;
