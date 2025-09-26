@@ -257,9 +257,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // --- Auth State Management ---
         async function updateUserUI(user) {
+            const collectionsBtn = document.getElementById('collections-btn');
+            
             if (user) {
                 // User is logged in - show logout button instead of login button
                 authBtn.classList.add('hidden');
+                collectionsBtn.classList.remove('hidden');
                 
                 // Create or update logout button
                 let logoutButton = document.getElementById('logout-button');
@@ -301,6 +304,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 // User is logged out - show login button
                 authBtn.classList.remove('hidden');
+                collectionsBtn.classList.add('hidden');
                 
                 // Hide logout button if it exists
                 const logoutButton = document.getElementById('logout-button');
@@ -1559,6 +1563,140 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        // --- Collections Logic ---
+        const collectionsBtn = document.getElementById('collections-btn');
+        const collectionsModal = document.getElementById('collections-modal');
+        const closeCollectionsModalBtn = document.getElementById('close-collections-modal');
+        const collectionsList = document.getElementById('collections-list');
+        const addCollectionForm = document.getElementById('add-collection-form');
+
+        // Open/Close Modal
+        collectionsBtn.addEventListener('click', () => {
+            collectionsModal.classList.remove('hidden');
+            collectionsModal.classList.add('flex');
+            loadUserCollections();
+        });
+        closeCollectionsModalBtn.addEventListener('click', () => collectionsModal.classList.add('hidden'));
+
+        // Handle new collection creation
+        addCollectionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const collectionNameInput = document.getElementById('new-collection-name');
+            const collectionName = collectionNameInput.value.trim();
+            const { data: { user } } = await supabaseClient.auth.getUser();
+
+            if (collectionName && user) {
+                const { error } = await supabaseClient.from('user_collections').insert({ name: collectionName, user_id: user.id });
+                if (error) {
+                    console.error('Error creating collection:', error);
+                } else {
+                    collectionNameInput.value = '';
+                    loadUserCollections(); // Refresh list
+                }
+            }
+        });
+
+        // Function to load and display a user's collections
+        async function loadUserCollections() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabaseClient
+                .from('user_collections')
+                .select(`*, collection_restaurants(count)`)
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                collectionsList.innerHTML = `<p class="text-red-500">Error loading collections.</p>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                collectionsList.innerHTML = `<p class="text-gray-500 text-center">You haven't created any collections yet.</p>`;
+            } else {
+                collectionsList.innerHTML = data.map(collection => `
+                    <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                        <div>
+                            <p class="font-semibold">${collection.name}</p>
+                            <p class="text-sm text-gray-500">${collection.collection_restaurants[0].count} items</p>
+                        </div>
+                        <button class="delete-collection-btn text-red-500 hover:text-red-700" data-collection-id="${collection.id}">Delete</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Handle deleting a collection
+        collectionsList.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-collection-btn')) {
+                const collectionId = e.target.dataset.collectionId;
+                if (confirm('Are you sure you want to delete this collection?')) {
+                    // First delete items in collection, then the collection itself
+                    await supabaseClient.from('collection_restaurants').delete().eq('collection_id', collectionId);
+                    await supabaseClient.from('user_collections').delete().eq('id', collectionId);
+                    loadUserCollections(); // Refresh list
+                }
+            }
+        });
+
+        // Handle showing the 'Add to Collection' popup
+        document.getElementById('restaurant-list').addEventListener('click', async (e) => {
+            if (e.target.closest('.add-to-collection-btn')) {
+                const button = e.target.closest('.add-to-collection-btn');
+                const restaurantId = button.dataset.restaurantId;
+                const { data: { user } } = await supabaseClient.auth.getUser();
+
+                if (!user) {
+                    openAuthModal();
+                    return;
+                }
+
+                // Remove any existing popups
+                document.querySelectorAll('.add-to-collection-popup').forEach(p => p.remove());
+
+                // Fetch user's collections
+                const { data: collections } = await supabaseClient.from('user_collections').select('id, name').eq('user_id', user.id);
+
+                const popup = document.createElement('div');
+                popup.className = 'add-to-collection-popup';
+                let listItems = collections.map(c => `<li data-collection-id="${c.id}" data-restaurant-id="${restaurantId}">${c.name}</li>`).join('');
+
+                popup.innerHTML = `
+                    <h4>Add to...</h4>
+                    <ul>${listItems}</ul>
+                `;
+
+                // Append popup to the list item card
+                button.closest('[data-restaurant-id]').appendChild(popup);
+            }
+        });
+
+        // Handle adding a restaurant to a collection from the popup
+        document.body.addEventListener('click', async (e) => {
+            if (e.target.matches('.add-to-collection-popup li')) {
+                const collectionId = e.target.dataset.collectionId;
+                const restaurantId = e.target.dataset.restaurantId;
+
+                const { error } = await supabaseClient.from('collection_restaurants').insert({
+                    collection_id: collectionId,
+                    restaurant_id: restaurantId
+                });
+
+                if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
+                    alert('This restaurant is already in that collection.');
+                } else if (error) {
+                    console.error(error);
+                } else {
+                    alert('Added to collection!');
+                }
+                e.target.closest('.add-to-collection-popup').remove();
+            } else if (!e.target.closest('.add-to-collection-btn')) {
+                // Hide popups when clicking elsewhere
+                document.querySelectorAll('.add-to-collection-popup').forEach(p => p.remove());
+            }
+        });
+
         function fitMapToRestaurants(restaurants) {
             if (!map || !restaurants || restaurants.length === 0) {
                 return;
@@ -1647,15 +1785,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
                     ${distanceHtml}
                 </div>
-                <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                <button class="favorite-btn absolute top-4 right-4 ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                </button>
+                <button class="add-to-collection-btn absolute top-4 right-12" data-restaurant-id="${restaurant.id}" title="Add to collection">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg>
                 </button>
             `;
 
             // Main click event to open video
             listItem.addEventListener('click', (e) => {
-                // Prevent opening video if the favorite button was clicked
-                if (e.target.closest('.favorite-btn')) return;
+                // Prevent opening video if the favorite button or collection button was clicked
+                if (e.target.closest('.favorite-btn') || e.target.closest('.add-to-collection-btn')) return;
 
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
                 listItem.classList.add('active-list-item');
