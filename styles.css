@@ -862,3 +862,17 @@ html, body {
     background-color: #f3f4f6;
 }
 
+.add-to-collection-popup .create-collection-option {
+    border-top: 1px solid #e5e7eb;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+}
+
+.add-to-collection-popup .create-collection-option:hover {
+    background-color: #f0fdf4;
+}
+
+.add-to-collection-popup .create-collection-option .flex {
+    font-weight: 500;
+}
+

@@ -1698,7 +1698,21 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 const popup = document.createElement('div');
                 popup.className = 'add-to-collection-popup';
-                let listItems = collections.map(c => `<li data-collection-id="${c.id}" data-restaurant-id="${restaurantId}">${c.name}</li>`).join('');
+                
+                let listItems = '';
+                if (collections && collections.length > 0) {
+                    listItems = collections.map(c => `<li data-collection-id="${c.id}" data-restaurant-id="${restaurantId}">${c.name}</li>`).join('');
+                }
+                
+                // Add create collection option
+                listItems += `<li class="create-collection-option" data-restaurant-id="${restaurantId}">
+                    <div class="flex items-center text-green-600">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create New Collection
+                    </div>
+                </li>`;
 
                 popup.innerHTML = `
                     <h4>Add to...</h4>
@@ -1716,18 +1730,60 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const collectionId = e.target.dataset.collectionId;
                 const restaurantId = e.target.dataset.restaurantId;
 
-                const { error } = await supabaseClient.from('collection_restaurants').insert({
-                    collection_id: collectionId,
-                    restaurant_id: restaurantId
-                });
+                // Check if it's the create collection option
+                if (e.target.classList.contains('create-collection-option') || e.target.closest('.create-collection-option')) {
+                    // Show create collection modal
+                    const collectionName = prompt('Enter collection name:');
+                    if (collectionName && collectionName.trim()) {
+                        const { data: { user } } = await supabaseClient.auth.getUser();
+                        if (user) {
+                            try {
+                                // Create the collection
+                                const { data: newCollection, error: createError } = await supabaseClient
+                                    .from('user_collections')
+                                    .insert({ name: collectionName.trim(), user_id: user.id })
+                                    .select()
+                                    .single();
 
-                if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
-                    alert('This restaurant is already in that collection.');
-                } else if (error) {
-                    console.error(error);
-                } else {
-                    alert('Added to collection!');
+                                if (createError) {
+                                    console.error('Error creating collection:', createError);
+                                    alert('Error creating collection. Please try again.');
+                                } else {
+                                    // Add restaurant to the new collection
+                                    const { error: addError } = await supabaseClient.from('collection_restaurants').insert({
+                                        collection_id: newCollection.id,
+                                        restaurant_id: restaurantId
+                                    });
+
+                                    if (addError) {
+                                        console.error('Error adding restaurant to collection:', addError);
+                                        alert('Collection created but failed to add restaurant. Please try again.');
+                                    } else {
+                                        alert(`Collection "${collectionName}" created and restaurant added!`);
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error:', error);
+                                alert('Something went wrong. Please try again.');
+                            }
+                        }
+                    }
+                } else if (collectionId) {
+                    // Add to existing collection
+                    const { error } = await supabaseClient.from('collection_restaurants').insert({
+                        collection_id: collectionId,
+                        restaurant_id: restaurantId
+                    });
+
+                    if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
+                        alert('This restaurant is already in that collection.');
+                    } else if (error) {
+                        console.error(error);
+                    } else {
+                        alert('Added to collection!');
+                    }
                 }
+                
                 e.target.closest('.add-to-collection-popup').remove();
             } else if (!e.target.closest('.add-to-collection-btn')) {
                 // Hide popups when clicking elsewhere
