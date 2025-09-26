@@ -1856,6 +1856,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <ul>${listItems}</ul>
                 `;
 
+                console.log('Created popup with HTML:', popup.innerHTML);
+                console.log('Collections found:', collections);
+
                 // Append popup to the list item card
                 button.closest('[data-restaurant-id]').appendChild(popup);
             }
