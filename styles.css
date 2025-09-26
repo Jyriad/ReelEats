@@ -876,3 +876,25 @@ html, body {
     font-weight: 500;
 }
 
+/* Toast Notification Styles */
+#toast-notification {
+    max-width: 300px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+#toast-notification.success {
+    background-color: #059669;
+}
+
+#toast-notification.error {
+    background-color: #dc2626;
+}
+
+#toast-notification.warning {
+    background-color: #d97706;
+}
+
+#toast-notification.show {
+    transform: translateX(0);
+}
+

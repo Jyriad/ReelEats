@@ -1570,6 +1570,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         const collectionsList = document.getElementById('collections-list');
         const addCollectionForm = document.getElementById('add-collection-form');
 
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-notification');
+            const toastMessage = document.getElementById('toast-message');
+            
+            // Set message and type
+            toastMessage.textContent = message;
+            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out ${type}`;
+            
+            // Show toast
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Hide toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
         // Open/Close Modal
         collectionsBtn.addEventListener('click', () => {
             collectionsModal.classList.remove('hidden');
@@ -1711,7 +1731,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                         if (createError) {
                             console.error('Error creating collection:', createError);
-                            alert('Error creating collection. Please try again.');
+                            showToast('Error creating collection. Please try again.', 'error');
                         } else {
                             // Add restaurant to the new collection
                             const { error: addError } = await supabaseClient.from('collection_restaurants').insert({
@@ -1721,9 +1741,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                             if (addError) {
                                 console.error('Error adding restaurant to collection:', addError);
-                                alert('Collection created but failed to add restaurant. Please try again.');
+                                showToast('Collection created but failed to add restaurant. Please try again.', 'error');
                             } else {
-                                alert(`Collection "${collectionName}" created and restaurant added!`);
+                                showToast(`Collection "${collectionName}" created and restaurant added!`);
                                 
                                 // Close modal and reset
                                 document.getElementById('quick-create-collection-modal').classList.add('hidden');
@@ -1734,7 +1754,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        alert('Something went wrong. Please try again.');
+                        showToast('Something went wrong. Please try again.', 'error');
                     }
                 }
             }
@@ -1825,11 +1845,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     });
 
                     if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
-                        alert('This restaurant is already in that collection.');
+                        showToast('This restaurant is already in that collection.', 'warning');
                     } else if (error) {
                         console.error(error);
+                        showToast('Error adding to collection. Please try again.', 'error');
                     } else {
-                        alert('Added to collection!');
+                        showToast('Added to collection!');
                     }
                 }
                 
