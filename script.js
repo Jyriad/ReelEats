@@ -165,11 +165,35 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Watched videos state management
         let watchedVideos = new Set();
         
+        // Collected restaurants state management
+        let collectedRestaurants = new Set();
+        
         // Load watched videos from localStorage
         function loadWatchedVideos() {
             const watched = localStorage.getItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS);
             if (watched) {
                 watchedVideos = new Set(JSON.parse(watched));
+            }
+        }
+
+        // Load collected restaurants from database
+        async function loadCollectedRestaurants() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .select('restaurant_id')
+                    .eq('user_id', user.id);
+
+                if (error) {
+                    console.error('Error loading collected restaurants:', error);
+                } else {
+                    collectedRestaurants = new Set(data.map(item => item.restaurant_id));
+                }
+            } catch (error) {
+                console.error('Error loading collected restaurants:', error);
             }
         }
         
@@ -295,6 +319,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     favoritedRestaurants = new Set(data.map(fav => fav.restaurant_id));
                 }
+
+                // Load collected restaurants
+                await loadCollectedRestaurants();
 
                 // Re-display restaurants to show correct favorite status (only if restaurants are loaded)
                 if (currentRestaurants && currentRestaurants.length > 0) {
@@ -841,7 +868,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Small delay to ensure skeleton loaders are visible before showing real data
             setTimeout(() => {
-                displayRestaurants(currentRestaurants);
+            displayRestaurants(currentRestaurants);
             }, 100);
         }
 
@@ -1752,11 +1779,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                             } else {
                                 showToast(`Collection "${collectionName}" created and restaurant added!`);
                                 
+                                // Update collection state
+                                collectedRestaurants.add(restaurantId);
+                                
                                 // Close modal and reset
                                 document.getElementById('quick-create-collection-modal').classList.add('hidden');
                                 document.getElementById('quick-create-collection-modal').classList.remove('flex');
                                 document.getElementById('quick-create-collection-form').reset();
                                 window.quickCreateRestaurantId = null;
+                                
+                                // Re-display restaurants to show updated collection status
+                                if (currentRestaurants && currentRestaurants.length > 0) {
+                                    displayRestaurants(currentRestaurants);
+                                }
                             }
                         }
                     } catch (error) {
@@ -1858,6 +1893,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                         showToast('Error adding to collection. Please try again.', 'error');
                     } else {
                         showToast('Added to collection!');
+                        // Update collection state
+                        collectedRestaurants.add(restaurantId);
+                        // Re-display restaurants to show updated collection status
+                        if (currentRestaurants && currentRestaurants.length > 0) {
+                            displayRestaurants(currentRestaurants);
+                        }
                     }
                 }
                 
@@ -1907,7 +1948,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             restaurants.forEach((restaurant, index) => {
                 const listItem = createListItem(restaurant, index);
                 restaurantList.appendChild(listItem);
-
+                
                 const marker = createNumberedMarker(restaurant, index);
                 window.restaurantMarkers.push(marker); // Keep track of markers for other interactions
                 restaurantMarkers = window.restaurantMarkers;
@@ -1925,7 +1966,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             listItem.dataset.restaurantId = restaurant.id;
 
             const isFavorited = favoritedRestaurants.has(restaurant.id);
+            const isCollected = collectedRestaurants.has(restaurant.id);
             const favoriteClass = isFavorited ? 'favorited' : '';
+            const collectionClass = isCollected ? 'collected' : '';
             const number = index + 1;
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
@@ -1940,28 +1983,32 @@ document.addEventListener('DOMContentLoaded', async function() {
                             </span>`;
                 }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
-
+            
             // Distance will be added by updateRestaurantCardsWithDistance() when user location is available
             let distanceHtml = '';
-
+            
             listItem.innerHTML = `
                 <div class="flex-shrink-0 mr-3">
                     <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                         ${number}
                     </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-gray-900 text-base md:text-lg font-bold truncate pr-8">${restaurant.name}</h3>
+                <div class="flex-1 min-w-0 pr-20">
+                    <div class="flex items-start justify-between">
+                        <h3 class="text-gray-900 text-base md:text-lg font-bold flex-1 min-w-0 pr-2">${restaurant.name}</h3>
+                        <div class="flex items-center space-x-1 flex-shrink-0">
+                            <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                            </button>
+                            <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            </button>
+                        </div>
+                    </div>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
                     <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
                     ${distanceHtml}
                 </div>
-                <button class="favorite-btn absolute top-4 right-4 ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                </button>
-                <button class="add-to-collection-btn absolute top-4 right-12" data-restaurant-id="${restaurant.id}" title="Add to collection">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-                </button>
             `;
 
             // Main click event to open video
@@ -2131,12 +2178,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // script.js
 
-        function showVideoFor(restaurant) {
-            if (!restaurant.tiktok_embed_html) {
+function showVideoFor(restaurant) {
+    if (!restaurant.tiktok_embed_html) {
                 showNoVideoMessage(videoContainer, restaurant.name);
-                videoModal.classList.add('show');
-                return;
-            }
+        videoModal.classList.add('show');
+        return;
+    }
 
             // Mark the video as watched and update the UI
             addVideoToWatched(restaurant.id);
@@ -2148,25 +2195,25 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // Extract video ID from embed HTML
             const videoId = extractVideoId(restaurant.tiktok_embed_html);
-            console.log('🎬 Loading video:', videoId);
+    console.log('🎬 Loading video:', videoId);
 
-            // Show modal
-            videoModal.classList.add('show');
+    // Show modal
+    videoModal.classList.add('show');
             
             // Scroll to the restaurant in the side panel (desktop only)
             scrollToRestaurant(restaurant.id);
     
-            if (videoId) {
-                // Try direct iframe approach first
-                console.log('Trying direct iframe approach...');
+    if (videoId) {
+        // Try direct iframe approach first
+        console.log('Trying direct iframe approach...');
                 videoContainer.innerHTML = createVideoIframe(videoId);
                 
                 // Handle iframe loading with fallback
                 handleIframeLoading(videoContainer, restaurant.tiktok_embed_html, () => {
                     loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
                 });
-            } else {
-                console.log('No video ID found, using blockquote...');
+    } else {
+        console.log('No video ID found, using blockquote...');
                 loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
             }
         }
@@ -2184,7 +2231,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!restaurantList) return;
             
             // Wait a bit for any layout changes to complete
-            setTimeout(() => {
+        setTimeout(() => {
                 const cardTop = restaurantCard.offsetTop;
                 const cardHeight = restaurantCard.offsetHeight;
                 const containerHeight = restaurantList.offsetHeight;
@@ -2194,8 +2241,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     top: Math.max(0, scrollPosition),
                     behavior: 'smooth'
                 });
-            }, 100);
-        }
+        }, 100);
+}
 
         function closeVideo() {
             videoModal.classList.remove('show');

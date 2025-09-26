@@ -675,19 +675,22 @@ html, body {
 
 /* Favorite Icon Styles */
 .favorite-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
     cursor: pointer;
     z-index: 10;
     color: #9ca3af; /* Default gray color for the star outline */
     transition: all 0.2s ease-in-out;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e5e7eb;
+    flex-shrink: 0;
 }
 
 .add-to-collection-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 3rem; /* Position to the left of the favorite button */
     cursor: pointer;
     z-index: 10;
     color: #9ca3af; /* Default gray color */
@@ -700,6 +703,7 @@ html, body {
     border-radius: 50%;
     background-color: rgba(255, 255, 255, 0.9);
     border: 1px solid #e5e7eb;
+    flex-shrink: 0;
 }
 
 .add-to-collection-btn:hover {
@@ -707,6 +711,13 @@ html, body {
     background-color: rgba(99, 102, 241, 0.1);
     border-color: #6366f1;
     transform: scale(1.1);
+}
+
+.add-to-collection-btn.collected {
+    color: #6366f1; /* Purple color when collected */
+    background-color: rgba(99, 102, 241, 0.15);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 .add-to-collection-btn svg {
