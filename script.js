@@ -176,6 +176,80 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        // Show collection selection modal (works on both mobile and desktop)
+        async function showCollectionModal(restaurantId) {
+            // Fetch user's collections
+            const { data: collections } = await supabaseClient.from('user_collections').select('id, name').eq('user_id', (await supabaseClient.auth.getUser()).data.user.id);
+            
+            // Create modal HTML
+            const modal = document.createElement('div');
+            modal.id = 'collection-selection-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4';
+            
+            let collectionsList = '';
+            if (collections && collections.length > 0) {
+                collectionsList = collections.map(c => `
+                    <div class="collection-option p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" data-collection-id="${c.id}" data-restaurant-id="${restaurantId}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-purple-500 mr-3"></div>
+                                <span class="text-lg font-medium text-gray-900">${c.name}</span>
+                            </div>
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                collectionsList = `
+                    <div class="p-8 text-center text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <p class="text-lg font-medium mb-2">No collections yet</p>
+                        <p class="text-sm">Create your first collection to organize your favorite restaurants</p>
+                    </div>
+                `;
+            }
+            
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">Add to Collection</h3>
+                            <button id="close-collection-modal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                        </div>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto">
+                        ${collectionsList}
+                        <div class="create-collection-option p-4 border-t border-gray-200 cursor-pointer hover:bg-green-50 transition-colors" data-restaurant-id="${restaurantId}">
+                            <div class="flex items-center text-green-600">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <span class="text-lg font-medium">Create New Collection</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add to body
+            document.body.appendChild(modal);
+            
+            // Add event listeners
+            document.getElementById('close-collection-modal').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
         // Load collected restaurants from database
         async function loadCollectedRestaurants() {
             const { data: { user } } = await supabaseClient.auth.getUser();
@@ -1827,46 +1901,70 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return;
                 }
 
-                // Remove any existing popups
-                document.querySelectorAll('.add-to-collection-popup').forEach(p => p.remove());
-
-                // Fetch user's collections
-                const { data: collections } = await supabaseClient.from('user_collections').select('id, name').eq('user_id', user.id);
-
-                const popup = document.createElement('div');
-                popup.className = 'add-to-collection-popup';
+                // Store the restaurant ID for later use
+                window.quickCreateRestaurantId = restaurantId;
                 
-                let listItems = '';
-                if (collections && collections.length > 0) {
-                    listItems = collections.map(c => `<li data-collection-id="${c.id}" data-restaurant-id="${restaurantId}">${c.name}</li>`).join('');
-                }
-                
-                // Add create collection option
-                listItems += `<li class="create-collection-option" data-restaurant-id="${restaurantId}">
-                    <div class="flex items-center text-green-600">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                        Create New Collection
-                    </div>
-                </li>`;
-
-                popup.innerHTML = `
-                    <h4>Add to...</h4>
-                    <ul>${listItems}</ul>
-                `;
-
-                console.log('Created popup with HTML:', popup.innerHTML);
-                console.log('Collections found:', collections);
-
-                // Append popup to the list item card
-                button.closest('[data-restaurant-id]').appendChild(popup);
+                // Show the collection selection modal
+                showCollectionModal(restaurantId);
             }
         });
 
-        // Handle adding a restaurant to a collection from the popup
+        // Handle adding a restaurant to a collection
         document.body.addEventListener('click', async (e) => {
-            // Check if clicked on any part of a popup list item
+            // Check if clicked on a collection option in the modal
+            const collectionOption = e.target.closest('.collection-option');
+            if (collectionOption) {
+                const collectionId = collectionOption.dataset.collectionId;
+                const restaurantId = collectionOption.dataset.restaurantId;
+
+                // Add to existing collection
+                const { error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .insert({ collection_id: collectionId, restaurant_id: restaurantId });
+
+                if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
+                    showToast('This restaurant is already in that collection.', 'warning');
+                } else if (error) {
+                    console.error(error);
+                    showToast('Error adding to collection. Please try again.', 'error');
+                } else {
+                    showToast('Added to collection!');
+                    // Update collection state
+                    collectedRestaurants.add(restaurantId);
+                    console.log('Updated collectedRestaurants:', collectedRestaurants);
+                    // Re-display restaurants to show updated collection status
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        console.log('Re-displaying restaurants after adding to collection');
+                        displayRestaurants(currentRestaurants);
+                    }
+                }
+                
+                // Close the modal
+                document.getElementById('collection-selection-modal').remove();
+            }
+            
+            // Check if clicked on create collection option
+            const createOption = e.target.closest('.create-collection-option');
+            if (createOption) {
+                const restaurantId = createOption.dataset.restaurantId;
+                
+                // Store the restaurant ID for later use
+                window.quickCreateRestaurantId = restaurantId;
+                
+                // Close the collection selection modal
+                document.getElementById('collection-selection-modal').remove();
+                
+                // Show create collection modal
+                document.getElementById('quick-create-collection-modal').classList.remove('hidden');
+                document.getElementById('quick-create-collection-modal').classList.add('flex');
+                
+                // Focus on the input field
+                setTimeout(() => {
+                    document.getElementById('quick-collection-name').focus();
+                }, 100);
+            }
+            
+            // Check if clicked on any part of a popup list item (legacy desktop popup)
             const listItem = e.target.closest('.add-to-collection-popup li');
             if (listItem) {
                 const collectionId = listItem.dataset.collectionId;
