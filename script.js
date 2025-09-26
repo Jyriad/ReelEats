@@ -184,13 +184,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             try {
                 const { data, error } = await supabaseClient
                     .from('collection_restaurants')
-                    .select('restaurant_id')
-                    .eq('user_id', user.id);
+                    .select('restaurant_id, user_collections!inner(user_id)')
+                    .eq('user_collections.user_id', user.id);
 
                 if (error) {
                     console.error('Error loading collected restaurants:', error);
                 } else {
                     collectedRestaurants = new Set(data.map(item => item.restaurant_id));
+                    console.log('Loaded collected restaurants:', collectedRestaurants);
                 }
             } catch (error) {
                 console.error('Error loading collected restaurants:', error);
@@ -1970,6 +1971,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             const favoriteClass = isFavorited ? 'favorited' : '';
             const collectionClass = isCollected ? 'collected' : '';
             const number = index + 1;
+            
+            // Debug logging
+            if (isCollected) {
+                console.log(`Restaurant ${restaurant.name} is collected, applying class: ${collectionClass}`);
+            }
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
                 ? restaurant.cuisines.map(cuisine => {
@@ -1994,20 +2000,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                 </div>
                 <div class="flex-1 min-w-0 pr-20">
-                    <div class="flex items-start justify-between">
-                        <h3 class="text-gray-900 text-base md:text-lg font-bold flex-1 min-w-0 pr-2">${restaurant.name}</h3>
-                        <div class="flex items-center space-x-1 flex-shrink-0">
-                            <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-                            </button>
-                            <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                            </button>
-                        </div>
-                    </div>
+                    <h3 class="text-gray-900 text-base md:text-lg font-bold pr-2">${restaurant.name}</h3>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
                     <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
                     ${distanceHtml}
+                </div>
+                <div class="absolute top-2 right-2 flex items-center space-x-1">
+                    <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                    </button>
+                    <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    </button>
                 </div>
             `;
 
