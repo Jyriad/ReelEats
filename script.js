@@ -1798,12 +1798,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Handle adding a restaurant to a collection from the popup
         document.body.addEventListener('click', async (e) => {
-            if (e.target.matches('.add-to-collection-popup li')) {
-                const collectionId = e.target.dataset.collectionId;
-                const restaurantId = e.target.dataset.restaurantId;
+            // Check if clicked on any part of a popup list item
+            const listItem = e.target.closest('.add-to-collection-popup li');
+            if (listItem) {
+                const collectionId = listItem.dataset.collectionId;
+                const restaurantId = listItem.dataset.restaurantId;
 
                 // Check if it's the create collection option
-                if (e.target.classList.contains('create-collection-option') || e.target.closest('.create-collection-option')) {
+                if (listItem.classList.contains('create-collection-option')) {
                     // Store the restaurant ID for later use
                     window.quickCreateRestaurantId = restaurantId;
                     
@@ -1831,7 +1833,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 }
                 
-                e.target.closest('.add-to-collection-popup').remove();
+                listItem.closest('.add-to-collection-popup').remove();
             } else if (!e.target.closest('.add-to-collection-btn')) {
                 // Hide popups when clicking elsewhere
                 document.querySelectorAll('.add-to-collection-popup').forEach(p => p.remove());
