@@ -1782,6 +1782,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 
                                 // Update collection state
                                 collectedRestaurants.add(restaurantId);
+                                console.log('Updated collectedRestaurants (quick create):', collectedRestaurants);
                                 
                                 // Close modal and reset
                                 document.getElementById('quick-create-collection-modal').classList.add('hidden');
@@ -1791,6 +1792,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 
                                 // Re-display restaurants to show updated collection status
                                 if (currentRestaurants && currentRestaurants.length > 0) {
+                                    console.log('Re-displaying restaurants after quick create collection');
                                     displayRestaurants(currentRestaurants);
                                 }
                             }
@@ -1896,8 +1898,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         showToast('Added to collection!');
                         // Update collection state
                         collectedRestaurants.add(restaurantId);
+                        console.log('Updated collectedRestaurants:', collectedRestaurants);
                         // Re-display restaurants to show updated collection status
                         if (currentRestaurants && currentRestaurants.length > 0) {
+                            console.log('Re-displaying restaurants after adding to collection');
                             displayRestaurants(currentRestaurants);
                         }
                     }
@@ -1973,6 +1977,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const number = index + 1;
             
             // Debug logging
+            console.log(`Creating list item for ${restaurant.name} (ID: ${restaurant.id}): isCollected=${isCollected}, collectionClass="${collectionClass}"`);
+            console.log(`Current collectedRestaurants Set:`, Array.from(collectedRestaurants));
             if (isCollected) {
                 console.log(`Restaurant ${restaurant.name} is collected, applying class: ${collectionClass}`);
             }
