@@ -695,57 +695,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
 
-        // Collection Filter Event Listeners
-        document.getElementById('collection-filter-btn').addEventListener('click', showCollectionFilterModal);
-        
-        document.getElementById('close-collection-filter-modal').addEventListener('click', () => {
-            document.getElementById('collection-filter-modal').classList.add('hidden');
-            document.getElementById('collection-filter-modal').classList.remove('flex');
-        });
-        
-        document.getElementById('cancel-collection-filter').addEventListener('click', () => {
-            document.getElementById('collection-filter-modal').classList.add('hidden');
-            document.getElementById('collection-filter-modal').classList.remove('flex');
-        });
-        
-        document.getElementById('clear-collection-filters').addEventListener('click', () => {
-            selectedCollections.clear();
-            showCollectionFilterModal(); // Refresh the modal
-        });
-        
-        document.getElementById('apply-collection-filter').addEventListener('click', () => {
-            // Apply the filter
-            if (currentRestaurants && currentRestaurants.length > 0) {
-                const filteredRestaurants = filterRestaurantsByCollections(currentRestaurants);
-                displayRestaurants(filteredRestaurants);
-                
-                // Update map to show only filtered restaurants
-                if (map && mapInitialized) {
-                    fitMapToRestaurants(filteredRestaurants);
-                }
-            }
-            
-            // Close modal
-            document.getElementById('collection-filter-modal').classList.add('hidden');
-            document.getElementById('collection-filter-modal').classList.remove('flex');
-            
-            // Update button appearance
-            updateCollectionFilterButtonAppearance();
-        });
-        
-        // Handle collection filter card clicks
-        document.addEventListener('click', (e) => {
-            const card = e.target.closest('.collection-filter-card');
-            if (card) {
-                const collectionId = card.dataset.collectionId;
-                if (selectedCollections.has(collectionId)) {
-                    selectedCollections.delete(collectionId);
-                } else {
-                    selectedCollections.add(collectionId);
-                }
-                showCollectionFilterModal(); // Refresh the modal
-            }
-        });
 
         // --- Core Functions ---
 
@@ -2711,6 +2660,58 @@ function showVideoFor(restaurant) {
         
         // Setup mobile drawer after DOM is ready
         setupMobileDrawer();
+
+        // Collection Filter Event Listeners
+        document.getElementById('collection-filter-btn').addEventListener('click', showCollectionFilterModal);
+        
+        document.getElementById('close-collection-filter-modal').addEventListener('click', () => {
+            document.getElementById('collection-filter-modal').classList.add('hidden');
+            document.getElementById('collection-filter-modal').classList.remove('flex');
+        });
+        
+        document.getElementById('cancel-collection-filter').addEventListener('click', () => {
+            document.getElementById('collection-filter-modal').classList.add('hidden');
+            document.getElementById('collection-filter-modal').classList.remove('flex');
+        });
+        
+        document.getElementById('clear-collection-filters').addEventListener('click', () => {
+            selectedCollections.clear();
+            showCollectionFilterModal(); // Refresh the modal
+        });
+        
+        document.getElementById('apply-collection-filter').addEventListener('click', () => {
+            // Apply the filter
+            if (currentRestaurants && currentRestaurants.length > 0) {
+                const filteredRestaurants = filterRestaurantsByCollections(currentRestaurants);
+                displayRestaurants(filteredRestaurants);
+                
+                // Update map to show only filtered restaurants
+                if (map && mapInitialized) {
+                    fitMapToRestaurants(filteredRestaurants);
+                }
+            }
+            
+            // Close modal
+            document.getElementById('collection-filter-modal').classList.add('hidden');
+            document.getElementById('collection-filter-modal').classList.remove('flex');
+            
+            // Update button appearance
+            updateCollectionFilterButtonAppearance();
+        });
+        
+        // Handle collection filter card clicks
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('.collection-filter-card');
+            if (card) {
+                const collectionId = card.dataset.collectionId;
+                if (selectedCollections.has(collectionId)) {
+                    selectedCollections.delete(collectionId);
+                } else {
+                    selectedCollections.add(collectionId);
+                }
+                showCollectionFilterModal(); // Refresh the modal
+            }
+        });
     
     } catch (error) {
         console.error("An error occurred during initialization:", error);
