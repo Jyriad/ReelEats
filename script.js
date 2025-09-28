@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Load user collections from database
-        async function loadCollectionsForModal() {
+        async function loadUserCollections() {
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
