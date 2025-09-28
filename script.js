@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Load user collections from database
-        async function loadUserCollections() {
+        async function loadCollectionsForModal() {
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 // Load collected restaurants and collections
                 await loadCollectedRestaurants();
-                await loadUserCollections();
+                await loadCollectionsForModal();
 
                 // Re-display restaurants to show correct favorite status (only if restaurants are loaded)
                 if (currentRestaurants && currentRestaurants.length > 0) {
@@ -1802,7 +1802,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         collectionsBtn.addEventListener('click', () => {
             collectionsModal.classList.remove('hidden');
             collectionsModal.classList.add('flex');
-            loadUserCollections();
+            loadCollectionsForModal();
         });
         closeCollectionsModalBtn.addEventListener('click', () => collectionsModal.classList.add('hidden'));
 
@@ -1819,13 +1819,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     console.error('Error creating collection:', error);
                 } else {
                     collectionNameInput.value = '';
-                    loadUserCollections(); // Refresh list
+                    loadCollectionsForModal(); // Refresh list
                 }
             }
         });
 
-        // Function to load and display a user's collections
-        async function loadUserCollections() {
+        // Function to load and display a user's collections for the collections modal
+        async function loadCollectionsForModal() {
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
@@ -1885,7 +1885,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // First delete items in collection, then the collection itself
                     await supabaseClient.from('collection_restaurants').delete().eq('collection_id', collectionToDelete);
                     await supabaseClient.from('user_collections').delete().eq('id', collectionToDelete);
-                    loadUserCollections(); // Refresh list
+                    loadCollectionsForModal(); // Refresh list
                 } catch (error) {
                     console.error('Error deleting collection:', error);
                 }
