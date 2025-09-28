@@ -2662,24 +2662,40 @@ function showVideoFor(restaurant) {
         setupMobileDrawer();
 
         // Collection Filter Event Listeners
-        document.getElementById('collection-filter-btn').addEventListener('click', showCollectionFilterModal);
+        const collectionFilterBtn = document.getElementById('collection-filter-btn');
+        if (collectionFilterBtn) {
+            collectionFilterBtn.addEventListener('click', showCollectionFilterModal);
+        } else {
+            console.error('Collection filter button not found');
+        }
         
-        document.getElementById('close-collection-filter-modal').addEventListener('click', () => {
-            document.getElementById('collection-filter-modal').classList.add('hidden');
-            document.getElementById('collection-filter-modal').classList.remove('flex');
-        });
+        const closeCollectionFilterModal = document.getElementById('close-collection-filter-modal');
+        if (closeCollectionFilterModal) {
+            closeCollectionFilterModal.addEventListener('click', () => {
+                document.getElementById('collection-filter-modal').classList.add('hidden');
+                document.getElementById('collection-filter-modal').classList.remove('flex');
+            });
+        }
         
-        document.getElementById('cancel-collection-filter').addEventListener('click', () => {
-            document.getElementById('collection-filter-modal').classList.add('hidden');
-            document.getElementById('collection-filter-modal').classList.remove('flex');
-        });
+        const cancelCollectionFilter = document.getElementById('cancel-collection-filter');
+        if (cancelCollectionFilter) {
+            cancelCollectionFilter.addEventListener('click', () => {
+                document.getElementById('collection-filter-modal').classList.add('hidden');
+                document.getElementById('collection-filter-modal').classList.remove('flex');
+            });
+        }
         
-        document.getElementById('clear-collection-filters').addEventListener('click', () => {
-            selectedCollections.clear();
-            showCollectionFilterModal(); // Refresh the modal
-        });
+        const clearCollectionFilters = document.getElementById('clear-collection-filters');
+        if (clearCollectionFilters) {
+            clearCollectionFilters.addEventListener('click', () => {
+                selectedCollections.clear();
+                showCollectionFilterModal(); // Refresh the modal
+            });
+        }
         
-        document.getElementById('apply-collection-filter').addEventListener('click', () => {
+        const applyCollectionFilter = document.getElementById('apply-collection-filter');
+        if (applyCollectionFilter) {
+            applyCollectionFilter.addEventListener('click', () => {
             // Apply the filter
             if (currentRestaurants && currentRestaurants.length > 0) {
                 const filteredRestaurants = filterRestaurantsByCollections(currentRestaurants);
@@ -2697,7 +2713,8 @@ function showVideoFor(restaurant) {
             
             // Update button appearance
             updateCollectionFilterButtonAppearance();
-        });
+            });
+        }
         
         // Handle collection filter card clicks
         document.addEventListener('click', (e) => {
