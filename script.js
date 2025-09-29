@@ -987,12 +987,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 4. Join the data together in JavaScript.
             const tiktokMap = new Map();
             if (tiktoks) {
+                console.log('📝 Processing TikToks:', tiktoks);
                 tiktoks.forEach(t => {
                     console.log('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html);
                     tiktokMap.set(t.restaurant_id, t.embed_html);
                 });
             }
-            console.log('🗺️ TikTok Map:', tiktokMap);
+            console.log('🗺️ TikTok Map size:', tiktokMap.size);
+            console.log('🗺️ TikTok Map contents:', Array.from(tiktokMap.entries()));
 
             const cuisineMap = new Map();
             if (restaurantCuisines) {
@@ -1007,12 +1009,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
 
-            window.currentRestaurants = restaurants.map(r => ({
-                ...r,
-                tiktok_embed_html: tiktokMap.get(r.id) || null,
-                cuisines: cuisineMap.get(r.id) || []
-            }));
+            window.currentRestaurants = restaurants.map(r => {
+                const tiktokHtml = tiktokMap.get(r.id) || null;
+                console.log('🏗️ Creating restaurant object:', r.id, 'tiktok_html:', tiktokHtml ? 'EXISTS' : 'NULL');
+                return {
+                    ...r,
+                    tiktok_embed_html: tiktokHtml,
+                    cuisines: cuisineMap.get(r.id) || []
+                };
+            });
             currentRestaurants = window.currentRestaurants;
+            console.log('📊 Total restaurants with TikTok data:', currentRestaurants.filter(r => r.tiktok_embed_html).length);
             
             // Order restaurants based on geolocation availability
             if (window.userLocation) {
@@ -2387,7 +2394,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
 async function showVideoFor(restaurant) {
+            console.log('🎬 showVideoFor called with restaurant:', restaurant);
+            console.log('🎬 restaurant.tiktok_embed_html:', restaurant.tiktok_embed_html);
+            console.log('🎬 restaurant.tiktok_embed_html type:', typeof restaurant.tiktok_embed_html);
+            console.log('🎬 restaurant.tiktok_embed_html length:', restaurant.tiktok_embed_html ? restaurant.tiktok_embed_html.length : 'N/A');
+
     if (!restaurant.tiktok_embed_html) {
+        console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
         showNoVideoMessage(videoContainer, restaurant.name);
         videoModal.classList.add('show');
         return;
@@ -2417,8 +2430,12 @@ async function showVideoFor(restaurant) {
     preloadContainer.style.left = '-9999px';
     document.body.appendChild(preloadContainer);
 
+    console.log('🎬 Preload container created, injecting TikTok HTML...');
+    console.log('🎬 TikTok HTML length:', restaurant.tiktok_embed_html.length);
+
     // 2. Inject the raw TikTok blockquote HTML into the hidden container
     preloadContainer.innerHTML = restaurant.tiktok_embed_html;
+    console.log('🎬 TikTok HTML injected into preload container');
 
     // 3. Tell the TikTok script (if it's ready) to process the new embed
     if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
