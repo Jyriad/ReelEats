@@ -2442,7 +2442,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         function createListItem(restaurant, index) {
             const listItem = document.createElement('div');
             // Add position: relative to the list item for the button
-            listItem.className = 'bg-white p-0 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start relative';
+            listItem.className = 'bg-white rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 relative touch-manipulation';
             listItem.dataset.restaurantId = restaurant.id;
             
             const isFavorited = favoritedRestaurants.has(restaurant.id);
@@ -2475,16 +2475,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             let distanceHtml = '';
             
             listItem.innerHTML = `
-                <div class="w-full p-2 md:p-0 flex items-start">
+                <div class="w-full p-3 md:p-4 flex items-start">
                     <div class="flex-shrink-0 mr-3">
                         <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                             ${number}
                         </div>
                     </div>
-                    <div class="flex-1 min-w-0 pr-20">
-                        <h3 class="text-gray-900 text-base md:text-lg font-bold pr-2">${restaurant.name}</h3>
-                        <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
-                        <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
+                    <div class="flex-1 min-w-0 pr-16">
+                        <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
+                        <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
+                        <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
                         ${distanceHtml}
                     </div>
                 </div>
