@@ -133,7 +133,7 @@ async function initializeAdminPanel() {
     
     try {
         console.log('Loading dashboard data...');
-    await loadDashboardData();
+        await loadDashboardData();
         console.log('Dashboard data loaded successfully');
     } catch (error) {
         console.error('Failed to load dashboard data:', error);
@@ -141,7 +141,7 @@ async function initializeAdminPanel() {
     
     try {
         console.log('Loading cities...');
-    await loadCitiesForSelect();
+        await loadCitiesForSelect();
         console.log('Cities loaded successfully');
     } catch (error) {
         console.error('Failed to load cities:', error);
@@ -149,7 +149,7 @@ async function initializeAdminPanel() {
     
     try {
         console.log('Loading recent restaurants...');
-    await loadRecentRestaurants();
+        await loadRecentRestaurants();
         console.log('Recent restaurants loaded successfully');
     } catch (error) {
         console.error('Failed to load recent restaurants:', error);
@@ -157,7 +157,7 @@ async function initializeAdminPanel() {
     
     try {
         console.log('Loading restaurants without videos...');
-    await loadRestaurantsWithoutVideos();
+        await loadRestaurantsWithoutVideos();
         console.log('Restaurants without videos loaded successfully');
     } catch (error) {
         console.error('Failed to load restaurants without videos:', error);
@@ -1319,7 +1319,7 @@ function selectLocation(place, formType = 'create') {
     
     // Enable submit button (only for create form)
     if (formType === 'create') {
-    document.getElementById('submit-restaurant-btn').disabled = false;
+        document.getElementById('submit-restaurant-btn').disabled = false;
     }
     
     // Update status
@@ -2114,10 +2114,10 @@ async function editRestaurant(restaurantId) {
                         <!-- Restaurant Name and Find Button -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
-                            <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
+                                <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
                             <div class="flex flex-col justify-end">
                                 <button type="button" id="edit-find-on-map-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2">
                                     <span>🗺️</span>
@@ -2125,9 +2125,9 @@ async function editRestaurant(restaurantId) {
                                 </button>
                             </div>
                         </div>
-                        
+
                         <!-- Alternative: Google Maps URL -->
-                            <div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Google Maps URL (Alternative)</label>
                             <div class="flex gap-2">
                                 <input type="url" id="edit-google-maps-url" value="${restaurant.google_maps_url || ''}" placeholder="https://maps.google.com/... or Google Place URL"
@@ -2138,15 +2138,15 @@ async function editRestaurant(restaurantId) {
                             </div>
                             <p class="text-xs text-gray-500 mt-1">Paste a Google Maps URL to automatically extract location data</p>
                         </div>
-                        
+
                         <!-- City Selection -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
-                            <select id="edit-restaurant-city" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">Select City</option>
-                            </select>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <select id="edit-restaurant-city" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">Select City</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -2155,14 +2155,14 @@ async function editRestaurant(restaurantId) {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Description -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                             <textarea id="edit-restaurant-description" placeholder="Brief description of the restaurant" rows="2"
                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${restaurant.description || ''}</textarea>
                         </div>
-                        
+
                         <!-- Cuisine Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-3">Cuisines (Select all that apply)</label>
