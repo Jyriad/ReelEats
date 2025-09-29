@@ -64,30 +64,51 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
 
 function loadVideoWithBlockquote(videoContainer, embedHtml) {
     console.log('🔄 Loading video with TikTok blockquote embed...');
-    videoContainer.innerHTML = embedHtml;
+    console.log('📝 Embed HTML content:', embedHtml);
     
-    // Make sure blockquotes are visible
+    // Clean the embed HTML - remove the script tag since we load it separately
+    const cleanEmbedHtml = embedHtml.replace(/<script[^>]*>.*?<\/script>/gi, '');
+    console.log('🧹 Cleaned embed HTML:', cleanEmbedHtml);
+    
+    videoContainer.innerHTML = cleanEmbedHtml;
+    
+    // Make sure blockquotes are visible and properly styled for the modal
     const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-    blockquotes.forEach(bq => {
+    console.log('🔍 Found blockquotes:', blockquotes.length);
+    
+    blockquotes.forEach((bq, index) => {
+        console.log(`📋 Blockquote ${index}:`, bq);
         bq.style.visibility = 'visible';
         bq.style.display = 'block';
         bq.style.width = '100%';
         bq.style.height = '100%';
+        bq.style.maxWidth = '100%';
+        bq.style.minWidth = '100%';
+        bq.style.margin = '0 auto';
     });
     
-    // Trigger TikTok script to load the embed
-    const loadTikTokEmbed = () => {
+    // Check if TikTok script is available
+    console.log('🔧 TikTok script available:', !!window.tiktokEmbed);
+    console.log('🔧 TikTok load function available:', !!(window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function'));
+    
+    // Wait a bit for the DOM to update, then trigger TikTok script
+    setTimeout(() => {
         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
             console.log('✅ TikTok script found, loading embed...');
             window.tiktokEmbed.load();
         } else {
             console.log('⏳ TikTok script not ready, retrying...');
-            setTimeout(loadTikTokEmbed, 200);
+            // Try again after a longer delay
+            setTimeout(() => {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    console.log('✅ TikTok script found on retry, loading embed...');
+                    window.tiktokEmbed.load();
+                } else {
+                    console.log('❌ TikTok script still not available');
+                }
+            }, 1000);
         }
-    };
-    
-    // Start loading process
-    loadTikTokEmbed();
+    }, 500);
 }
 
 function showNoVideoMessage(videoContainer, restaurantName) {
@@ -2443,11 +2464,32 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             `;
     
+            // Debug: Log the actual embed HTML
+            console.log('🎬 TikTok embed HTML:', restaurant.tiktok_embed_html);
+            
             // Load video using TikTok's official blockquote embed format
             console.log('Loading video with TikTok blockquote embed...');
-            setTimeout(() => {
-                loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
-            }, 100);
+            
+            // Ensure TikTok script is loaded first
+            if (window.tiktokEmbed) {
+                console.log('✅ TikTok script already loaded');
+                setTimeout(() => {
+                    loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
+                }, 100);
+            } else {
+                console.log('⏳ Waiting for TikTok script to load...');
+                // Wait for TikTok script to load
+                const checkTikTokScript = () => {
+                    if (window.tiktokEmbed) {
+                        console.log('✅ TikTok script loaded, proceeding with video');
+                        loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
+                    } else {
+                        console.log('⏳ Still waiting for TikTok script...');
+                        setTimeout(checkTikTokScript, 200);
+                    }
+                };
+                setTimeout(checkTikTokScript, 200);
+            }
         }
 
         function scrollToRestaurant(restaurantId) {
