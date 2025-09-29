@@ -12,8 +12,9 @@
     frame-src 'self' https://www.tiktok.com https://*.tiktok.com;
     connect-src 'self' https://*.basemaps.cartocdn.com https://jsuxrpnfofkigdfpnuua.supabase.co https://*.tiktok.com https://*.byteoversea.com https://*.tiktokv.com https://unpkg.com https://*.ttwstatic.com;
     media-src 'self' https://*.tiktok.com;
+    worker-src 'self' blob:;
 ">
-    <title>London Food Map Supabase v1.98</title>
+    <title>London Food Map Supabase v2.01</title>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -41,7 +42,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-2 md:px-4 shadow flex-shrink-0 z-20">
-        <h1 class="text-lg md:text-2xl font-bold truncate">London Food Map v1.98 🗺️</h1>
+        <h1 class="text-lg md:text-2xl font-bold truncate">London Food Map v2.01 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -376,11 +377,16 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.1/dist/leaflet.markercluster.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Core dependencies loaded first for faster initialization -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous" defer></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.1/dist/leaflet.markercluster.js" defer></script>
+
+    <!-- TikTok embed script loaded early but asynchronously -->
     <script async src="https://www.tiktok.com/embed.js"></script>
-    <script src="script.js?v=198"></script>
+
+    <!-- Main application script loaded last with module type for better performance -->
+    <script src="script.js?v=201" defer></script>
 </body>
 </html>
 

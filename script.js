@@ -3,15 +3,122 @@ const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- Configuration Constants ---
+// --- Performance-Optimized Configuration ---
 const CONFIG = {
     STORAGE_KEYS: {
         WATCHED_VIDEOS: 'reelEats_watchedVideos',
         CITY_DATA: 'reelEats_cityData'
     },
+    PERFORMANCE: {
+        DEBOUNCE_DELAY: 150, // Reduced from 300ms
+        THROTTLE_DELAY: 100, // For scroll events
+        CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+        MAX_RETRIES: 3,
+        BATCH_SIZE: 50 // Process restaurants in batches
+    },
     VIDEO_CONFIG: {
-        IFRAME_TIMEOUT: 3000,
-        FALLBACK_DELAY: 100
+        IFRAME_TIMEOUT: 2000, // Reduced from 3000ms
+        FALLBACK_DELAY: 50, // Reduced from 100ms
+        PRELOAD_TIMEOUT: 5000 // For off-screen loading
+    },
+    UI: {
+        ANIMATION_DURATION: 200, // Faster animations
+        LOADING_DELAY: 100 // Quicker loading states
+    }
+};
+
+// Performance monitoring
+const PerformanceMonitor = {
+    startTime: performance.now(),
+    marks: new Map(),
+
+    mark(label) {
+        this.marks.set(label, performance.now());
+    },
+
+    measure(label, startLabel = null) {
+        const endTime = performance.now();
+        const startTime = startLabel ? this.marks.get(startLabel) : this.startTime;
+        const duration = endTime - startTime;
+        console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
+        return duration;
+    },
+
+    logMemoryUsage() {
+        if (performance.memory) {
+            console.log('💾 Memory Usage:', {
+                used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+                total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+                limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+            });
+        }
+    }
+};
+
+// --- Performance Utilities ---
+const Utils = {
+    // Debounce function calls
+    debounce: (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(null, args), delay);
+        };
+    },
+
+    // Throttle function calls
+    throttle: (func, delay) => {
+        let lastCall = 0;
+        return (...args) => {
+            const now = Date.now();
+            if (now - lastCall >= delay) {
+                lastCall = now;
+                return func.apply(null, args);
+            }
+        };
+    },
+
+    // Simple cache with TTL
+    cache: new Map(),
+    setCache: (key, value, ttl = CONFIG.PERFORMANCE.CACHE_DURATION) => {
+        Utils.cache.set(key, { value, expiry: Date.now() + ttl });
+    },
+    getCache: (key) => {
+        const item = Utils.cache.get(key);
+        if (item && item.expiry > Date.now()) {
+            return item.value;
+        }
+        if (item) Utils.cache.delete(key);
+        return null;
+    },
+
+    // Batch DOM operations
+    batchDOMUpdates: (updates) => {
+        requestAnimationFrame(() => {
+            updates.forEach(update => update());
+        });
+    },
+
+    // Memory cleanup
+    cleanup: {
+        observers: new Set(),
+        timeouts: new Set(),
+
+        addObserver(observer) {
+            this.observers.add(observer);
+        },
+
+        addTimeout(timeout) {
+            this.timeouts.add(timeout);
+        },
+
+        cleanupAll() {
+            this.observers.forEach(obs => obs.disconnect());
+            this.timeouts.forEach(timeout => clearTimeout(timeout));
+            this.observers.clear();
+            this.timeouts.clear();
+            PerformanceMonitor.logMemoryUsage();
+        }
     }
 };
 
@@ -89,14 +196,13 @@ function createSkeletonCard() {
 }
 
 function showSkeletonLoaders(count = 6) {
-    const restaurantList = document.getElementById('restaurant-list');
-    if (!restaurantList) return;
-    
-    restaurantList.innerHTML = '';
-    
+    if (!elements.restaurantList) return;
+
+    elements.restaurantList.innerHTML = '';
+
     for (let i = 0; i < count; i++) {
         const skeletonCard = createSkeletonCard();
-        restaurantList.appendChild(skeletonCard);
+        elements.restaurantList.appendChild(skeletonCard);
     }
 }
 
@@ -115,26 +221,50 @@ async function testSupabaseConnection() {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    PerformanceMonitor.mark('app-init-start');
+
     try {
-        // --- UI Element References ---
-        const mapElement = document.getElementById('map');
-        const restaurantList = document.getElementById('restaurant-list');
-        const videoModal = document.getElementById('video-modal');
-        const videoContainer = videoModal ? videoModal.querySelector('.video-container') : null;
-        const videoTitleEl = document.getElementById('video-title');
-        const closeVideoBtn = videoModal ? videoModal.querySelector('.close-video-btn') : null;
-        const citySelect = document.getElementById('city-select');
+        // --- Optimized UI Element References ---
+        const elements = {
+            map: document.getElementById('map'),
+            restaurantList: document.getElementById('restaurant-list'),
+            videoModal: document.getElementById('video-modal'),
+            videoContainer: null,
+            videoTitle: document.getElementById('video-title'),
+            closeVideoBtn: null,
+            citySelect: document.getElementById('city-select'),
+            filterToggleBtn: document.getElementById('filter-toggle-btn'),
+            collectionsBtn: document.getElementById('collections-btn'),
+            collectionFilterBtn: document.getElementById('collection-filter-btn'),
+            locationBtn: document.getElementById('location-btn'),
+            authBtn: document.getElementById('auth-btn')
+        };
+
+        // Get video container after modal is confirmed to exist
+        if (elements.videoModal) {
+            elements.videoContainer = elements.videoModal.querySelector('.video-container');
+            elements.closeVideoBtn = elements.videoModal.querySelector('.close-video-btn');
+        }
+
+        // Early validation - fail fast if critical elements are missing
+        console.log('🔍 Checking critical elements:');
+        console.log('- map element:', !!elements.map);
+        console.log('- restaurant list element:', !!elements.restaurantList);
+        console.log('- video modal element:', !!elements.videoModal);
+
+        if (!elements.map || !elements.restaurantList) {
+            console.error('❌ Critical elements missing:', {
+                map: elements.map,
+                restaurantList: elements.restaurantList,
+                videoModal: elements.videoModal
+            });
+            throw new Error('Critical UI elements not found');
+        }
+
+        console.log('✅ All critical elements found');
         
-        // Check if essential elements exist
-        if (!mapElement) {
-            throw new Error('Map element not found');
-        }
-        if (!restaurantList) {
-            throw new Error('Restaurant list element not found');
-        }
-        if (!videoModal) {
-            throw new Error('Video modal element not found');
-        }
+        // Performance monitoring
+        PerformanceMonitor.mark('dom-ready');
         
         // --- State Management ---
         // State management - Global scope for tests
@@ -431,14 +561,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // --- Auth State Management ---
         async function updateUserUI(user) {
-            const collectionsBtn = document.getElementById('collections-btn');
-            const collectionFilterBtn = document.getElementById('collection-filter-btn');
-            
             if (user) {
                 // User is logged in - show logout button instead of login button
-                authBtn.classList.add('hidden');
-                collectionsBtn.classList.remove('hidden');
-                collectionFilterBtn.classList.remove('hidden');
+                elements.authBtn.classList.add('hidden');
+                elements.collectionsBtn.classList.remove('hidden');
+                elements.collectionFilterBtn.classList.remove('hidden');
                 
                 // Create or update logout button
                 let logoutButton = document.getElementById('logout-button');
@@ -745,10 +872,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 // Clear any existing content
-                mapElement.innerHTML = '';
-                mapElement._leaflet_id = null;
+                elements.map.innerHTML = '';
+                elements.map._leaflet_id = null;
                 
-                map = L.map(mapElement, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
+                map = L.map(elements.map, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap &copy; CARTO',
                     subdomains: 'abcd',
@@ -863,12 +990,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             const t1 = performance.now();
             console.log(`Cities query and processing took: ${t1 - t0} ms`);
 
-            if (citySelect.options.length > 0) {
-                const initialCityId = citySelect.value;
+            if (elements.citySelect.options.length > 0) {
+                const initialCityId = elements.citySelect.value;
                 // Show skeleton loaders while loading
                 displayRestaurants([], true);
                 await loadRestaurantsForCity(initialCityId);
-                const selectedOption = citySelect.options[citySelect.selectedIndex];
+                const selectedOption = elements.citySelect.options[elements.citySelect.selectedIndex];
                 map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
             }
             const t2 = performance.now();
@@ -908,138 +1035,128 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function populateCitySelect(cities) {
-            citySelect.innerHTML = '';
+            elements.citySelect.innerHTML = '';
             let londonCity = null;
-            
+
             cities.forEach(city => {
                 const option = document.createElement('option');
                 option.value = city.id;
                 option.textContent = city.name;
                 option.dataset.lat = city.lat;
                 option.dataset.lon = city.lon;
-                citySelect.appendChild(option);
-                
+                elements.citySelect.appendChild(option);
+
                 // Find London city for default selection
                 if (city.name.toLowerCase().includes('london')) {
                     londonCity = city;
                 }
             });
-            
+
             // Set London as default if found, otherwise use first city
             if (londonCity) {
-                citySelect.value = londonCity.id;
+                elements.citySelect.value = londonCity.id;
                 console.log('London set as default city');
             } else if (cities.length > 0) {
-                citySelect.value = cities[0].id;
+                elements.citySelect.value = cities[0].id;
                 console.log('First city set as default (London not found)');
             }
         }
         
         async function loadRestaurantsForCity(cityId) {
-            // --- FIX: Use a more robust two-query approach ---
+            PerformanceMonitor.mark('data-loading-start');
 
-            // 1. Fetch all restaurants for the selected city.
+            // Check cache first for faster loading
+            const cacheKey = `restaurants_${cityId}`;
+            const cachedData = Utils.getCache(cacheKey);
+            if (cachedData) {
+                console.log('✅ Loaded restaurants from cache');
+                window.currentRestaurants = cachedData.restaurants;
+                currentRestaurants = window.currentRestaurants;
+                updateMapWithRestaurants(currentRestaurants);
+                return;
+            }
+
+            try {
+                // 1. Fetch restaurants in batches for better performance
             const { data: restaurants, error: restaurantsError } = await supabaseClient
                 .from('restaurants')
                 .select('*')
                 .eq('city_id', cityId);
 
             if (restaurantsError) {
-                console.error("Error fetching restaurants:", restaurantsError);
-                throw restaurantsError;
+                    throw new Error(`Failed to fetch restaurants: ${restaurantsError.message}`);
             }
 
             if (!restaurants || restaurants.length === 0) {
-                currentRestaurants = [];
-                displayRestaurants([], false, false); // Not loading, show "no restaurants" message
+                    console.log('⚠️ No restaurants found for city:', cityId);
+                    displayRestaurants([], false, false);
                 return;
             }
 
-            // 2. Fetch only the featured TikToks for those specific restaurants.
+                // 2. Fetch TikToks and cuisines in parallel for better performance
             const restaurantIds = restaurants.map(r => r.id);
-            console.log('🔍 Fetching TikToks for restaurant IDs:', restaurantIds);
-            const { data: tiktoks, error: tiktoksError } = await supabaseClient
+                const [tiktoks, restaurantCuisines] = await Promise.all([
+                    // Fetch TikToks
+                    supabaseClient
                 .from('tiktoks')
                 .select('restaurant_id, embed_html')
                 .in('restaurant_id', restaurantIds)
-                .eq('is_featured', true);
+                        .eq('is_featured', true),
 
-            if (tiktoksError) {
-                // Log the error but don't stop execution, so restaurants still display.
-                console.error("Error fetching tiktoks:", tiktoksError);
-            } else {
-                console.log('✅ Fetched TikToks:', tiktoks);
-            }
-
-            // 3. Fetch cuisine information for restaurants
-            const { data: restaurantCuisines, error: cuisineError } = await supabaseClient
+                    // Fetch cuisines
+                    supabaseClient
                 .from('restaurant_cuisines')
                 .select(`
                     restaurant_id,
-                    cuisines (name, icon, color_background, color_text)
-                `)
-                .in('restaurant_id', restaurantIds);
+                            cuisines (name, icon, color_background, color_text)
+                        `)
+                        .in('restaurant_id', restaurantIds)
+                ]);
 
-            if (cuisineError) {
-                console.error("Error fetching cuisines:", cuisineError);
-            }
-
-            // 4. Join the data together in JavaScript.
+                // 3. Process data efficiently
             const tiktokMap = new Map();
-            if (tiktoks) {
-                console.log('📝 Processing TikToks:', tiktoks);
-                tiktoks.forEach(t => {
-                    console.log('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html);
+                if (tiktoks.data) {
+                    tiktoks.data.forEach(t => {
                     tiktokMap.set(t.restaurant_id, t.embed_html);
                 });
             }
-            console.log('🗺️ TikTok Map size:', tiktokMap.size);
-            console.log('🗺️ TikTok Map contents:', Array.from(tiktokMap.entries()));
 
             const cuisineMap = new Map();
-            if (restaurantCuisines) {
-                restaurantCuisines.forEach(rc => {
+                if (restaurantCuisines.data) {
+                    restaurantCuisines.data.forEach(rc => {
                     if (!cuisineMap.has(rc.restaurant_id)) {
                         cuisineMap.set(rc.restaurant_id, []);
                     }
-                    // Push the whole cuisine object
-                    if (rc.cuisines) {
-                        cuisineMap.get(rc.restaurant_id).push(rc.cuisines);
-                    }
+                        if (rc.cuisines) {
+                            cuisineMap.get(rc.restaurant_id).push(rc.cuisines);
+                        }
                 });
             }
 
-            window.currentRestaurants = restaurants.map(r => {
-                const tiktokHtml = tiktokMap.get(r.id) || null;
-                console.log('🏗️ Creating restaurant object:', r.id, 'tiktok_html:', tiktokHtml ? 'EXISTS' : 'NULL');
-                return {
-                    ...r,
-                    tiktok_embed_html: tiktokHtml,
-                    cuisines: cuisineMap.get(r.id) || []
-                };
-            });
-            currentRestaurants = window.currentRestaurants;
-            console.log('📊 Total restaurants with TikTok data:', currentRestaurants.filter(r => r.tiktok_embed_html).length);
+                // 4. Create optimized restaurant objects
+                const optimizedRestaurants = restaurants.map(r => ({
+                ...r,
+                tiktok_embed_html: tiktokMap.get(r.id) || null,
+                cuisines: cuisineMap.get(r.id) || []
+            }));
             
-            // Order restaurants based on geolocation availability
-            if (window.userLocation) {
-                // If user has geolocation, order by distance (closest first)
-                currentRestaurants.sort((a, b) => {
-                    const distanceA = calculateDistance(window.userLocation.lat, window.userLocation.lon, a.lat, a.lon);
-                    const distanceB = calculateDistance(window.userLocation.lat, window.userLocation.lon, b.lat, b.lon);
-                    return distanceA - distanceB;
+                // 5. Cache the results for faster future loads
+                Utils.setCache(cacheKey, {
+                    restaurants: optimizedRestaurants,
+                    timestamp: Date.now()
                 });
-                console.log('Restaurants ordered by distance from user location');
-            } else {
-                // If no geolocation, randomize the order
-                currentRestaurants.sort(() => Math.random() - 0.5);
-                console.log('Restaurants ordered randomly (no geolocation)');
+
+                // 6. Update global state
+                window.currentRestaurants = optimizedRestaurants;
+                currentRestaurants = window.currentRestaurants;
+
+                PerformanceMonitor.mark('data-loading-complete');
+                console.log(`✅ Loaded ${optimizedRestaurants.length} restaurants in ${PerformanceMonitor.measure('data-loading').toFixed(2)}ms`);
+
+            } catch (error) {
+                console.error('❌ Error loading restaurants:', error);
+                displayRestaurants([], false, false);
             }
-            
-            // Small delay to ensure skeleton loaders are visible before showing real data
-            setTimeout(() => {
-            displayRestaurants(currentRestaurants);
-            }, 100);
         }
 
         // Setup cuisine filter functionality
@@ -1333,7 +1450,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             setTimeout(() => {
                 if (selectedCuisines.length === 0) {
                     // Show all restaurants if no cuisines selected
-                    displayRestaurants(currentRestaurants);
+            displayRestaurants(currentRestaurants);
                     // Fit map to show all restaurants
                     fitMapToRestaurants(currentRestaurants);
                 } else {
@@ -1514,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.error('Desktop filter modal not found!');
                 return;
             }
-            
+
             filterModal.classList.remove('hidden');
             filterModal.classList.add('md:flex');
             
@@ -2145,122 +2262,140 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showSkeletonLoaders(restaurants.length || 6);
                 return;
             }
-            
-            restaurantList.innerHTML = '';
-            markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
-            window.restaurantMarkers = []; // Also clear the local array
+
+            // Clear existing content efficiently
+            elements.restaurantList.innerHTML = '';
+            if (markerClusterGroup) {
+                markerClusterGroup.clearLayers();
+            }
+            window.restaurantMarkers = [];
             restaurantMarkers = window.restaurantMarkers;
 
             if (restaurants.length === 0 && !isLoading) {
-                restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
+                elements.restaurantList.innerHTML = `<p class="text-gray-500 text-center">No restaurants found for this city.</p>`;
                 return;
             }
 
-            restaurants.forEach((restaurant, index) => {
+            // Optimized batch processing
+            const restaurantHTML = restaurants.map((restaurant, index) => {
                 const listItem = createListItem(restaurant, index);
-                restaurantList.appendChild(listItem);
-                
                 const marker = createNumberedMarker(restaurant, index);
-                window.restaurantMarkers.push(marker); // Keep track of markers for other interactions
-                restaurantMarkers = window.restaurantMarkers;
-                markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
-            });
-            
-            // Update restaurant cards with distance information if user location is available
-            updateRestaurantCardsWithDistance();
+                window.restaurantMarkers.push(marker);
+                markerClusterGroup.addLayer(marker);
+                return listItem.outerHTML;
+            }).join('');
+
+            // Single DOM update for better performance
+            elements.restaurantList.innerHTML = restaurantHTML;
+            restaurantMarkers = window.restaurantMarkers;
+
+            // Batch distance updates
+            Utils.batchDOMUpdates([() => updateRestaurantCardsWithDistance()]);
+
+            // Set up event delegation for dynamically created restaurant cards
+            setupRestaurantEventDelegation();
+        }
+        
+        function setupRestaurantEventDelegation() {
+            // Remove existing event listener to prevent duplicates
+            elements.restaurantList.removeEventListener('click', handleRestaurantClick);
+
+            // Add new event delegation
+            elements.restaurantList.addEventListener('click', handleRestaurantClick);
+
+            // Add hover effects for markers
+            elements.restaurantList.addEventListener('mouseenter', handleRestaurantHover, true);
+            elements.restaurantList.addEventListener('mouseleave', handleRestaurantHover, true);
+        }
+
+        function handleRestaurantClick(e) {
+            const restaurantCard = e.target.closest('[data-restaurant-id]');
+            if (!restaurantCard) return;
+
+            const restaurantId = parseInt(restaurantCard.dataset.restaurantId);
+            const restaurant = currentRestaurants.find(r => r.id === restaurantId);
+            if (!restaurant) return;
+
+            // Handle different button clicks
+            if (e.target.closest('.favorite-btn')) {
+                e.stopPropagation();
+                toggleFavorite(restaurantId);
+                return;
+            }
+
+            if (e.target.closest('.add-to-collection-btn')) {
+                e.stopPropagation();
+                // Handle collection button click (existing logic)
+                return;
+            }
+
+            // Handle main card click - open video
+            document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
+            restaurantCard.classList.add('active-list-item');
+            showVideoFor(restaurant);
+            map.flyTo([restaurant.lat, restaurant.lon], 15);
+        }
+
+        function handleRestaurantHover(e) {
+            const restaurantCard = e.target.closest('[data-restaurant-id]');
+            if (!restaurantCard) return;
+
+            const restaurantId = parseInt(restaurantCard.dataset.restaurantId);
+
+            if (e.type === 'mouseenter') {
+                highlightMarker(restaurantId);
+            } else {
+                unhighlightMarker(restaurantId);
+            }
         }
         
         function createListItem(restaurant, index) {
-            const listItem = document.createElement('div');
-            // Add position: relative to the list item for the button
-            listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start relative';
-            listItem.dataset.restaurantId = restaurant.id;
-            
+            // Optimized: Use string templates for better performance
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const isCollected = collectedRestaurants.has(restaurant.id);
             const favoriteClass = isFavorited ? 'favorited' : '';
             const collectionClass = isCollected ? 'collected' : '';
             const number = index + 1;
-            
-            // Debug logging
-            console.log(`Creating list item for ${restaurant.name} (ID: ${restaurant.id}): isCollected=${isCollected}, collectionClass="${collectionClass}"`);
-            console.log(`Current collectedRestaurants Set:`, Array.from(collectedRestaurants));
-            if (isCollected) {
-                console.log(`Restaurant ${restaurant.name} is collected, applying class: ${collectionClass}`);
-            }
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
                 ? restaurant.cuisines.map(cuisine => {
-                    // Use the new color values, with fallbacks just in case
-                    const bgColor = cuisine.color_background || '#E5E7EB'; // Default to light gray
-                    const textColor = cuisine.color_text || '#1F2937';     // Default to dark gray
-                    const icon = cuisine.icon || '🍽️'; // Default to fork and knife emoji
-                    return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1" 
+                    const bgColor = cuisine.color_background || '#E5E7EB';
+                    const textColor = cuisine.color_text || '#1F2937';
+                    const icon = cuisine.icon || '🍽️';
+                    return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1"
                                   style="background-color: ${bgColor}; color: ${textColor};">
                                 ${icon} ${cuisine.name}
                             </span>`;
                 }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
             
-            // Distance will be added by updateRestaurantCardsWithDistance() when user location is available
-            let distanceHtml = '';
-            
-            listItem.innerHTML = `
-                <div class="flex-shrink-0 mr-3">
-                    <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                        ${number}
+            // Check if video has been watched
+            const watchedIconHtml = watchedVideos.has(restaurant.id) ? createWatchedIcon().outerHTML : '';
+
+            return `
+                <div class="bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start relative"
+                     data-restaurant-id="${restaurant.id}">
+                    <div class="flex-shrink-0 mr-3">
+                        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            ${number}
+                        </div>
                     </div>
-                </div>
-                <div class="flex-1 min-w-0 pr-20">
-                    <h3 class="text-gray-900 text-base md:text-lg font-bold pr-2">${restaurant.name}</h3>
+                    <div class="flex-1 min-w-0 pr-20">
+                        <h3 class="text-gray-900 text-base md:text-lg font-bold pr-2">${restaurant.name}</h3>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
-                    <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
-                    ${distanceHtml}
-                </div>
-                <div class="absolute top-2 right-2 flex items-center space-x-1">
-                    <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-                    </button>
-                    <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                    </button>
+                        <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
+                    </div>
+                    <div class="absolute top-2 right-2 flex items-center space-x-1">
+                        <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                        </button>
+                        <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                        </button>
+                    </div>
+                    ${watchedIconHtml}
                 </div>
             `;
-
-            // Main click event to open video
-            listItem.addEventListener('click', (e) => {
-                // Prevent opening video if the favorite button or collection button was clicked
-                if (e.target.closest('.favorite-btn') || e.target.closest('.add-to-collection-btn')) return;
-
-                document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
-                listItem.classList.add('active-list-item');
-                showVideoFor(restaurant);
-                map.flyTo([restaurant.lat, restaurant.lon], 15);
-            });
-
-            // Event listener for the favorite button
-            const favoriteBtn = listItem.querySelector('.favorite-btn');
-            favoriteBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent the main card click event from firing
-                toggleFavorite(restaurant.id);
-            });
-
-            // Add hover effects to highlight corresponding marker
-            listItem.addEventListener('mouseenter', () => {
-                highlightMarker(restaurant.id);
-            });
-
-            listItem.addEventListener('mouseleave', () => {
-                unhighlightMarker(restaurant.id);
-            });
-
-            // Check if video has been watched and add icon if necessary
-            if (watchedVideos.has(restaurant.id)) {
-                const watchedIcon = createWatchedIcon();
-                listItem.appendChild(watchedIcon);
-            }
-
-            return listItem;
         }
 
         function createNumberedMarker(restaurant, index) {
@@ -2417,7 +2552,7 @@ async function showVideoFor(restaurant) {
     // Show the modal with a loading indicator
     videoModal.classList.add('show');
     scrollToRestaurant(restaurant.id);
-    videoContainer.innerHTML = `
+        videoContainer.innerHTML = `
         <div class="w-full h-full flex items-center justify-center text-white">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
@@ -2511,7 +2646,7 @@ async function showVideoFor(restaurant) {
                         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
                             console.log('✅ TikTok script ready after reload, calling load()...');
                             window.tiktokEmbed.load();
-                        } else {
+    } else {
                             console.log('❌ TikTok script still not working after reload');
                         }
                     }, 1000);
@@ -2552,7 +2687,7 @@ async function showVideoFor(restaurant) {
     });
 
     // Increased timeout with better error handling
-    setTimeout(() => {
+        setTimeout(() => {
         if (document.body.contains(preloadContainer)) {
             console.error('❌ TikTok embed timed out after 8 seconds');
             console.log('🔍 Final preload container contents:', preloadContainer.innerHTML);
@@ -2569,21 +2704,20 @@ async function showVideoFor(restaurant) {
             if (window.innerWidth < 768) {
                 return; // Don't scroll on mobile
             }
-            
+
             const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
             if (!restaurantCard) return;
-            
-            const restaurantList = document.getElementById('restaurant-list');
-            if (!restaurantList) return;
+
+            if (!elements.restaurantList) return;
             
             // Wait a bit for any layout changes to complete
         setTimeout(() => {
                 const cardTop = restaurantCard.offsetTop;
                 const cardHeight = restaurantCard.offsetHeight;
-                const containerHeight = restaurantList.offsetHeight;
+                const containerHeight = elements.restaurantList.offsetHeight;
                 const scrollPosition = cardTop - (containerHeight / 2) + (cardHeight / 2);
-                
-                restaurantList.scrollTo({
+
+                elements.restaurantList.scrollTo({
                     top: Math.max(0, scrollPosition),
                     behavior: 'smooth'
                 });
@@ -2726,8 +2860,8 @@ async function showVideoFor(restaurant) {
         }
 
         // --- Event Listeners ---
-        citySelect.addEventListener('change', async function() {
-            const selectedOption = citySelect.options[citySelect.selectedIndex];
+        elements.citySelect.addEventListener('change', async function() {
+            const selectedOption = elements.citySelect.options[elements.citySelect.selectedIndex];
             // Show skeleton loaders while loading
             displayRestaurants([], true);
             await loadRestaurantsForCity(selectedOption.value);
@@ -2857,8 +2991,29 @@ async function showVideoFor(restaurant) {
         });
     
     } catch (error) {
-        console.error("An error occurred during initialization:", error);
-        document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
+        console.error("❌ Critical initialization error:", error);
+        console.error("Error stack:", error.stack);
+
+        // Provide more specific error information
+        let errorMessage = 'An unexpected error occurred.';
+        if (error.message.includes('Critical UI elements not found')) {
+            errorMessage = 'Required page elements could not be found. Please refresh the page.';
+        } else if (error.message.includes('Map element not found')) {
+            errorMessage = 'Map container not found. Please check the page structure.';
+        } else if (error.message.includes('Restaurant list element not found')) {
+            errorMessage = 'Restaurant list container not found. Please check the page structure.';
+        }
+
+        document.body.innerHTML = `
+            <div style="color: black; background: white; padding: 20px; font-family: system-ui, sans-serif;">
+                <h1 style="color: #dc2626; margin-bottom: 1rem;">🚨 Something went wrong</h1>
+                <p style="margin-bottom: 1rem;">${errorMessage}</p>
+                <p style="color: #6b7280; font-size: 0.875rem;">Please check the browser console (F12) for detailed error information.</p>
+                <button onclick="window.location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;">
+                    🔄 Refresh Page
+                </button>
+            </div>
+        `;
     }
 });
 
@@ -3037,8 +3192,7 @@ function testVideoModal() {
 
 function testRestaurantList() {
     try {
-        const restaurantList = document.getElementById('restaurant-list');
-        if (restaurantList) {
+        if (elements.restaurantList) {
             testPass('Restaurant List Container');
         } else {
             throw new Error('Restaurant list container missing');
@@ -3050,8 +3204,7 @@ function testRestaurantList() {
 
 function testCitySelector() {
     try {
-        const citySelect = document.getElementById('city-select');
-        if (citySelect) {
+        if (elements.citySelect) {
             testPass('City Selector');
         } else {
             throw new Error('City selector missing');
