@@ -1063,7 +1063,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                         console.log('Restaurants re-ordered by distance from user location');
                     }
                     
-                    // Don't center map on user location - keep it centered on selected city
+                    // Pan map to center on user location
+                    map.setView([userLat, userLon], 14, {
+                        animate: true,
+                        duration: 1.0
+                    });
+                    console.log('Map centered on user location');
                     
                     // Add user location marker with distinct styling
                     const userIcon = L.divIcon({
