@@ -2430,35 +2430,85 @@ function showVideoFor(restaurant) {
             // Load the cleaned TikTok embed
             videoContainer.innerHTML = cleanEmbedHtml;
 
-            // Ensure the container is ready for TikTok
+            // Ensure the container is ready for TikTok - minimal interference
             videoContainer.style.background = 'black';
-            videoContainer.style.display = 'flex';
-            videoContainer.style.alignItems = 'center';
-            videoContainer.style.justifyContent = 'center';
 
-            // Make sure the blockquote is visible
+            // Make sure the blockquote is visible - minimal changes
             const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
             blockquotes.forEach(bq => {
                 bq.style.visibility = 'visible';
-                bq.style.display = 'block';
-                bq.style.width = '100%';
-                bq.style.height = '100%';
-                bq.style.margin = '0';
+                // Remove any hidden attributes that might interfere
+                bq.removeAttribute('hidden');
+                bq.classList.remove('hidden');
             });
 
-            // Trigger TikTok script with proper timing
-            const triggerTikTok = () => {
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    console.log('✅ TikTok script available, triggering load...');
-                    window.tiktokEmbed.load();
-                } else {
-                    console.log('⏳ TikTok script not ready, waiting...');
-                    setTimeout(triggerTikTok, 200);
-                }
+            // Wait for TikTok script to be fully loaded and executed
+            const waitForTikTokScript = (callback) => {
+                console.log('🔍 Waiting for TikTok script to be ready...');
+
+                const checkTikTokReady = (attempt = 1) => {
+                    console.log(`🔄 Checking TikTok script (attempt ${attempt})`);
+
+                    // Check if the script tag is loaded
+                    const scriptTag = document.querySelector('script[src*="tiktok.com/embed.js"]');
+                    console.log('Script tag loaded:', !!scriptTag);
+
+                    // Check if window.tiktokEmbed exists
+                    console.log('window.tiktokEmbed exists:', !!window.tiktokEmbed);
+                    console.log('window.tiktokEmbed type:', typeof window.tiktokEmbed);
+
+                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                        console.log('✅ TikTok script is ready!');
+                        callback();
+                    } else if (attempt < 20) { // Increased attempts and longer delay
+                        console.log(`⏳ TikTok script not ready, waiting 300ms (attempt ${attempt + 1}/20)...`);
+                        setTimeout(() => checkTikTokReady(attempt + 1), 300);
+                    } else {
+                        console.log('❌ TikTok script failed to load after 20 attempts');
+                        console.log('🔄 Attempting manual script loading...');
+
+                        // Remove existing script if it exists
+                        const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
+                        if (existingScript) {
+                            existingScript.remove();
+                        }
+
+                        // Load script manually
+                        const script = document.createElement('script');
+                        script.src = 'https://www.tiktok.com/embed.js';
+                        script.async = true;
+                        script.onload = () => {
+                            console.log('✅ TikTok script manually loaded, waiting for execution...');
+                            // Wait a bit more for the script to execute
+                            setTimeout(() => {
+                                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                                    console.log('✅ TikTok script executed successfully');
+                                    callback();
+                                } else {
+                                    console.log('❌ Manual script loading also failed');
+                                }
+                            }, 1000);
+                        };
+                        script.onerror = () => {
+                            console.log('❌ Failed to load TikTok script manually');
+                        };
+                        document.head.appendChild(script);
+                    }
+                };
+
+                checkTikTokReady();
             };
 
-            // Start trying to trigger TikTok
-            setTimeout(triggerTikTok, 100);
+            // Wait for TikTok script, then trigger the embed
+            waitForTikTokScript(() => {
+                console.log('🎬 TikTok script ready, triggering embed...');
+                try {
+                    window.tiktokEmbed.load();
+                    console.log('✅ TikTok embed triggered successfully');
+                } catch (error) {
+                    console.error('❌ Error triggering TikTok embed:', error);
+                }
+            });
         }
 
         function scrollToRestaurant(restaurantId) {
