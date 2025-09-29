@@ -242,6 +242,13 @@ html, body {
     contain: content; 
     overflow-y: auto;
 }
+
+/* Desktop spacing between restaurant cards */
+@media (min-width: 768px) {
+    #restaurant-list > div:not(:first-child) {
+        margin-top: 1rem; /* 16px spacing between cards on desktop */
+    }
+}
 /* Mobile drawer resizing */
 @media (max-width: 767px) {
     :root { --drawer-height: 33vh; }
@@ -407,6 +414,11 @@ html, body {
         /* Hide scrollbar on mobile */
         -ms-overflow-style: none;
         scrollbar-width: none;
+    }
+    
+    /* Add spacing between restaurant cards, but not for the first one */
+    #restaurant-list > div:not(:first-child) {
+        margin-top: 0.75rem; /* 12px spacing between cards */
     }
     
     #restaurant-list::-webkit-scrollbar {
