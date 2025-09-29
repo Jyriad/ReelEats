@@ -281,20 +281,28 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show collection filter modal
         async function showCollectionFilterModal() {
+            console.log('showCollectionFilterModal called');
             await loadUserCollections();
+            console.log('User collections loaded:', userCollections.length);
 
             const isMobile = window.innerWidth < 768;
+            console.log('Is mobile:', isMobile);
 
             if (isMobile) {
+                console.log('Showing mobile collection filter modal');
                 showMobileCollectionFilterModal();
             } else {
+                console.log('Showing desktop collection filter modal');
                 showDesktopCollectionFilterModal();
             }
         }
 
         async function showDesktopCollectionFilterModal() {
+            console.log('showDesktopCollectionFilterModal called');
             const modal = document.getElementById('collection-filter-modal');
             const container = document.getElementById('collection-filter-container-desktop');
+            console.log('Modal element found:', !!modal);
+            console.log('Container element found:', !!container);
 
             if (userCollections.length === 0) {
                 container.innerHTML = `
@@ -325,8 +333,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 `).join('');
             }
 
+            console.log('Setting desktop modal to visible');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            console.log('Desktop modal classes after change:', modal.className);
         }
 
         async function showMobileCollectionFilterModal() {
@@ -358,8 +368,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 `).join('');
             }
 
+            console.log('Setting mobile modal to visible');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            console.log('Mobile modal classes after change:', modal.className);
         }
 
         // Filter restaurants by selected collections
@@ -2853,12 +2865,22 @@ async function showVideoFor(restaurant) {
         // Collection Filter Event Listeners
         const collectionFilterBtn = document.getElementById('collection-filter-btn');
         if (collectionFilterBtn) {
-            collectionFilterBtn.addEventListener('click', () => {
-                // Check if user is authenticated
-                if (!session || !session.user) {
-                    openAuthModal();
-                } else {
-                    showCollectionFilterModal();
+            collectionFilterBtn.addEventListener('click', async () => {
+                console.log('Collection filter button clicked');
+                try {
+                    // Check if user is authenticated
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    console.log('Session check result:', session ? 'authenticated' : 'not authenticated');
+                    if (!session || !session.user) {
+                        console.log('User not authenticated, opening auth modal');
+                        openAuthModal();
+                    } else {
+                        console.log('User authenticated, showing collection filter modal');
+                        showCollectionFilterModal();
+                    }
+                } catch (error) {
+                    console.error('Error checking authentication:', error);
+                    openAuthModal(); // Default to showing auth modal on error
                 }
             });
         } else {
