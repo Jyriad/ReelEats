@@ -1016,8 +1016,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 map.addLayer(window.markerClusterGroup);
                 markerClusterGroup = window.markerClusterGroup;
                 
-                // Add geolocation functionality
-                addUserLocationMarker();
+                // Geolocation will be triggered manually when user clicks location button
                 
                 window.mapInitialized = true;
                 mapInitialized = window.mapInitialized;
