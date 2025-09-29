@@ -675,13 +675,55 @@ html, body {
 
 /* Favorite Icon Styles */
 .favorite-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
     cursor: pointer;
     z-index: 10;
     color: #9ca3af; /* Default gray color for the star outline */
     transition: all 0.2s ease-in-out;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.add-to-collection-btn {
+    cursor: pointer;
+    z-index: 10;
+    color: #9ca3af; /* Default gray color */
+    transition: all 0.2s ease-in-out;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.add-to-collection-btn:hover {
+    color: #6366f1; /* Purple color on hover */
+    background-color: rgba(99, 102, 241, 0.1);
+    border-color: #6366f1;
+    transform: scale(1.1);
+}
+
+.add-to-collection-btn.collected {
+    color: #6366f1; /* Purple color when collected */
+    background-color: rgba(99, 102, 241, 0.15);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.add-to-collection-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
 }
 
 .favorite-btn svg {
@@ -794,5 +836,53 @@ html, body {
     box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
     margin: 0 !important;
     padding: 0 !important;
+}
+
+/* Collection Selection Modal Styles */
+#collection-selection-modal {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#collection-selection-modal .bg-white {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* Toast Notification Styles */
+#toast-notification {
+    max-width: 300px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+#toast-notification.success {
+    background-color: #059669;
+}
+
+#toast-notification.error {
+    background-color: #dc2626;
+}
+
+#toast-notification.warning {
+    background-color: #d97706;
+}
+
+#toast-notification.show {
+    transform: translateX(0);
 }
 

@@ -62,25 +62,9 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
     }, CONFIG.VIDEO_CONFIG.FALLBACK_DELAY);
 }
 
-function loadVideoWithBlockquote(videoContainer, embedHtml) {
-    console.log('🔄 Loading video with blockquote approach...');
-    videoContainer.innerHTML = embedHtml;
-    
-    const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-    blockquotes.forEach(bq => {
-        bq.style.visibility = 'visible';
-        bq.style.display = 'block';
-    });
-    
-    setTimeout(() => {
-        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-            window.tiktokEmbed.load();
-        }
-    }, CONFIG.VIDEO_CONFIG.FALLBACK_DELAY);
-}
-
-function showNoVideoMessage(videoContainer, restaurantName) {
-    videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurantName}</div>`;
+function showNoVideoMessage(videoContainer, restaurantName, additionalInfo = '') {
+    const message = additionalInfo ? `No video available for ${restaurantName}. ${additionalInfo}` : `No video available for ${restaurantName}`;
+    videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">${message}</div>`;
 }
 
 // --- Skeleton Loader Functions ---
@@ -165,11 +149,201 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Watched videos state management
         let watchedVideos = new Set();
         
+        // Collected restaurants state management
+        let collectedRestaurants = new Set();
+        let selectedCollections = new Set();
+        let userCollections = [];
+        
         // Load watched videos from localStorage
         function loadWatchedVideos() {
             const watched = localStorage.getItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS);
             if (watched) {
                 watchedVideos = new Set(JSON.parse(watched));
+            }
+        }
+
+        // Show collection selection modal (works on both mobile and desktop)
+        async function showCollectionModal(restaurantId) {
+            // Fetch user's collections
+            const { data: collections } = await supabaseClient.from('user_collections').select('id, name').eq('user_id', (await supabaseClient.auth.getUser()).data.user.id);
+            
+            // Create modal HTML
+            const modal = document.createElement('div');
+            modal.id = 'collection-selection-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4';
+            
+            let collectionsList = '';
+            if (collections && collections.length > 0) {
+                collectionsList = collections.map(c => `
+                    <div class="collection-option p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" data-collection-id="${c.id}" data-restaurant-id="${restaurantId}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-purple-500 mr-3"></div>
+                                <span class="text-lg font-medium text-gray-900">${c.name}</span>
+                            </div>
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                collectionsList = `
+                    <div class="p-8 text-center text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <p class="text-lg font-medium mb-2">No collections yet</p>
+                        <p class="text-sm">Create your first collection to organize your favorite restaurants</p>
+                    </div>
+                `;
+            }
+            
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">Add to Collection</h3>
+                            <button id="close-collection-modal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                        </div>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto">
+                        ${collectionsList}
+                        <div class="create-collection-option p-4 border-t border-gray-200 cursor-pointer hover:bg-green-50 transition-colors" data-restaurant-id="${restaurantId}">
+                            <div class="flex items-center text-green-600">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <span class="text-lg font-medium">Create New Collection</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add to body
+            document.body.appendChild(modal);
+            
+            // Add event listeners
+            document.getElementById('close-collection-modal').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+        // Load user collections from database
+        async function loadUserCollections() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('user_collections')
+                    .select('id, name')
+                    .eq('user_id', user.id);
+
+                if (error) {
+                    console.error('Error loading user collections:', error);
+                } else {
+                    userCollections = data || [];
+                }
+            } catch (error) {
+                console.error('Error loading user collections:', error);
+            }
+        }
+
+        // Load collected restaurants from database
+        async function loadCollectedRestaurants() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .select('restaurant_id, user_collections!inner(user_id)')
+                    .eq('user_collections.user_id', user.id);
+
+                if (error) {
+                    console.error('Error loading collected restaurants:', error);
+                } else {
+                    collectedRestaurants = new Set(data.map(item => item.restaurant_id));
+                    console.log('Loaded collected restaurants:', collectedRestaurants);
+                }
+            } catch (error) {
+                console.error('Error loading collected restaurants:', error);
+            }
+        }
+
+        // Show collection filter modal
+        async function showCollectionFilterModal() {
+            await loadUserCollections();
+            
+            const modal = document.getElementById('collection-filter-modal');
+            const container = document.getElementById('collection-filter-container');
+            
+            if (userCollections.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <p class="text-lg font-medium mb-2">No collections yet</p>
+                        <p class="text-sm">Create collections to filter restaurants</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = userCollections.map(collection => `
+                    <div class="collection-filter-card p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${selectedCollections.has(collection.id) ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collection.id}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-purple-500 mr-3"></div>
+                                <span class="font-medium text-gray-900">${collection.name}</span>
+                            </div>
+                            <div class="w-5 h-5 border-2 border-gray-300 rounded ${selectedCollections.has(collection.id) ? 'bg-purple-500 border-purple-500' : ''} flex items-center justify-center">
+                                ${selectedCollections.has(collection.id) ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // Filter restaurants by selected collections
+        function filterRestaurantsByCollections(restaurants) {
+            if (selectedCollections.size === 0) {
+                return restaurants;
+            }
+            
+            return restaurants.filter(restaurant => {
+                // Check if restaurant is in any of the selected collections
+                return Array.from(selectedCollections).some(collectionId => {
+                    // This would need to be implemented based on your data structure
+                    // For now, we'll use the collectedRestaurants set as a proxy
+                    return collectedRestaurants.has(restaurant.id);
+                });
+            });
+        }
+
+        // Update collection filter button appearance
+        function updateCollectionFilterButtonAppearance() {
+            const button = document.getElementById('collection-filter-btn');
+            const count = document.getElementById('collection-selected-count');
+            
+            if (selectedCollections.size > 0) {
+                button.classList.add('bg-purple-700', 'ring-2', 'ring-purple-300', 'ring-opacity-50');
+                count.textContent = selectedCollections.size;
+                count.classList.remove('hidden');
+            } else {
+                button.classList.remove('bg-purple-700', 'ring-2', 'ring-purple-300', 'ring-opacity-50');
+                count.classList.add('hidden');
             }
         }
         
@@ -257,9 +431,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // --- Auth State Management ---
         async function updateUserUI(user) {
+            const collectionsBtn = document.getElementById('collections-btn');
+            const collectionFilterBtn = document.getElementById('collection-filter-btn');
+            
             if (user) {
                 // User is logged in - show logout button instead of login button
                 authBtn.classList.add('hidden');
+                collectionsBtn.classList.remove('hidden');
+                collectionFilterBtn.classList.remove('hidden');
                 
                 // Create or update logout button
                 let logoutButton = document.getElementById('logout-button');
@@ -293,6 +472,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     favoritedRestaurants = new Set(data.map(fav => fav.restaurant_id));
                 }
 
+                // Load collected restaurants and collections
+                await loadCollectedRestaurants();
+                await loadCollectionsForModal();
+
                 // Re-display restaurants to show correct favorite status (only if restaurants are loaded)
                 if (currentRestaurants && currentRestaurants.length > 0) {
                     displayRestaurants(currentRestaurants);
@@ -301,6 +484,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 // User is logged out - show login button
                 authBtn.classList.remove('hidden');
+                collectionsBtn.classList.add('hidden');
+                collectionFilterBtn.classList.add('hidden');
                 
                 // Hide logout button if it exists
                 const logoutButton = document.getElementById('logout-button');
@@ -309,6 +494,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 favoritedRestaurants.clear(); // Clear favorites on logout
+                selectedCollections.clear(); // Clear collection filter on logout
+                updateCollectionFilterButtonAppearance();
+                
                 // Re-display to remove favorite icons (only if restaurants are loaded)
                 if (currentRestaurants && currentRestaurants.length > 0) {
                     displayRestaurants(currentRestaurants);
@@ -490,6 +678,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (filterModal) filterModal.classList.add('hidden');
             }
         });
+
 
         // --- Core Functions ---
 
@@ -768,6 +957,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // 2. Fetch only the featured TikToks for those specific restaurants.
             const restaurantIds = restaurants.map(r => r.id);
+            console.log('🔍 Fetching TikToks for restaurant IDs:', restaurantIds);
             const { data: tiktoks, error: tiktoksError } = await supabaseClient
                 .from('tiktoks')
                 .select('restaurant_id, embed_html')
@@ -777,6 +967,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (tiktoksError) {
                 // Log the error but don't stop execution, so restaurants still display.
                 console.error("Error fetching tiktoks:", tiktoksError);
+            } else {
+                console.log('✅ Fetched TikToks:', tiktoks);
             }
 
             // 3. Fetch cuisine information for restaurants
@@ -795,10 +987,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 4. Join the data together in JavaScript.
             const tiktokMap = new Map();
             if (tiktoks) {
+                console.log('📝 Processing TikToks:', tiktoks);
                 tiktoks.forEach(t => {
+                    console.log('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html);
                     tiktokMap.set(t.restaurant_id, t.embed_html);
                 });
             }
+            console.log('🗺️ TikTok Map size:', tiktokMap.size);
+            console.log('🗺️ TikTok Map contents:', Array.from(tiktokMap.entries()));
 
             const cuisineMap = new Map();
             if (restaurantCuisines) {
@@ -813,12 +1009,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
 
-            window.currentRestaurants = restaurants.map(r => ({
-                ...r,
-                tiktok_embed_html: tiktokMap.get(r.id) || null,
-                cuisines: cuisineMap.get(r.id) || []
-            }));
+            window.currentRestaurants = restaurants.map(r => {
+                const tiktokHtml = tiktokMap.get(r.id) || null;
+                console.log('🏗️ Creating restaurant object:', r.id, 'tiktok_html:', tiktokHtml ? 'EXISTS' : 'NULL');
+                return {
+                    ...r,
+                    tiktok_embed_html: tiktokHtml,
+                    cuisines: cuisineMap.get(r.id) || []
+                };
+            });
             currentRestaurants = window.currentRestaurants;
+            console.log('📊 Total restaurants with TikTok data:', currentRestaurants.filter(r => r.tiktok_embed_html).length);
             
             // Order restaurants based on geolocation availability
             if (window.userLocation) {
@@ -837,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Small delay to ensure skeleton loaders are visible before showing real data
             setTimeout(() => {
-                displayRestaurants(currentRestaurants);
+            displayRestaurants(currentRestaurants);
             }, 100);
         }
 
@@ -1559,6 +1760,366 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        // --- Collections Logic ---
+        const collectionsBtn = document.getElementById('collections-btn');
+        const collectionsModal = document.getElementById('collections-modal');
+        const closeCollectionsModalBtn = document.getElementById('close-collections-modal');
+        const collectionsList = document.getElementById('collections-list');
+        const addCollectionForm = document.getElementById('add-collection-form');
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-notification');
+            const toastMessage = document.getElementById('toast-message');
+            
+            // Set message and type
+            toastMessage.textContent = message;
+            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out ${type}`;
+            
+            // Show toast (remove hidden class)
+            toast.classList.remove('hidden');
+            
+            // Slide in
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Hide toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                // Hide completely after animation
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+
+        // Open/Close Modal
+        collectionsBtn.addEventListener('click', () => {
+            collectionsModal.classList.remove('hidden');
+            collectionsModal.classList.add('flex');
+            loadCollectionsForModal();
+        });
+        closeCollectionsModalBtn.addEventListener('click', () => collectionsModal.classList.add('hidden'));
+
+        // Handle new collection creation
+        addCollectionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const collectionNameInput = document.getElementById('new-collection-name');
+            const collectionName = collectionNameInput.value.trim();
+            const { data: { user } } = await supabaseClient.auth.getUser();
+
+            if (collectionName && user) {
+                const { error } = await supabaseClient.from('user_collections').insert({ name: collectionName, user_id: user.id });
+                if (error) {
+                    console.error('Error creating collection:', error);
+                } else {
+                    collectionNameInput.value = '';
+                    loadCollectionsForModal(); // Refresh list
+                }
+            }
+        });
+
+        // Function to load and display a user's collections for the collections modal
+        async function loadCollectionsForModal() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabaseClient
+                .from('user_collections')
+                .select(`*, collection_restaurants(count)`)
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                collectionsList.innerHTML = `<p class="text-red-500">Error loading collections.</p>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                collectionsList.innerHTML = `<p class="text-gray-500 text-center">You haven't created any collections yet.</p>`;
+            } else {
+                collectionsList.innerHTML = data.map(collection => `
+                    <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                        <div>
+                            <p class="font-semibold">${collection.name}</p>
+                            <p class="text-sm text-gray-500">${collection.collection_restaurants[0].count} items</p>
+                        </div>
+                        <button class="delete-collection-btn text-red-500 hover:text-red-700" data-collection-id="${collection.id}">Delete</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Handle deleting a collection
+        let collectionToDelete = null;
+        collectionsList.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-collection-btn')) {
+                const collectionId = e.target.dataset.collectionId;
+                const collectionName = e.target.closest('.flex').querySelector('.font-semibold').textContent;
+                
+                // Store the collection to delete
+                collectionToDelete = collectionId;
+                
+                // Show custom confirmation modal
+                document.getElementById('collection-name-to-delete').textContent = collectionName;
+                document.getElementById('delete-collection-modal').classList.remove('hidden');
+                document.getElementById('delete-collection-modal').classList.add('flex');
+            }
+        });
+
+        // Handle delete confirmation modal
+        document.getElementById('cancel-delete-collection').addEventListener('click', () => {
+            document.getElementById('delete-collection-modal').classList.add('hidden');
+            document.getElementById('delete-collection-modal').classList.remove('flex');
+            collectionToDelete = null;
+        });
+
+        document.getElementById('confirm-delete-collection').addEventListener('click', async () => {
+            if (collectionToDelete) {
+                try {
+                    // First delete items in collection, then the collection itself
+                    await supabaseClient.from('collection_restaurants').delete().eq('collection_id', collectionToDelete);
+                    await supabaseClient.from('user_collections').delete().eq('id', collectionToDelete);
+                    loadCollectionsForModal(); // Refresh list
+                } catch (error) {
+                    console.error('Error deleting collection:', error);
+                }
+                
+                // Close modal
+                document.getElementById('delete-collection-modal').classList.add('hidden');
+                document.getElementById('delete-collection-modal').classList.remove('flex');
+                collectionToDelete = null;
+            }
+        });
+
+        // Close delete modal when clicking outside
+        document.getElementById('delete-collection-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('delete-collection-modal')) {
+                document.getElementById('delete-collection-modal').classList.add('hidden');
+                document.getElementById('delete-collection-modal').classList.remove('flex');
+                collectionToDelete = null;
+            }
+        });
+
+        // Handle quick create collection modal
+        document.getElementById('close-quick-create-modal').addEventListener('click', () => {
+            document.getElementById('quick-create-collection-modal').classList.add('hidden');
+            document.getElementById('quick-create-collection-modal').classList.remove('flex');
+            document.getElementById('quick-create-collection-form').reset();
+            window.quickCreateRestaurantId = null;
+        });
+
+        document.getElementById('cancel-quick-create').addEventListener('click', () => {
+            document.getElementById('quick-create-collection-modal').classList.add('hidden');
+            document.getElementById('quick-create-collection-modal').classList.remove('flex');
+            document.getElementById('quick-create-collection-form').reset();
+            window.quickCreateRestaurantId = null;
+        });
+
+        document.getElementById('quick-create-collection-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const collectionName = document.getElementById('quick-collection-name').value.trim();
+            const restaurantId = window.quickCreateRestaurantId;
+
+            if (collectionName && restaurantId) {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (user) {
+                    try {
+                        // Create the collection
+                        const { data: newCollection, error: createError } = await supabaseClient
+                            .from('user_collections')
+                            .insert({ name: collectionName, user_id: user.id })
+                            .select()
+                            .single();
+
+                        if (createError) {
+                            console.error('Error creating collection:', createError);
+                            showToast('Error creating collection. Please try again.', 'error');
+                        } else {
+                            // Add restaurant to the new collection
+                            const { error: addError } = await supabaseClient.from('collection_restaurants').insert({
+                                collection_id: newCollection.id,
+                                restaurant_id: restaurantId
+                            });
+
+                            if (addError) {
+                                console.error('Error adding restaurant to collection:', addError);
+                                showToast('Collection created but failed to add restaurant. Please try again.', 'error');
+                            } else {
+                                showToast(`Collection "${collectionName}" created and restaurant added!`);
+                                
+                                // Update collection state
+                                collectedRestaurants.add(restaurantId);
+                                console.log('Updated collectedRestaurants (quick create):', collectedRestaurants);
+                                
+                                // Close modal and reset
+                                document.getElementById('quick-create-collection-modal').classList.add('hidden');
+                                document.getElementById('quick-create-collection-modal').classList.remove('flex');
+                                document.getElementById('quick-create-collection-form').reset();
+                                window.quickCreateRestaurantId = null;
+                                
+                                // Re-display restaurants to show updated collection status
+                                if (currentRestaurants && currentRestaurants.length > 0) {
+                                    console.log('Re-displaying restaurants after quick create collection');
+                                    displayRestaurants(currentRestaurants);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast('Something went wrong. Please try again.', 'error');
+                    }
+                }
+            }
+        });
+
+        // Close quick create modal when clicking outside
+        document.getElementById('quick-create-collection-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('quick-create-collection-modal')) {
+                document.getElementById('quick-create-collection-modal').classList.add('hidden');
+                document.getElementById('quick-create-collection-modal').classList.remove('flex');
+                document.getElementById('quick-create-collection-form').reset();
+                window.quickCreateRestaurantId = null;
+            }
+        });
+
+        // Handle showing the 'Add to Collection' popup
+        document.getElementById('restaurant-list').addEventListener('click', async (e) => {
+            if (e.target.closest('.add-to-collection-btn')) {
+                const button = e.target.closest('.add-to-collection-btn');
+                const restaurantId = button.dataset.restaurantId;
+                const { data: { user } } = await supabaseClient.auth.getUser();
+
+                if (!user) {
+                    openAuthModal();
+                    return;
+                }
+
+                // Store the restaurant ID for later use
+                window.quickCreateRestaurantId = restaurantId;
+                
+                // Show the collection selection modal
+                showCollectionModal(restaurantId);
+            }
+        });
+
+        // Handle adding a restaurant to a collection
+        document.body.addEventListener('click', async (e) => {
+            // Check if clicked on a collection option in the modal
+            const collectionOption = e.target.closest('.collection-option');
+            if (collectionOption) {
+                const collectionId = collectionOption.dataset.collectionId;
+                const restaurantId = collectionOption.dataset.restaurantId;
+
+                // Add to existing collection
+                const { error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .insert({ collection_id: collectionId, restaurant_id: restaurantId });
+
+                if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
+                    showToast('This restaurant is already in that collection.', 'warning');
+                } else if (error) {
+                    console.error(error);
+                    showToast('Error adding to collection. Please try again.', 'error');
+                } else {
+                    showToast('Added to collection!');
+                    // Update collection state immediately
+                    collectedRestaurants.add(restaurantId);
+                    console.log('Updated collectedRestaurants:', collectedRestaurants);
+                    
+                    // Update the specific restaurant card immediately
+                    const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+                    if (restaurantCard) {
+                        const bookmarkBtn = restaurantCard.querySelector('.add-to-collection-btn');
+                        if (bookmarkBtn) {
+                            bookmarkBtn.classList.add('collected');
+                        }
+                    }
+                    
+                    // Re-display restaurants to show updated collection status
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        console.log('Re-displaying restaurants after adding to collection');
+                        displayRestaurants(currentRestaurants);
+                    }
+                }
+                
+                // Close the modal
+                document.getElementById('collection-selection-modal').remove();
+            }
+            
+            // Check if clicked on create collection option
+            const createOption = e.target.closest('.create-collection-option');
+            if (createOption) {
+                const restaurantId = createOption.dataset.restaurantId;
+                
+                // Store the restaurant ID for later use
+                window.quickCreateRestaurantId = restaurantId;
+                
+                // Close the collection selection modal
+                document.getElementById('collection-selection-modal').remove();
+                
+                // Show create collection modal
+                document.getElementById('quick-create-collection-modal').classList.remove('hidden');
+                document.getElementById('quick-create-collection-modal').classList.add('flex');
+                
+                // Focus on the input field
+                setTimeout(() => {
+                    document.getElementById('quick-collection-name').focus();
+                }, 100);
+            }
+            
+            // Check if clicked on any part of a popup list item (legacy desktop popup)
+            const listItem = e.target.closest('.add-to-collection-popup li');
+            if (listItem) {
+                const collectionId = listItem.dataset.collectionId;
+                const restaurantId = listItem.dataset.restaurantId;
+
+                // Check if it's the create collection option
+                if (listItem.classList.contains('create-collection-option')) {
+                    // Store the restaurant ID for later use
+                    window.quickCreateRestaurantId = restaurantId;
+                    
+                    // Show create collection modal
+                    document.getElementById('quick-create-collection-modal').classList.remove('hidden');
+                    document.getElementById('quick-create-collection-modal').classList.add('flex');
+                    
+                    // Focus on the input field
+                    setTimeout(() => {
+                        document.getElementById('quick-collection-name').focus();
+                    }, 100);
+                } else if (collectionId) {
+                    // Add to existing collection
+                    const { error } = await supabaseClient.from('collection_restaurants').insert({
+                        collection_id: collectionId,
+                        restaurant_id: restaurantId
+                    });
+
+                    if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
+                        showToast('This restaurant is already in that collection.', 'warning');
+                    } else if (error) {
+                        console.error(error);
+                        showToast('Error adding to collection. Please try again.', 'error');
+                    } else {
+                        showToast('Added to collection!');
+                        // Update collection state
+                        collectedRestaurants.add(restaurantId);
+                        console.log('Updated collectedRestaurants:', collectedRestaurants);
+                        // Re-display restaurants to show updated collection status
+                        if (currentRestaurants && currentRestaurants.length > 0) {
+                            console.log('Re-displaying restaurants after adding to collection');
+                            displayRestaurants(currentRestaurants);
+                        }
+                    }
+                }
+                
+                listItem.closest('.add-to-collection-popup').remove();
+            } else if (!e.target.closest('.add-to-collection-btn')) {
+                // Hide popups when clicking elsewhere
+                document.querySelectorAll('.add-to-collection-popup').forEach(p => p.remove());
+            }
+        });
+
         function fitMapToRestaurants(restaurants) {
             if (!map || !restaurants || restaurants.length === 0) {
                 return;
@@ -1598,7 +2159,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             restaurants.forEach((restaurant, index) => {
                 const listItem = createListItem(restaurant, index);
                 restaurantList.appendChild(listItem);
-
+                
                 const marker = createNumberedMarker(restaurant, index);
                 window.restaurantMarkers.push(marker); // Keep track of markers for other interactions
                 restaurantMarkers = window.restaurantMarkers;
@@ -1614,10 +2175,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Add position: relative to the list item for the button
             listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start relative';
             listItem.dataset.restaurantId = restaurant.id;
-
+            
             const isFavorited = favoritedRestaurants.has(restaurant.id);
+            const isCollected = collectedRestaurants.has(restaurant.id);
             const favoriteClass = isFavorited ? 'favorited' : '';
+            const collectionClass = isCollected ? 'collected' : '';
             const number = index + 1;
+            
+            // Debug logging
+            console.log(`Creating list item for ${restaurant.name} (ID: ${restaurant.id}): isCollected=${isCollected}, collectionClass="${collectionClass}"`);
+            console.log(`Current collectedRestaurants Set:`, Array.from(collectedRestaurants));
+            if (isCollected) {
+                console.log(`Restaurant ${restaurant.name} is collected, applying class: ${collectionClass}`);
+            }
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
                 ? restaurant.cuisines.map(cuisine => {
@@ -1631,31 +2201,36 @@ document.addEventListener('DOMContentLoaded', async function() {
                             </span>`;
                 }).join('')
                 : '<span class="text-gray-400 text-xs">No cuisine info</span>';
-
+            
             // Distance will be added by updateRestaurantCardsWithDistance() when user location is available
             let distanceHtml = '';
-
+            
             listItem.innerHTML = `
                 <div class="flex-shrink-0 mr-3">
                     <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                         ${number}
                     </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-gray-900 text-base md:text-lg font-bold truncate pr-8">${restaurant.name}</h3>
+                <div class="flex-1 min-w-0 pr-20">
+                    <h3 class="text-gray-900 text-base md:text-lg font-bold pr-2">${restaurant.name}</h3>
                     <p class="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">${restaurant.description || ''}</p>
                     <div class="mt-2 flex flex-wrap">${cuisineTags}</div>
                     ${distanceHtml}
                 </div>
-                <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                </button>
+                <div class="absolute top-2 right-2 flex items-center space-x-1">
+                    <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                    </button>
+                    <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    </button>
+                </div>
             `;
 
             // Main click event to open video
             listItem.addEventListener('click', (e) => {
-                // Prevent opening video if the favorite button was clicked
-                if (e.target.closest('.favorite-btn')) return;
+                // Prevent opening video if the favorite button or collection button was clicked
+                if (e.target.closest('.favorite-btn') || e.target.closest('.add-to-collection-btn')) return;
 
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
                 listItem.classList.add('active-list-item');
@@ -1817,47 +2392,177 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        // script.js
+        // Show video for restaurant
+async function showVideoFor(restaurant) {
+            console.log('🎬 showVideoFor called with restaurant:', restaurant);
+            console.log('🎬 restaurant.tiktok_embed_html:', restaurant.tiktok_embed_html);
+            console.log('🎬 restaurant.tiktok_embed_html type:', typeof restaurant.tiktok_embed_html);
+            console.log('🎬 restaurant.tiktok_embed_html length:', restaurant.tiktok_embed_html ? restaurant.tiktok_embed_html.length : 'N/A');
 
-        function showVideoFor(restaurant) {
-            if (!restaurant.tiktok_embed_html) {
-                showNoVideoMessage(videoContainer, restaurant.name);
-                videoModal.classList.add('show');
-                return;
-            }
+    if (!restaurant.tiktok_embed_html) {
+        console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
+        showNoVideoMessage(videoContainer, restaurant.name);
+        videoModal.classList.add('show');
+        return;
+    }
 
-            // Mark the video as watched and update the UI
-            addVideoToWatched(restaurant.id);
-            const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
-            if (listItem && !listItem.querySelector('.watched-icon')) {
-                const watchedIcon = createWatchedIcon();
-                listItem.appendChild(watchedIcon);
-            }
+    // Mark as watched and update UI
+    addVideoToWatched(restaurant.id);
+    const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
+    if (listItem && !listItem.querySelector('.watched-icon')) {
+        const watchedIcon = createWatchedIcon();
+        listItem.appendChild(watchedIcon);
+    }
 
-            // Extract video ID from embed HTML
-            const videoId = extractVideoId(restaurant.tiktok_embed_html);
-            console.log('🎬 Loading video:', videoId);
+    // Show the modal with a loading indicator
+    videoModal.classList.add('show');
+    scrollToRestaurant(restaurant.id);
+    videoContainer.innerHTML = `
+        <div class="w-full h-full flex items-center justify-center text-white">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+    `;
 
-            // Show modal
-            videoModal.classList.add('show');
-            
-            // Scroll to the restaurant in the side panel (desktop only)
-            scrollToRestaurant(restaurant.id);
-    
-            if (videoId) {
-                // Try direct iframe approach first
-                console.log('Trying direct iframe approach...');
-                videoContainer.innerHTML = createVideoIframe(videoId);
-                
-                // Handle iframe loading with fallback
-                handleIframeLoading(videoContainer, restaurant.tiktok_embed_html, () => {
-                    loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
-                });
+    // Create a temporary, hidden container off-screen for TikTok processing
+    const preloadContainer = document.createElement('div');
+    preloadContainer.style.position = 'absolute';
+    preloadContainer.style.top = '-9999px';
+    preloadContainer.style.left = '-9999px';
+    preloadContainer.style.width = '330px';
+    preloadContainer.style.height = '585px';
+    preloadContainer.style.background = 'black';
+    document.body.appendChild(preloadContainer);
+
+    console.log('🎬 Preload container created, injecting TikTok HTML...');
+    console.log('🎬 TikTok HTML length:', restaurant.tiktok_embed_html.length);
+
+    // Inject the raw TikTok blockquote HTML into the hidden container
+    preloadContainer.innerHTML = restaurant.tiktok_embed_html;
+    console.log('🎬 TikTok HTML injected into preload container');
+
+    // Make sure the blockquote is visible for TikTok processing
+    const hiddenBlockquotes = preloadContainer.querySelectorAll('blockquote.tiktok-embed');
+    hiddenBlockquotes.forEach(bq => {
+        bq.style.visibility = 'visible';
+        bq.style.display = 'block';
+        bq.removeAttribute('hidden');
+        bq.classList.remove('hidden');
+    });
+
+    console.log('🎬 Hidden blockquotes prepared:', hiddenBlockquotes.length);
+
+            // Try multiple approaches to trigger TikTok embed processing
+            console.log('🎬 Attempting to trigger TikTok embed processing...');
+
+            // Method 1: Use TikTok's official API if available
+            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                console.log('✅ TikTok script available, calling load()...');
+                window.tiktokEmbed.load();
             } else {
-                console.log('No video ID found, using blockquote...');
-                loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
+                console.log('⏳ TikTok script not ready, trying alternative methods...');
+
+                // Method 2: Try to find and trigger existing TikTok embeds
+                const existingEmbeds = document.querySelectorAll('blockquote.tiktok-embed');
+                if (existingEmbeds.length > 0) {
+                    console.log('🔍 Found existing TikTok embeds:', existingEmbeds.length);
+                    // TikTok script might already be processing existing embeds
+                }
+
+                // Method 3: Try to manually create the iframe
+                console.log('🔄 Attempting manual iframe creation...');
+                const videoId = restaurant.tiktok_embed_html.match(/data-video-id="([^"]+)"/)?.[1];
+                if (videoId) {
+                    console.log('🎬 Found video ID:', videoId);
+                    const iframe = document.createElement('iframe');
+                    iframe.src = `https://www.tiktok.com/embed/v2/${videoId}`;
+                    iframe.width = '330';
+                    iframe.height = '585';
+                    iframe.frameBorder = '0';
+                    iframe.allowFullscreen = true;
+                    iframe.allow = 'encrypted-media';
+                    iframe.style.border = 'none';
+                    iframe.style.background = 'black';
+
+                    console.log('✅ Created iframe manually, adding to modal...');
+                    videoContainer.innerHTML = '';
+                    videoContainer.appendChild(iframe);
+
+                    // Clean up the preload container since we're not using it
+                    document.body.removeChild(preloadContainer);
+                    observer.disconnect();
+                    return;
+                } else {
+                    console.log('❌ Could not extract video ID from embed HTML');
+                }
+
+                // Method 4: Force reload TikTok script
+                console.log('🔄 Attempting to reload TikTok script...');
+                const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
+                if (existingScript) {
+                    existingScript.remove();
+                }
+
+                const newScript = document.createElement('script');
+                newScript.src = 'https://www.tiktok.com/embed.js';
+                newScript.async = true;
+                newScript.onload = () => {
+                    console.log('✅ TikTok script reloaded');
+                    setTimeout(() => {
+                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            console.log('✅ TikTok script ready after reload, calling load()...');
+                            window.tiktokEmbed.load();
+                        } else {
+                            console.log('❌ TikTok script still not working after reload');
+                        }
+                    }, 1000);
+                };
+                document.head.appendChild(newScript);
             }
+
+    // Use MutationObserver to wait for iframe creation
+    const observer = new MutationObserver((mutations, obs) => {
+        console.log('🔍 MutationObserver triggered, checking for iframe...');
+        const iframe = preloadContainer.querySelector('iframe');
+
+        if (iframe) {
+            console.log('✅ TikTok iframe detected! Moving to modal...');
+            console.log('🎬 Iframe src:', iframe.src);
+            console.log('🎬 Iframe readyState:', iframe.readyState);
+
+            // Clear loading spinner and add iframe
+            videoContainer.innerHTML = '';
+            videoContainer.appendChild(iframe);
+
+            // Clean up
+            document.body.removeChild(preloadContainer);
+            obs.disconnect();
+            console.log('✅ Video loading complete');
+        } else {
+            console.log('⏳ No iframe found yet, mutations:', mutations.length);
+            mutations.forEach(m => console.log('  - Mutation:', m.type, m.addedNodes.length, 'nodes'));
         }
+    });
+
+    console.log('🎬 Starting MutationObserver...');
+    observer.observe(preloadContainer, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src', 'style']
+    });
+
+    // Increased timeout with better error handling
+    setTimeout(() => {
+        if (document.body.contains(preloadContainer)) {
+            console.error('❌ TikTok embed timed out after 8 seconds');
+            console.log('🔍 Final preload container contents:', preloadContainer.innerHTML);
+
+            document.body.removeChild(preloadContainer);
+            observer.disconnect();
+            showNoVideoMessage(videoContainer, restaurant.name, 'Video loading failed');
+        }
+    }, 8000);
+}
 
         function scrollToRestaurant(restaurantId) {
             // Only scroll on desktop (when the side panel is visible)
@@ -1872,7 +2577,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!restaurantList) return;
             
             // Wait a bit for any layout changes to complete
-            setTimeout(() => {
+        setTimeout(() => {
                 const cardTop = restaurantCard.offsetTop;
                 const cardHeight = restaurantCard.offsetHeight;
                 const containerHeight = restaurantList.offsetHeight;
@@ -1882,8 +2587,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     top: Math.max(0, scrollPosition),
                     behavior: 'smooth'
                 });
-            }, 100);
-        }
+        }, 100);
+}
 
         function closeVideo() {
             videoModal.classList.remove('show');
@@ -2081,6 +2786,75 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Setup mobile drawer after DOM is ready
         setupMobileDrawer();
+
+        // Collection Filter Event Listeners
+        const collectionFilterBtn = document.getElementById('collection-filter-btn');
+        if (collectionFilterBtn) {
+            collectionFilterBtn.addEventListener('click', showCollectionFilterModal);
+        } else {
+            console.error('Collection filter button not found');
+        }
+        
+        const closeCollectionFilterModal = document.getElementById('close-collection-filter-modal');
+        if (closeCollectionFilterModal) {
+            closeCollectionFilterModal.addEventListener('click', () => {
+                document.getElementById('collection-filter-modal').classList.add('hidden');
+                document.getElementById('collection-filter-modal').classList.remove('flex');
+            });
+        }
+        
+        const cancelCollectionFilter = document.getElementById('cancel-collection-filter');
+        if (cancelCollectionFilter) {
+            cancelCollectionFilter.addEventListener('click', () => {
+                document.getElementById('collection-filter-modal').classList.add('hidden');
+                document.getElementById('collection-filter-modal').classList.remove('flex');
+            });
+        }
+        
+        const clearCollectionFilters = document.getElementById('clear-collection-filters');
+        if (clearCollectionFilters) {
+            clearCollectionFilters.addEventListener('click', () => {
+                selectedCollections.clear();
+                showCollectionFilterModal(); // Refresh the modal
+            });
+        }
+        
+        const applyCollectionFilter = document.getElementById('apply-collection-filter');
+        if (applyCollectionFilter) {
+            applyCollectionFilter.addEventListener('click', () => {
+            // Apply the filter
+            if (currentRestaurants && currentRestaurants.length > 0) {
+                const filteredRestaurants = filterRestaurantsByCollections(currentRestaurants);
+                displayRestaurants(filteredRestaurants);
+                
+                // Update map to show only filtered restaurants
+                if (map && mapInitialized) {
+                    fitMapToRestaurants(filteredRestaurants);
+                }
+            }
+            
+            // Close modal
+            document.getElementById('collection-filter-modal').classList.add('hidden');
+            document.getElementById('collection-filter-modal').classList.remove('flex');
+            
+            // Update button appearance
+            updateCollectionFilterButtonAppearance();
+            });
+        }
+        
+        // Handle collection filter card clicks
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('.collection-filter-card');
+            if (card) {
+                const collectionId = card.dataset.collectionId;
+                if (selectedCollections.has(collectionId)) {
+                    selectedCollections.delete(collectionId);
+                } else {
+                    selectedCollections.add(collectionId);
+                }
+                showCollectionFilterModal(); // Refresh the modal
+            }
+        });
     
     } catch (error) {
         console.error("An error occurred during initialization:", error);
