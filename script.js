@@ -555,14 +555,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             return collection ? collection.name : null;
         }
 
-        // Update collection filter button appearance
+        // Update collection filter button appearance (matching cuisine filter style)
         function updateCollectionFilterButtonAppearance() {
-            const button = document.getElementById('collection-filter-btn');
             const count = document.getElementById('collection-selected-count');
             const subtitle = document.getElementById('collection-filter-subtitle');
+            const hasActiveFilters = selectedCollections.size > 0;
 
-            if (selectedCollections.size > 0) {
-                button.classList.add('bg-purple-700', 'ring-2', 'ring-purple-300', 'ring-opacity-50');
+            if (hasActiveFilters) {
+                // Show count
                 count.textContent = selectedCollections.size;
                 count.classList.remove('hidden');
 
@@ -575,7 +575,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     subtitle.textContent = `${selectedCollectionsArray.length} collections selected`;
                 }
             } else {
-                button.classList.remove('bg-purple-700', 'ring-2', 'ring-purple-300', 'ring-opacity-50');
+                // Hide count and reset subtitle
                 count.classList.add('hidden');
                 subtitle.textContent = 'All collections';
             }
