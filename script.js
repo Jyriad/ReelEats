@@ -62,8 +62,9 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
     }, CONFIG.VIDEO_CONFIG.FALLBACK_DELAY);
 }
 
-function showNoVideoMessage(videoContainer, restaurantName) {
-    videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurantName}</div>`;
+function showNoVideoMessage(videoContainer, restaurantName, additionalInfo = '') {
+    const message = additionalInfo ? `No video available for ${restaurantName}. ${additionalInfo}` : `No video available for ${restaurantName}`;
+    videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">${message}</div>`;
 }
 
 // --- Skeleton Loader Functions ---
@@ -2385,103 +2386,72 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Show video for restaurant
-function showVideoFor(restaurant) {
-            console.log('🎬 Restaurant object:', restaurant);
-            console.log('🎬 TikTok embed HTML:', restaurant.tiktok_embed_html);
-            console.log('🎬 Has TikTok embed:', !!restaurant.tiktok_embed_html);
-            
-    if (!restaurant.tiktok_embed_html) {
-                console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
-                showNoVideoMessage(videoContainer, restaurant.name);
+async function showVideoFor(restaurant) {
+    if (!restaurant.embed_html) {
+        showNoVideoMessage(videoContainer, restaurant.name);
         videoModal.classList.add('show');
         return;
     }
 
-            // Mark the video as watched and update the UI
-            addVideoToWatched(restaurant.id);
-            const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
-            if (listItem && !listItem.querySelector('.watched-icon')) {
-                const watchedIcon = createWatchedIcon();
-                listItem.appendChild(watchedIcon);
-            }
+    // Mark as watched and update UI
+    addVideoToWatched(restaurant.id);
+    const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
+    if (listItem && !listItem.querySelector('.watched-icon')) {
+        const watchedIcon = createWatchedIcon();
+        listItem.appendChild(watchedIcon);
+    }
 
-            // Extract video ID from embed HTML
-            const videoId = extractVideoId(restaurant.tiktok_embed_html);
-    console.log('🎬 Loading video:', videoId);
-
-            // Show modal immediately
+    // Show the modal with a loading indicator
     videoModal.classList.add('show');
-    
-            // Scroll to the restaurant in the side panel (desktop only)
-            scrollToRestaurant(restaurant.id);
-    
-            // Load TikTok embed immediately - no custom loading screen
-            console.log('🎬 Loading TikTok embed directly...');
-            console.log('🎬 TikTok embed HTML:', restaurant.tiktok_embed_html);
+    scrollToRestaurant(restaurant.id);
+    videoContainer.innerHTML = `
+        <div class="w-full h-full flex items-center justify-center text-white">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+    `;
 
-            // Clean and fix the TikTok embed HTML
-            let cleanEmbedHtml = restaurant.tiktok_embed_html;
-            // Remove the script tag and make the blockquote visible
-            cleanEmbedHtml = cleanEmbedHtml.replace(/<script[^>]*>.*?<\/script>/gi, '');
-            cleanEmbedHtml = cleanEmbedHtml.replace(/visibility:\s*hidden/gi, 'visibility: visible');
+    // 1. Create a temporary, hidden container off-screen
+    const preloadContainer = document.createElement('div');
+    preloadContainer.style.position = 'absolute';
+    preloadContainer.style.top = '-9999px';
+    preloadContainer.style.left = '-9999px';
+    document.body.appendChild(preloadContainer);
 
-            console.log('🧹 Cleaned embed HTML:', cleanEmbedHtml);
+    // 2. Inject the raw TikTok blockquote HTML into the hidden container
+    preloadContainer.innerHTML = restaurant.embed_html;
 
-            // Load the cleaned TikTok embed
-            videoContainer.innerHTML = cleanEmbedHtml;
+    // 3. Tell the TikTok script (if it's ready) to process the new embed
+    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+        window.tiktokEmbed.load();
+    }
 
-            // Ensure the container is ready for TikTok - minimal interference
-            videoContainer.style.background = 'black';
+    // 4. Use a MutationObserver to wait for the iframe to be created inside the hidden container
+    const observer = new MutationObserver((mutations, obs) => {
+        const iframe = preloadContainer.querySelector('iframe');
+        if (iframe) {
+            // 5. The iframe is ready! Move it into the visible modal.
+            console.log('✅ TikTok iframe detected off-screen. Moving to modal.');
+            videoContainer.innerHTML = ''; // Clear the loading spinner
+            videoContainer.appendChild(iframe); // Add the finished iframe
 
-            // Make sure the blockquote is visible - minimal changes
-            const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-            blockquotes.forEach(bq => {
-                bq.style.visibility = 'visible';
-                // Remove any hidden attributes that might interfere
-                bq.removeAttribute('hidden');
-                bq.classList.remove('hidden');
-            });
-
-            // Check what's in the tiktokEmbed object
-            console.log('🔍 Inspecting window.tiktokEmbed:', window.tiktokEmbed);
-            if (window.tiktokEmbed) {
-                console.log('🔍 tiktokEmbed properties:', Object.getOwnPropertyNames(window.tiktokEmbed));
-                console.log('🔍 tiktokEmbed prototype:', Object.getPrototypeOf(window.tiktokEmbed));
-            }
-
-            // Try multiple ways to trigger TikTok embed
-            const triggerTikTokEmbed = () => {
-                console.log('🎬 Attempting to trigger TikTok embed...');
-
-                if (window.tiktokEmbed) {
-                    // Try different methods to trigger the embed
-                    if (typeof window.tiktokEmbed.load === 'function') {
-                        console.log('✅ Found load() function, calling it...');
-                        window.tiktokEmbed.load();
-                    } else if (typeof window.tiktokEmbed.init === 'function') {
-                        console.log('✅ Found init() function, calling it...');
-                        window.tiktokEmbed.init();
-                    } else if (typeof window.tiktokEmbed === 'function') {
-                        console.log('✅ tiktokEmbed is a function, calling it...');
-                        window.tiktokEmbed();
-                    } else if (window.tiktokEmbed && typeof window.tiktokEmbed.process === 'function') {
-                        console.log('✅ Found process() function, calling it...');
-                        window.tiktokEmbed.process();
-                    } else {
-                        console.log('❌ No known trigger methods found in tiktokEmbed');
-                        console.log('🔍 Available properties:', Object.getOwnPropertyNames(window.tiktokEmbed));
-                    }
-                } else {
-                    console.log('❌ window.tiktokEmbed is not available');
-                }
-            };
-
-            // Trigger immediately and also set up a fallback
-            triggerTikTokEmbed();
-
-            // Also try after a short delay in case the script is still initializing
-            setTimeout(triggerTikTokEmbed, 500);
+            // 6. Clean up.
+            document.body.removeChild(preloadContainer);
+            obs.disconnect();
         }
+    });
+
+    observer.observe(preloadContainer, { childList: true, subtree: true });
+
+    // Fallback: If after 5 seconds nothing happens, show an error.
+    setTimeout(() => {
+        if (document.body.contains(preloadContainer)) {
+            console.error('❌ TikTok embed timed out.');
+            document.body.removeChild(preloadContainer);
+            showNoVideoMessage(videoContainer, restaurant.name, 'Video timed out.');
+            observer.disconnect();
+        }
+    }, 5000);
+}
 
         function scrollToRestaurant(restaurantId) {
             // Only scroll on desktop (when the side panel is visible)
