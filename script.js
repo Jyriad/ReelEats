@@ -508,6 +508,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         async function applyAllFilters(restaurants) {
             console.log('🎯 Starting combined filter process');
             console.log('Total restaurants to filter:', restaurants.length);
+            console.log('selectedCollections.size:', selectedCollections.size);
+            console.log('selectedCollections contents:', Array.from(selectedCollections));
             
             let filteredRestaurants = [...restaurants]; // Start with all restaurants
             
@@ -530,6 +532,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (selectedCollections.size > 0) {
                 filteredRestaurants = await filterRestaurantsByCollections(filteredRestaurants);
                 console.log(`📚 After collection filter: ${filteredRestaurants.length} restaurants`);
+            } else {
+                console.log('📚 No collection filter applied - showing all restaurants');
             }
             
             console.log(`🎉 Final filtered results: ${filteredRestaurants.length} restaurants`);
@@ -962,17 +966,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         setupCuisineFilter();
         setupAdminLogin();
         
-        // Load and apply saved filter states
+        // Load saved filter states (but don't apply yet - restaurants not loaded)
         loadFilterStates();
         syncCuisineCheckboxes();
         syncCollectionCheckboxes();
         updateFilterButtonAppearance();
         updateCollectionFilterButtonAppearance();
-        
-        // Apply saved filters to current restaurants
-        if (currentRestaurants && currentRestaurants.length > 0) {
-            await applyAllFiltersAndDisplay();
-        }
         
         // Handle window resize to ensure proper filter behavior
         window.addEventListener('resize', function() {
@@ -1179,6 +1178,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Show skeleton loaders while loading
                 displayRestaurants([], true);
                 await loadRestaurantsForCity(initialCityId);
+                
+                // Apply saved filters after restaurants are loaded
+                console.log('🔄 Applying saved filters after restaurant load...');
+                await applyAllFiltersAndDisplay();
+                
                 const selectedOption = citySelect.options[citySelect.selectedIndex];
                 map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
             }
@@ -3086,6 +3090,11 @@ async function showVideoFor(restaurant) {
             // Show skeleton loaders while loading
             displayRestaurants([], true);
             await loadRestaurantsForCity(selectedOption.value);
+            
+            // Apply saved filters after loading new city's restaurants
+            console.log('🔄 Applying saved filters after city change...');
+            await applyAllFiltersAndDisplay();
+            
             map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
         });
         closeVideoBtn.addEventListener('click', closeVideo);
@@ -3183,15 +3192,19 @@ async function showVideoFor(restaurant) {
         if (clearCollectionFilters) {
             clearCollectionFilters.addEventListener('click', () => {
                 console.log('Clear collection filters (desktop) clicked');
+                console.log('Before clear - selectedCollections:', Array.from(selectedCollections));
                 selectedCollections.clear();
+                console.log('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
-                showDesktopCollectionFilterModal(); // Refresh the modal
                 
                 // Apply the cleared filter immediately to update the display
                 if (currentRestaurants && currentRestaurants.length > 0) {
                     applyAllFiltersAndDisplay();
                 }
+                
+                // Refresh the modal after clearing to show unselected state
+                showDesktopCollectionFilterModal();
             });
         }
         
@@ -3297,15 +3310,19 @@ async function showVideoFor(restaurant) {
         if (clearMobileCollectionFilters) {
             clearMobileCollectionFilters.addEventListener('click', () => {
                 console.log('Clear collection filters (mobile) clicked');
+                console.log('Before clear - selectedCollections:', Array.from(selectedCollections));
                 selectedCollections.clear();
+                console.log('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
-                showMobileCollectionFilterModal(); // Refresh the modal
                 
                 // Apply the cleared filter immediately to update the display
                 if (currentRestaurants && currentRestaurants.length > 0) {
                     applyAllFiltersAndDisplay();
                 }
+                
+                // Refresh the modal after clearing to show unselected state
+                showMobileCollectionFilterModal();
             });
         }
 
