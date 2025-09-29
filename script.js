@@ -282,13 +282,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Show collection filter modal
         async function showCollectionFilterModal() {
             await loadUserCollections();
-            
+
+            const isMobile = window.innerWidth < 768;
+
+            if (isMobile) {
+                showMobileCollectionFilterModal();
+            } else {
+                showDesktopCollectionFilterModal();
+            }
+        }
+
+        async function showDesktopCollectionFilterModal() {
             const modal = document.getElementById('collection-filter-modal');
-            const container = document.getElementById('collection-filter-container');
-            
+            const container = document.getElementById('collection-filter-container-desktop');
+
             if (userCollections.length === 0) {
                 container.innerHTML = `
-                    <div class="col-span-full text-center py-8 text-gray-500">
+                    <div class="text-center py-8 text-gray-500">
                         <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                         </svg>
@@ -311,7 +321,37 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                 `).join('');
             }
-            
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        async function showMobileCollectionFilterModal() {
+            const modal = document.getElementById('collection-filter-modal-mobile');
+            const container = document.getElementById('collection-filter-container-mobile');
+
+            if (userCollections.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <p class="text-lg font-medium mb-2">No collections yet</p>
+                        <p class="text-sm">Create collections to filter restaurants</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = userCollections.map(collection => `
+                    <label class="collection-checkbox flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${selectedCollections.has(collection.id) ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collection.id}">
+                        <input type="checkbox" class="sr-only" ${selectedCollections.has(collection.id) ? 'checked' : ''}>
+                        <div class="w-4 h-4 border-2 border-gray-300 rounded mr-3 flex items-center justify-center ${selectedCollections.has(collection.id) ? 'bg-purple-500 border-purple-500' : ''}">
+                            ${selectedCollections.has(collection.id) ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+                        </div>
+                        <span class="font-medium text-gray-900">${collection.name}</span>
+                    </label>
+                `).join('');
+            }
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
@@ -2866,7 +2906,7 @@ async function showVideoFor(restaurant) {
             });
         }
         
-        // Handle collection filter card clicks
+        // Handle collection filter card clicks (desktop)
         document.addEventListener('click', (e) => {
             const card = e.target.closest('.collection-filter-card');
             if (card) {
@@ -2879,6 +2919,70 @@ async function showVideoFor(restaurant) {
                 showCollectionFilterModal(); // Refresh the modal
             }
         });
+
+        // Handle collection checkbox clicks (mobile)
+        document.addEventListener('change', (e) => {
+            const checkbox = e.target.closest('.collection-checkbox input[type="checkbox"]');
+            if (checkbox) {
+                const label = checkbox.closest('.collection-checkbox');
+                const collectionId = label.dataset.collectionId;
+
+                if (checkbox.checked) {
+                    selectedCollections.add(collectionId);
+                } else {
+                    selectedCollections.delete(collectionId);
+                }
+
+                // Update visual state
+                if (checkbox.checked) {
+                    label.classList.add('border-purple-500', 'bg-purple-100');
+                    label.querySelector('.w-4').classList.add('bg-purple-500', 'border-purple-500');
+                } else {
+                    label.classList.remove('border-purple-500', 'bg-purple-100');
+                    label.querySelector('.w-4').classList.remove('bg-purple-500', 'border-purple-500');
+                }
+            }
+        });
+
+        // Mobile Collection Filter Event Listeners
+        const closeMobileCollectionFilterModal = document.getElementById('close-collection-filter-modal-mobile');
+        if (closeMobileCollectionFilterModal) {
+            closeMobileCollectionFilterModal.addEventListener('click', () => {
+                document.getElementById('collection-filter-modal-mobile').classList.add('hidden');
+                document.getElementById('collection-filter-modal-mobile').classList.remove('flex');
+            });
+        }
+
+        const clearMobileCollectionFilters = document.getElementById('clear-collection-filters-mobile');
+        if (clearMobileCollectionFilters) {
+            clearMobileCollectionFilters.addEventListener('click', () => {
+                selectedCollections.clear();
+                showMobileCollectionFilterModal(); // Refresh the modal
+            });
+        }
+
+        const applyMobileCollectionFilter = document.getElementById('apply-collection-filter-mobile');
+        if (applyMobileCollectionFilter) {
+            applyMobileCollectionFilter.addEventListener('click', () => {
+                // Apply the filter
+                if (currentRestaurants && currentRestaurants.length > 0) {
+                    const filteredRestaurants = filterRestaurantsByCollections(currentRestaurants);
+                    displayRestaurants(filteredRestaurants);
+
+                    // Update map to show only filtered restaurants
+                    if (map && mapInitialized) {
+                        fitMapToRestaurants(filteredRestaurants);
+                    }
+                }
+
+                // Close modal
+                document.getElementById('collection-filter-modal-mobile').classList.add('hidden');
+                document.getElementById('collection-filter-modal-mobile').classList.remove('flex');
+
+                // Update button appearance
+                updateCollectionFilterButtonAppearance();
+            });
+        }
     
     } catch (error) {
         console.error("An error occurred during initialization:", error);
