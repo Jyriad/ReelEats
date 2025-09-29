@@ -408,13 +408,26 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
 
                 if (data && data.length > 0) {
-                    // Store mappings for each collection
+                    // Store mappings for each collection with both string and numeric keys
                     data.forEach(item => {
                         console.log(`🔗 Mapping: Collection ${item.collection_id} -> Restaurant ${item.restaurant_id}`);
-                        if (!collectionRestaurantMappings.has(item.collection_id)) {
-                            collectionRestaurantMappings.set(item.collection_id, new Set());
+                        
+                        const numericCollectionId = parseInt(item.collection_id, 10);
+                        const stringCollectionId = String(item.collection_id);
+                        
+                        // Store with numeric key
+                        if (!collectionRestaurantMappings.has(numericCollectionId)) {
+                            collectionRestaurantMappings.set(numericCollectionId, new Set());
                         }
-                        collectionRestaurantMappings.get(item.collection_id).add(item.restaurant_id);
+                        collectionRestaurantMappings.get(numericCollectionId).add(item.restaurant_id);
+                        
+                        // Store with string key as backup
+                        if (!collectionRestaurantMappings.has(stringCollectionId)) {
+                            collectionRestaurantMappings.set(stringCollectionId, new Set());
+                        }
+                        collectionRestaurantMappings.get(stringCollectionId).add(item.restaurant_id);
+                        
+                        console.log(`✅ Stored mapping for both ${numericCollectionId} (number) and "${stringCollectionId}" (string)`);
                     });
                     console.log('🗺️ Final collection restaurant mappings:', collectionRestaurantMappings);
                 } else {
@@ -455,8 +468,25 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Get all restaurant IDs that are in any of the selected collections
                 const restaurantIdsInCollections = new Set();
                 selectedCollections.forEach(collectionId => {
-                    const restaurantsInCollection = collectionRestaurantMappings.get(collectionId);
+                    // Try both string and numeric versions of the collection ID
+                    const numericId = parseInt(collectionId, 10);
+                    const stringId = String(collectionId);
+                    
+                    console.log(`🔍 Looking for collection ${collectionId} (type: ${typeof collectionId})`);
+                    console.log(`🔍 Trying numeric version: ${numericId}`);
+                    console.log(`🔍 Trying string version: "${stringId}"`);
+                    
+                    let restaurantsInCollection = collectionRestaurantMappings.get(collectionId);
+                    if (!restaurantsInCollection) {
+                        restaurantsInCollection = collectionRestaurantMappings.get(numericId);
+                    }
+                    if (!restaurantsInCollection) {
+                        restaurantsInCollection = collectionRestaurantMappings.get(stringId);
+                    }
+                    
                     console.log(`Collection ${collectionId} has restaurants:`, restaurantsInCollection ? Array.from(restaurantsInCollection) : 'none');
+                    console.log('🗺️ Available mappings keys:', Array.from(collectionRestaurantMappings.keys()));
+                    
                     if (restaurantsInCollection) {
                         restaurantsInCollection.forEach(restaurantId => {
                             restaurantIdsInCollections.add(restaurantId);
