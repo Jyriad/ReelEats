@@ -781,7 +781,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 // Re-display restaurants to show correct favorite status (only if restaurants are loaded)
                 if (currentRestaurants && currentRestaurants.length > 0) {
-                    displayRestaurants(currentRestaurants);
+                    await applyAllFiltersAndDisplay();
                 }
                 
             } else {
@@ -1027,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     favoriteBtn?.classList.remove('favorited');
                     // Refresh markers to update gold border (only if restaurants are loaded)
                     if (currentRestaurants && currentRestaurants.length > 0) {
-                        displayRestaurants(currentRestaurants);
+                        await applyAllFiltersAndDisplay();
                     }
                 }
             } else {
@@ -1042,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     favoritedRestaurants.add(restaurantId);
                     favoriteBtn?.classList.add('favorited');
                     // Refresh markers to update gold border
-                    displayRestaurants(currentRestaurants);
+                    await applyAllFiltersAndDisplay();
                 }
             }
         }
@@ -1110,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             };
 
             navigator.geolocation.getCurrentPosition(
-                function(position) {
+                async function(position) {
                     const userLat = position.coords.latitude;
                     const userLon = position.coords.longitude;
                     
@@ -1126,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             const distanceB = calculateDistance(userLat, userLon, b.lat, b.lon);
                             return distanceA - distanceB;
                         });
-                        displayRestaurants(currentRestaurants);
+                        await applyAllFiltersAndDisplay();
                         console.log('Restaurants re-ordered by distance from user location');
                     }
                     
@@ -1363,8 +1363,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             // Small delay to ensure skeleton loaders are visible before showing real data
-            setTimeout(() => {
-            displayRestaurants(currentRestaurants);
+            setTimeout(async () => {
+            await applyAllFiltersAndDisplay();
             }, 100);
         }
 
