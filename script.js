@@ -85,6 +85,10 @@ function loadVideoWithBlockquote(videoContainer, embedHtml) {
         bq.style.maxWidth = '100%';
         bq.style.minWidth = '100%';
         bq.style.margin = '0 auto';
+        bq.style.opacity = '1';
+        // Remove any hidden classes or attributes
+        bq.removeAttribute('hidden');
+        bq.classList.remove('hidden');
     });
     
     // Check if TikTok script is available
@@ -97,16 +101,34 @@ function loadVideoWithBlockquote(videoContainer, embedHtml) {
             console.log('✅ TikTok script found, loading embed...');
             window.tiktokEmbed.load();
         } else {
-            console.log('⏳ TikTok script not ready, retrying...');
-            // Try again after a longer delay
-            setTimeout(() => {
-                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                    console.log('✅ TikTok script found on retry, loading embed...');
+            console.log('⏳ TikTok script not ready, trying alternative approach...');
+            // Try to trigger TikTok script manually
+            if (window.tiktokEmbed) {
+                console.log('🔧 TikTok object available, trying to initialize...');
+                // Try calling load if it exists, or try other methods
+                if (window.tiktokEmbed.load) {
                     window.tiktokEmbed.load();
+                } else if (window.tiktokEmbed.init) {
+                    window.tiktokEmbed.init();
                 } else {
-                    console.log('❌ TikTok script still not available');
+                    console.log('🔄 Trying to reload TikTok script...');
+                    // Force reload the TikTok script
+                    const script = document.createElement('script');
+                    script.src = 'https://www.tiktok.com/embed.js';
+                    script.async = true;
+                    document.head.appendChild(script);
+                    
+                    // Try again after script loads
+                    setTimeout(() => {
+                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            console.log('✅ TikTok script reloaded, loading embed...');
+                            window.tiktokEmbed.load();
+                        }
+                    }, 1000);
                 }
-            }, 1000);
+            } else {
+                console.log('❌ TikTok script not available at all');
+            }
         }
     }, 500);
 }
