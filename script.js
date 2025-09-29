@@ -2396,14 +2396,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        // script.js
-
-function showVideoFor(restaurant) {
-    if (!restaurant.tiktok_embed_html) {
+        // Show video for restaurant
+        function showVideoFor(restaurant) {
+            if (!restaurant.tiktok_embed_html) {
                 showNoVideoMessage(videoContainer, restaurant.name);
-        videoModal.classList.add('show');
-        return;
-    }
+                videoModal.classList.add('show');
+                return;
+            }
 
             // Mark the video as watched and update the UI
             addVideoToWatched(restaurant.id);
@@ -2415,25 +2414,25 @@ function showVideoFor(restaurant) {
 
             // Extract video ID from embed HTML
             const videoId = extractVideoId(restaurant.tiktok_embed_html);
-    console.log('🎬 Loading video:', videoId);
+            console.log('🎬 Loading video:', videoId);
 
-    // Show modal
-    videoModal.classList.add('show');
+            // Show modal
+            videoModal.classList.add('show');
             
             // Scroll to the restaurant in the side panel (desktop only)
             scrollToRestaurant(restaurant.id);
     
-    if (videoId) {
-        // Try direct iframe approach first
-        console.log('Trying direct iframe approach...');
+            if (videoId) {
+                // Try direct iframe approach first
+                console.log('Trying direct iframe approach...');
                 videoContainer.innerHTML = createVideoIframe(videoId);
                 
                 // Handle iframe loading with fallback
                 handleIframeLoading(videoContainer, restaurant.tiktok_embed_html, () => {
                     loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
                 });
-    } else {
-        console.log('No video ID found, using blockquote...');
+            } else {
+                console.log('No video ID found, using blockquote...');
                 loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
             }
         }
@@ -2451,7 +2450,7 @@ function showVideoFor(restaurant) {
             if (!restaurantList) return;
             
             // Wait a bit for any layout changes to complete
-        setTimeout(() => {
+            setTimeout(() => {
                 const cardTop = restaurantCard.offsetTop;
                 const cardHeight = restaurantCard.offsetHeight;
                 const containerHeight = restaurantList.offsetHeight;
@@ -2461,8 +2460,8 @@ function showVideoFor(restaurant) {
                     top: Math.max(0, scrollPosition),
                     behavior: 'smooth'
                 });
-        }, 100);
-}
+            }, 100);
+        }
 
         function closeVideo() {
             videoModal.classList.remove('show');
