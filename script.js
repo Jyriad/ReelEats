@@ -367,33 +367,73 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Load restaurants for specific collections
         async function loadRestaurantsForCollections(collectionIds) {
-            console.log('Loading restaurants for collections:', collectionIds);
+            console.log('🔄 Loading restaurants for collections:', collectionIds);
+            console.log('🔄 Collection IDs type and values:', collectionIds.map(id => ({ id, type: typeof id })));
             if (collectionIds.length === 0) return;
 
             const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user) return;
+            if (!user) {
+                console.error('❌ No user found when loading collections');
+                return;
+            }
 
             try {
+                // Convert collection IDs to numbers in case they're strings
+                const numericCollectionIds = collectionIds.map(id => parseInt(id, 10));
+                console.log('🔢 Converted to numeric IDs:', numericCollectionIds);
+
                 const { data, error } = await supabaseClient
                     .from('collection_restaurants')
                     .select('restaurant_id, collection_id')
-                    .in('collection_id', collectionIds);
+                    .in('collection_id', numericCollectionIds);
 
                 if (error) {
-                    console.error('Error loading collection restaurants:', error);
+                    console.error('❌ Error loading collection restaurants:', error);
+                    // Try without conversion as fallback
+                    console.log('🔄 Trying with original IDs as fallback...');
+                    const { data: fallbackData, error: fallbackError } = await supabaseClient
+                        .from('collection_restaurants')
+                        .select('restaurant_id, collection_id')
+                        .in('collection_id', collectionIds);
+                    
+                    if (fallbackError) {
+                        console.error('❌ Fallback also failed:', fallbackError);
+                    } else {
+                        console.log('✅ Fallback succeeded with data:', fallbackData);
+                        data = fallbackData;
+                    }
                 } else {
-                    console.log('Collection restaurant data:', data);
+                    console.log('✅ Collection restaurant data found:', data);
+                    console.log('📊 Number of records found:', data?.length || 0);
+                }
+
+                if (data && data.length > 0) {
                     // Store mappings for each collection
                     data.forEach(item => {
+                        console.log(`🔗 Mapping: Collection ${item.collection_id} -> Restaurant ${item.restaurant_id}`);
                         if (!collectionRestaurantMappings.has(item.collection_id)) {
                             collectionRestaurantMappings.set(item.collection_id, new Set());
                         }
                         collectionRestaurantMappings.get(item.collection_id).add(item.restaurant_id);
                     });
-                    console.log('Collection restaurant mappings:', collectionRestaurantMappings);
+                    console.log('🗺️ Final collection restaurant mappings:', collectionRestaurantMappings);
+                } else {
+                    console.warn('⚠️ No restaurant mappings found for collections:', collectionIds);
+                    
+                    // Let's also check if the collections actually exist
+                    const { data: collectionCheck, error: collectionError } = await supabaseClient
+                        .from('user_collections')
+                        .select('id, name')
+                        .in('id', numericCollectionIds);
+                    
+                    if (collectionError) {
+                        console.error('❌ Error checking collections:', collectionError);
+                    } else {
+                        console.log('🏷️ Collections that exist:', collectionCheck);
+                    }
                 }
             } catch (error) {
-                console.error('Error loading collection restaurants:', error);
+                console.error('❌ Error in loadRestaurantsForCollections:', error);
             }
         }
 
