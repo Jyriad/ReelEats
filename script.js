@@ -1008,8 +1008,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('🔍 Fetching TikToks for restaurant IDs:', restaurantIds);
             const { data: tiktoks, error: tiktoksError } = await supabaseClient
                 .from('tiktoks')
-                .select('restaurant, embed_html')
-                .in('restaurant', restaurantIds)
+                .select('restaurant_id, embed_html')
+                .in('restaurant_id', restaurantIds)
                 .eq('is_featured', true);
 
             if (tiktoksError) {
@@ -1036,8 +1036,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const tiktokMap = new Map();
             if (tiktoks) {
                 tiktoks.forEach(t => {
-                    console.log('📝 Adding TikTok for restaurant:', t.restaurant, 'embed_html:', t.embed_html);
-                    tiktokMap.set(t.restaurant, t.embed_html);
+                    console.log('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html);
+                    tiktokMap.set(t.restaurant_id, t.embed_html);
                 });
             }
             console.log('🗺️ TikTok Map:', tiktokMap);
@@ -2216,7 +2216,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Add position: relative to the list item for the button
             listItem.className = 'bg-white p-2 md:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 flex items-start relative';
             listItem.dataset.restaurantId = restaurant.id;
-
+            
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const isCollected = collectedRestaurants.has(restaurant.id);
             const favoriteClass = isFavorited ? 'favorited' : '';
@@ -2434,17 +2434,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Show video for restaurant
-        function showVideoFor(restaurant) {
+function showVideoFor(restaurant) {
             console.log('🎬 Restaurant object:', restaurant);
             console.log('🎬 TikTok embed HTML:', restaurant.tiktok_embed_html);
             console.log('🎬 Has TikTok embed:', !!restaurant.tiktok_embed_html);
             
-            if (!restaurant.tiktok_embed_html) {
+    if (!restaurant.tiktok_embed_html) {
                 console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
                 showNoVideoMessage(videoContainer, restaurant.name);
-                videoModal.classList.add('show');
-                return;
-            }
+        videoModal.classList.add('show');
+        return;
+    }
 
             // Mark the video as watched and update the UI
             addVideoToWatched(restaurant.id);
@@ -2456,16 +2456,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // Extract video ID from embed HTML
             const videoId = extractVideoId(restaurant.tiktok_embed_html);
-            console.log('🎬 Loading video:', videoId);
+    console.log('🎬 Loading video:', videoId);
 
             // Show modal immediately
-            videoModal.classList.add('show');
-            
+    videoModal.classList.add('show');
+    
             // Scroll to the restaurant in the side panel (desktop only)
             scrollToRestaurant(restaurant.id);
     
             // Show loading indicator
-            videoContainer.innerHTML = `
+        videoContainer.innerHTML = `
                 <div class="w-full h-full flex items-center justify-center text-white">
                     <div class="text-center">
                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
@@ -2515,7 +2515,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!restaurantList) return;
             
             // Wait a bit for any layout changes to complete
-            setTimeout(() => {
+        setTimeout(() => {
                 const cardTop = restaurantCard.offsetTop;
                 const cardHeight = restaurantCard.offsetHeight;
                 const containerHeight = restaurantList.offsetHeight;
@@ -2525,8 +2525,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     top: Math.max(0, scrollPosition),
                     behavior: 'smooth'
                 });
-            }, 100);
-        }
+        }, 100);
+}
 
         function closeVideo() {
             videoModal.classList.remove('show');
