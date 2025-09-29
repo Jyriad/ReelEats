@@ -154,12 +154,58 @@ document.addEventListener('DOMContentLoaded', async function() {
         let selectedCollections = new Set();
         let userCollections = [];
         
+        // Filter state persistence
+        let selectedCuisines = new Set();
+        
         // Load watched videos from localStorage
         function loadWatchedVideos() {
             const watched = localStorage.getItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS);
             if (watched) {
                 watchedVideos = new Set(JSON.parse(watched));
             }
+        }
+        
+        // Load filter states from localStorage
+        function loadFilterStates() {
+            // Load selected cuisines
+            const savedCuisines = localStorage.getItem('selectedCuisines');
+            if (savedCuisines) {
+                selectedCuisines = new Set(JSON.parse(savedCuisines));
+                console.log('🔄 Loaded saved cuisines:', Array.from(selectedCuisines));
+            }
+            
+            // Load selected collections
+            const savedCollections = localStorage.getItem('selectedCollections');
+            if (savedCollections) {
+                selectedCollections = new Set(JSON.parse(savedCollections));
+                console.log('🔄 Loaded saved collections:', Array.from(selectedCollections));
+            }
+        }
+        
+        // Save filter states to localStorage
+        function saveFilterStates() {
+            localStorage.setItem('selectedCuisines', JSON.stringify(Array.from(selectedCuisines)));
+            localStorage.setItem('selectedCollections', JSON.stringify(Array.from(selectedCollections)));
+            console.log('💾 Saved filter states:', {
+                cuisines: Array.from(selectedCuisines),
+                collections: Array.from(selectedCollections)
+            });
+        }
+        
+        // Sync cuisine checkboxes with persistent state
+        function syncCuisineCheckboxes() {
+            const allCheckboxes = document.querySelectorAll('.cuisine-checkbox');
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectedCuisines.has(checkbox.value);
+            });
+        }
+        
+        // Sync collection checkboxes with persistent state
+        function syncCollectionCheckboxes() {
+            const allCheckboxes = document.querySelectorAll('.collection-checkbox input[type="checkbox"]');
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectedCollections.has(checkbox.value);
+            });
         }
 
         // Show collection selection modal (works on both mobile and desktop)
@@ -916,6 +962,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         setupCuisineFilter();
         setupAdminLogin();
         
+        // Load and apply saved filter states
+        loadFilterStates();
+        syncCuisineCheckboxes();
+        syncCollectionCheckboxes();
+        updateFilterButtonAppearance();
+        updateCollectionFilterButtonAppearance();
+        
+        // Apply saved filters to current restaurants
+        if (currentRestaurants && currentRestaurants.length > 0) {
+            await applyAllFiltersAndDisplay();
+        }
+        
         // Handle window resize to ensure proper filter behavior
         window.addEventListener('resize', function() {
             const filterDesktop = document.getElementById('cuisine-filter-desktop');
@@ -1423,8 +1481,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Add event listener for checkbox
                     checkbox.addEventListener('change', function() {
                         console.log('Desktop cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
+                        
+                        // Update persistent state
+                        if (this.checked) {
+                            selectedCuisines.add(cuisine.name);
+                        } else {
+                            selectedCuisines.delete(cuisine.name);
+                        }
+                        saveFilterStates();
+                        
                         updateCuisineCardStyle(cuisineCard, this.checked);
                         updateSelectedCount();
+                        applyAllFiltersAndDisplay();
                     });
                     
                     // Add click listener to the entire card
@@ -1566,7 +1634,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Add event listener for each checkbox (only for mobile)
                 if (containerId === 'cuisine-filter-container-mobile') {
                     checkbox.addEventListener('change', function() {
+                        // Update persistent state
+                        if (this.checked) {
+                            selectedCuisines.add(cuisine.name);
+                        } else {
+                            selectedCuisines.delete(cuisine.name);
+                        }
+                        saveFilterStates();
+                        
                         updateSelectedCount();
+                        applyAllFiltersAndDisplay();
                     });
                 }
             });
@@ -1624,8 +1701,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             applyAllFiltersAndDisplay();
         }
         
-        // Get selected cuisines from checkboxes
+        // Get selected cuisines from persistent state
         function getSelectedCuisines() {
+            return Array.from(selectedCuisines);
+        }
+        
+        // Get selected cuisines from DOM (for UI updates)
+        function getSelectedCuisinesFromDOM() {
             // Get checkboxes from both desktop and mobile filters
             const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container-desktop .cuisine-checkbox:checked');
             const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox:checked');
@@ -1664,6 +1746,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Clear all cuisine filters
         function clearAllCuisineFilters() {
+            // Clear persistent state
+            selectedCuisines.clear();
+            saveFilterStates();
+            
             const checkboxes = document.querySelectorAll('.cuisine-checkbox');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = false;
@@ -1675,9 +1761,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             updateSelectedCount();
             updateFilterButtonAppearance();
-            displayRestaurants(currentRestaurants);
-            // Fit map to show all restaurants when filter is cleared
-            fitMapToRestaurants(currentRestaurants);
+            applyAllFiltersAndDisplay();
         }
         
         // Setup filter toggle functionality
@@ -3100,6 +3184,7 @@ async function showVideoFor(restaurant) {
             clearCollectionFilters.addEventListener('click', () => {
                 console.log('Clear collection filters (desktop) clicked');
                 selectedCollections.clear();
+                saveFilterStates();
                 updateCollectionFilterButtonAppearance();
                 showDesktopCollectionFilterModal(); // Refresh the modal
                 
@@ -3146,6 +3231,7 @@ async function showVideoFor(restaurant) {
                     selectedCollections.add(collectionId);
                     console.log('Selected collection:', collectionId);
                 }
+                saveFilterStates();
 
                 // Update visual state immediately
                 if (selectedCollections.has(collectionId)) {
@@ -3181,6 +3267,7 @@ async function showVideoFor(restaurant) {
                     selectedCollections.delete(collectionId);
                     console.log('Deselected collection:', collectionId);
                 }
+                saveFilterStates();
 
                 // Update visual state
                 if (checkbox.checked) {
@@ -3211,6 +3298,7 @@ async function showVideoFor(restaurant) {
             clearMobileCollectionFilters.addEventListener('click', () => {
                 console.log('Clear collection filters (mobile) clicked');
                 selectedCollections.clear();
+                saveFilterStates();
                 updateCollectionFilterButtonAppearance();
                 showMobileCollectionFilterModal(); // Refresh the modal
                 
