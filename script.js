@@ -2442,7 +2442,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         function createListItem(restaurant, index) {
             const listItem = document.createElement('div');
             // Add position: relative to the list item for the button
-            listItem.className = 'bg-white rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 relative touch-manipulation';
+            listItem.className = 'bg-white rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 relative touch-manipulation mb-3 md:mb-4';
             listItem.dataset.restaurantId = restaurant.id;
             
             const isFavorited = favoritedRestaurants.has(restaurant.id);
