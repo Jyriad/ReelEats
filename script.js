@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Filter restaurants by selected collections
         async function filterRestaurantsByCollections(restaurants) {
-            console.log('Filtering restaurants by collections');
+            console.log('🔍 Starting collection filter process');
             console.log('Selected collections:', Array.from(selectedCollections));
             console.log('Total restaurants to filter:', restaurants.length);
 
@@ -408,32 +408,43 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return restaurants;
             }
 
-            // Load restaurant mappings for selected collections
-            await loadRestaurantsForCollections(Array.from(selectedCollections));
+            try {
+                // Load restaurant mappings for selected collections
+                await loadRestaurantsForCollections(Array.from(selectedCollections));
 
-            // Get all restaurant IDs that are in any of the selected collections
-            const restaurantIdsInCollections = new Set();
-            selectedCollections.forEach(collectionId => {
-                const restaurantsInCollection = collectionRestaurantMappings.get(collectionId);
-                if (restaurantsInCollection) {
-                    restaurantsInCollection.forEach(restaurantId => {
-                        restaurantIdsInCollections.add(restaurantId);
-                    });
+                // Get all restaurant IDs that are in any of the selected collections
+                const restaurantIdsInCollections = new Set();
+                selectedCollections.forEach(collectionId => {
+                    const restaurantsInCollection = collectionRestaurantMappings.get(collectionId);
+                    console.log(`Collection ${collectionId} has restaurants:`, restaurantsInCollection ? Array.from(restaurantsInCollection) : 'none');
+                    if (restaurantsInCollection) {
+                        restaurantsInCollection.forEach(restaurantId => {
+                            restaurantIdsInCollections.add(restaurantId);
+                        });
+                    }
+                });
+
+                console.log('🎯 Restaurant IDs in selected collections:', Array.from(restaurantIdsInCollections));
+
+                if (restaurantIdsInCollections.size === 0) {
+                    console.warn('⚠️ No restaurants found in selected collections');
+                    return [];
                 }
-            });
 
-            console.log('Restaurant IDs in selected collections:', Array.from(restaurantIdsInCollections));
+                const filtered = restaurants.filter(restaurant => {
+                    const isInCollection = restaurantIdsInCollections.has(restaurant.id);
+                    if (isInCollection) {
+                        console.log(`✅ Restaurant ${restaurant.name} (ID: ${restaurant.id}) is in selected collections`);
+                    }
+                    return isInCollection;
+                });
 
-            const filtered = restaurants.filter(restaurant => {
-                const isInCollection = restaurantIdsInCollections.has(restaurant.id);
-                if (isInCollection) {
-                    console.log(`Restaurant ${restaurant.name} (ID: ${restaurant.id}) is in selected collections`);
-                }
-                return isInCollection;
-            });
-
-            console.log('Filtered restaurants:', filtered.length);
-            return filtered;
+                console.log(`🎉 Filtered restaurants: ${filtered.length} out of ${restaurants.length}`);
+                return filtered;
+            } catch (error) {
+                console.error('❌ Error in filterRestaurantsByCollections:', error);
+                return restaurants; // Return original list on error
+            }
         }
 
         // Get collection name by ID
@@ -2962,14 +2973,37 @@ async function showVideoFor(restaurant) {
                 
                 // Apply the filter
                 if (currentRestaurants && currentRestaurants.length > 0) {
+                    console.log('🚀 Starting filter application...');
                     filterRestaurantsByCollections(currentRestaurants).then(filteredRestaurants => {
-                        console.log('Filtered restaurants count:', filteredRestaurants.length);
-                        displayRestaurants(filteredRestaurants);
+                        console.log('📊 Filter completed. Results:', filteredRestaurants.length);
+                        
+                        if (filteredRestaurants.length === 0) {
+                            console.log('📋 No restaurants found in selected collections');
+                            // Show empty state message
+                            const restaurantList = document.getElementById('restaurant-list');
+                            if (restaurantList) {
+                                restaurantList.innerHTML = `
+                                    <div class="text-center py-8 text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                        </svg>
+                                        <h3 class="text-lg font-medium mb-2">No restaurants found</h3>
+                                        <p class="text-sm">No restaurants in the selected collection(s) for this area.</p>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            displayRestaurants(filteredRestaurants);
+                        }
                         
                         // Update map to show only filtered restaurants
                         if (map && mapInitialized) {
                             fitMapToRestaurants(filteredRestaurants);
                         }
+                    }).catch(error => {
+                        console.error('❌ Error applying filter:', error);
+                        // On error, show all restaurants
+                        displayRestaurants(currentRestaurants);
                     });
                 }
                 
@@ -3073,14 +3107,37 @@ async function showVideoFor(restaurant) {
                 
                 // Apply the filter
                 if (currentRestaurants && currentRestaurants.length > 0) {
+                    console.log('🚀 Starting filter application (mobile)...');
                     filterRestaurantsByCollections(currentRestaurants).then(filteredRestaurants => {
-                        console.log('Filtered restaurants count:', filteredRestaurants.length);
-                        displayRestaurants(filteredRestaurants);
+                        console.log('📊 Mobile filter completed. Results:', filteredRestaurants.length);
+                        
+                        if (filteredRestaurants.length === 0) {
+                            console.log('📋 No restaurants found in selected collections');
+                            // Show empty state message
+                            const restaurantList = document.getElementById('restaurant-list');
+                            if (restaurantList) {
+                                restaurantList.innerHTML = `
+                                    <div class="text-center py-8 text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                        </svg>
+                                        <h3 class="text-lg font-medium mb-2">No restaurants found</h3>
+                                        <p class="text-sm">No restaurants in the selected collection(s) for this area.</p>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            displayRestaurants(filteredRestaurants);
+                        }
 
                         // Update map to show only filtered restaurants
                         if (map && mapInitialized) {
                             fitMapToRestaurants(filteredRestaurants);
                         }
+                    }).catch(error => {
+                        console.error('❌ Error applying mobile filter:', error);
+                        // On error, show all restaurants
+                        displayRestaurants(currentRestaurants);
                     });
                 }
 
