@@ -65,98 +65,58 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
 function loadVideoWithBlockquote(videoContainer, embedHtml) {
     console.log('🔄 Loading video with TikTok blockquote embed...');
     console.log('📝 Embed HTML content:', embedHtml);
-    
+
     // Clean the embed HTML - remove the script tag since we load it separately
     const cleanEmbedHtml = embedHtml.replace(/<script[^>]*>.*?<\/script>/gi, '');
     console.log('🧹 Cleaned embed HTML:', cleanEmbedHtml);
-    
-    // Create a hidden container for the TikTok embed to load in the background
-    const hiddenContainer = document.createElement('div');
-    hiddenContainer.style.position = 'absolute';
-    hiddenContainer.style.left = '-9999px';
-    hiddenContainer.style.opacity = '0';
-    hiddenContainer.innerHTML = cleanEmbedHtml;
-    document.body.appendChild(hiddenContainer);
-    
-    // Style the hidden blockquotes for background loading
-    const hiddenBlockquotes = hiddenContainer.querySelectorAll('blockquote.tiktok-embed');
-    console.log('🔍 Found hidden blockquotes:', hiddenBlockquotes.length);
-    
-    hiddenBlockquotes.forEach((bq, index) => {
-        console.log(`📋 Hidden Blockquote ${index}:`, bq);
+
+    // Set initial opacity for fade-in effect
+    videoContainer.style.opacity = '0';
+    videoContainer.innerHTML = cleanEmbedHtml;
+
+    // Make sure blockquotes are properly styled and visible
+    const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+    console.log('🔍 Found blockquotes:', blockquotes.length);
+
+    blockquotes.forEach((bq, index) => {
+        console.log(`📋 Blockquote ${index}:`, bq);
+        // Override TikTok's default styling that causes the half-and-half effect
         bq.style.visibility = 'visible';
         bq.style.display = 'block';
-        bq.style.width = '330px';
-        bq.style.height = '585px';
-        bq.style.margin = '0';
+        bq.style.width = '100%';
+        bq.style.height = '100%';
+        bq.style.maxWidth = '100%';
+        bq.style.minWidth = '100%';
+        bq.style.margin = '0 auto';
         bq.style.opacity = '1';
+        bq.style.background = 'transparent';
         // Remove any hidden classes or attributes
         bq.removeAttribute('hidden');
         bq.classList.remove('hidden');
     });
-    
-    // Check if TikTok script is available
-    console.log('🔧 TikTok script available:', !!window.tiktokEmbed);
-    console.log('🔧 TikTok load function available:', !!(window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function'));
-    
-    // Wait for TikTok script to process the hidden embed, then show it
-    const checkVideoLoaded = () => {
-        const hiddenVideo = hiddenContainer.querySelector('iframe');
-        const hiddenBlockquote = hiddenContainer.querySelector('blockquote.tiktok-embed');
-        
-        if (hiddenVideo || (hiddenBlockquote && hiddenBlockquote.innerHTML.includes('iframe'))) {
-            console.log('✅ TikTok video loaded in background, transferring to modal...');
-            
-            // Transfer the loaded content to the visible container
-            videoContainer.innerHTML = hiddenContainer.innerHTML;
-            
-            // Style the visible blockquotes properly for the modal
-            const visibleBlockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
-            visibleBlockquotes.forEach(bq => {
-                bq.style.width = '100%';
-                bq.style.height = '100%';
-                bq.style.maxWidth = '100%';
-                bq.style.minWidth = '100%';
-                bq.style.margin = '0 auto';
-                bq.style.visibility = 'visible';
-                bq.style.display = 'block';
-                bq.style.opacity = '1';
-            });
-            
-            // Add smooth fade-in transition
-            videoContainer.style.transition = 'opacity 0.3s ease-in-out';
-            videoContainer.style.opacity = '1';
-            
-            // Clean up the hidden container
-            document.body.removeChild(hiddenContainer);
-            
-        } else {
-            console.log('⏳ Still waiting for TikTok video to load...');
-            setTimeout(checkVideoLoaded, 200);
-        }
-    };
-    
-    // Trigger TikTok script and start checking for loaded video
-    setTimeout(() => {
-        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-            console.log('✅ TikTok script found, loading embed...');
-            window.tiktokEmbed.load();
-        } else {
-            console.log('⏳ TikTok script not ready, trying alternative approach...');
-            // Try to trigger TikTok script manually
-            if (window.tiktokEmbed) {
-                console.log('🔧 TikTok object available, trying to initialize...');
-                if (window.tiktokEmbed.load) {
-                    window.tiktokEmbed.load();
-                } else if (window.tiktokEmbed.init) {
-                    window.tiktokEmbed.init();
-                }
+
+    // Trigger TikTok script to load the embed
+    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+        console.log('✅ TikTok script found, loading embed...');
+        window.tiktokEmbed.load();
+    } else {
+        console.log('⏳ TikTok script not ready, trying alternative approach...');
+        // Try to trigger TikTok script manually
+        if (window.tiktokEmbed) {
+            console.log('🔧 TikTok object available, trying to initialize...');
+            if (window.tiktokEmbed.load) {
+                window.tiktokEmbed.load();
+            } else if (window.tiktokEmbed.init) {
+                window.tiktokEmbed.init();
             }
         }
-        
-        // Start checking if the video has loaded
-        setTimeout(checkVideoLoaded, 500);
-    }, 100);
+    }
+
+    // Add smooth fade-in transition after a short delay
+    setTimeout(() => {
+        videoContainer.style.transition = 'opacity 0.5s ease-in-out';
+        videoContainer.style.opacity = '1';
+    }, 300);
 }
 
 function showNoVideoMessage(videoContainer, restaurantName) {
