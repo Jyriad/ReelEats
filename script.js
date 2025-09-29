@@ -1005,15 +1005,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // 2. Fetch only the featured TikToks for those specific restaurants.
             const restaurantIds = restaurants.map(r => r.id);
+            console.log('🔍 Fetching TikToks for restaurant IDs:', restaurantIds);
             const { data: tiktoks, error: tiktoksError } = await supabaseClient
                 .from('tiktoks')
-                .select('restaurant_id, embed_html')
-                .in('restaurant_id', restaurantIds)
+                .select('restaurant, embed_html')
+                .in('restaurant', restaurantIds)
                 .eq('is_featured', true);
 
             if (tiktoksError) {
                 // Log the error but don't stop execution, so restaurants still display.
                 console.error("Error fetching tiktoks:", tiktoksError);
+            } else {
+                console.log('✅ Fetched TikToks:', tiktoks);
             }
 
             // 3. Fetch cuisine information for restaurants
@@ -1033,9 +1036,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             const tiktokMap = new Map();
             if (tiktoks) {
                 tiktoks.forEach(t => {
-                    tiktokMap.set(t.restaurant_id, t.embed_html);
+                    console.log('📝 Adding TikTok for restaurant:', t.restaurant, 'embed_html:', t.embed_html);
+                    tiktokMap.set(t.restaurant, t.embed_html);
                 });
             }
+            console.log('🗺️ TikTok Map:', tiktokMap);
 
             const cuisineMap = new Map();
             if (restaurantCuisines) {
@@ -2430,7 +2435,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
         function showVideoFor(restaurant) {
+            console.log('🎬 Restaurant object:', restaurant);
+            console.log('🎬 TikTok embed HTML:', restaurant.tiktok_embed_html);
+            console.log('🎬 Has TikTok embed:', !!restaurant.tiktok_embed_html);
+            
             if (!restaurant.tiktok_embed_html) {
+                console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
                 showNoVideoMessage(videoContainer, restaurant.name);
                 videoModal.classList.add('show');
                 return;
