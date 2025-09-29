@@ -70,7 +70,15 @@ function loadVideoWithBlockquote(videoContainer, embedHtml) {
     const cleanEmbedHtml = embedHtml.replace(/<script[^>]*>.*?<\/script>/gi, '');
     console.log('🧹 Cleaned embed HTML:', cleanEmbedHtml);
     
+    // Add fade-in effect for smooth transition
+    videoContainer.style.opacity = '0';
     videoContainer.innerHTML = cleanEmbedHtml;
+    
+    // Fade in the video container
+    setTimeout(() => {
+        videoContainer.style.transition = 'opacity 0.3s ease-in-out';
+        videoContainer.style.opacity = '1';
+    }, 100);
     
     // Make sure blockquotes are visible and properly styled for the modal
     const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
@@ -130,7 +138,7 @@ function loadVideoWithBlockquote(videoContainer, embedHtml) {
                 console.log('❌ TikTok script not available at all');
             }
         }
-    }, 500);
+    }, 200);
 }
 
 function showNoVideoMessage(videoContainer, restaurantName) {
@@ -2486,12 +2494,21 @@ function showVideoFor(restaurant) {
             // Scroll to the restaurant in the side panel (desktop only)
             scrollToRestaurant(restaurant.id);
     
-            // Show loading indicator
-        videoContainer.innerHTML = `
-                <div class="w-full h-full flex items-center justify-center text-white">
+            // Show TikTok-style loading indicator
+            videoContainer.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center bg-black">
                     <div class="text-center">
-                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                        <p>Loading video...</p>
+                        <div class="relative">
+                            <!-- TikTok-style loading animation -->
+                            <div class="w-16 h-16 mx-auto mb-4 relative">
+                                <div class="absolute inset-0 rounded-full border-4 border-gray-600"></div>
+                                <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-white animate-spin"></div>
+                                <div class="absolute inset-2 rounded-full border-2 border-transparent border-r-pink-500 animate-spin" style="animation-direction: reverse; animation-duration: 0.8s;"></div>
+                            </div>
+                            <!-- TikTok logo -->
+                            <div class="text-white text-2xl font-bold mb-2">♪</div>
+                            <p class="text-gray-300 text-sm">Loading TikTok video...</p>
+                        </div>
                     </div>
                 </div>
             `;
@@ -2502,26 +2519,10 @@ function showVideoFor(restaurant) {
             // Load video using TikTok's official blockquote embed format
             console.log('Loading video with TikTok blockquote embed...');
             
-            // Ensure TikTok script is loaded first
-            if (window.tiktokEmbed) {
-                console.log('✅ TikTok script already loaded');
-                setTimeout(() => {
-                    loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
-                }, 100);
-            } else {
-                console.log('⏳ Waiting for TikTok script to load...');
-                // Wait for TikTok script to load
-                const checkTikTokScript = () => {
-                    if (window.tiktokEmbed) {
-                        console.log('✅ TikTok script loaded, proceeding with video');
-                        loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
-                    } else {
-                        console.log('⏳ Still waiting for TikTok script...');
-                        setTimeout(checkTikTokScript, 200);
-                    }
-                };
-                setTimeout(checkTikTokScript, 200);
-            }
+            // Load video immediately with a smooth transition
+            setTimeout(() => {
+                loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
+            }, 50); // Reduced delay for faster loading
         }
 
         function scrollToRestaurant(restaurantId) {
