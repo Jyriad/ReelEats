@@ -310,19 +310,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                 `;
             } else {
-                container.innerHTML = userCollections.map(collection => `
-                    <div class="collection-filter-card p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${selectedCollections.has(collection.id) ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collection.id}">
+                container.innerHTML = userCollections.map(collection => {
+                    const collectionId = String(collection.id); // Convert to string for consistency
+                    const isSelected = selectedCollections.has(collectionId) || selectedCollections.has(collection.id);
+                    return `
+                    <div class="collection-filter-card p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collectionId}">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 <div class="w-3 h-3 rounded-full bg-purple-500 mr-3"></div>
                                 <span class="font-medium text-gray-900">${collection.name}</span>
                             </div>
-                            <div class="w-5 h-5 border-2 border-gray-300 rounded ${selectedCollections.has(collection.id) ? 'bg-purple-500 border-purple-500' : ''} flex items-center justify-center">
-                                ${selectedCollections.has(collection.id) ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+                            <div class="w-5 h-5 border-2 border-gray-300 rounded ${isSelected ? 'bg-purple-500 border-purple-500' : ''} flex items-center justify-center">
+                                ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
                             </div>
                         </div>
                     </div>
-                `).join('');
+                    `;
+                }).join('');
             }
 
             modal.classList.remove('hidden');
@@ -347,15 +351,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                 `;
             } else {
-                container.innerHTML = userCollections.map(collection => `
-                    <label class="collection-checkbox flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${selectedCollections.has(collection.id) ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collection.id}">
-                        <input type="checkbox" class="sr-only" ${selectedCollections.has(collection.id) ? 'checked' : ''}>
-                        <div class="w-4 h-4 border-2 border-gray-300 rounded mr-3 flex items-center justify-center ${selectedCollections.has(collection.id) ? 'bg-purple-500 border-purple-500' : ''}">
-                            ${selectedCollections.has(collection.id) ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+                container.innerHTML = userCollections.map(collection => {
+                    const collectionId = String(collection.id); // Convert to string for consistency
+                    const isSelected = selectedCollections.has(collectionId) || selectedCollections.has(collection.id);
+                    return `
+                    <label class="collection-checkbox flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collectionId}">
+                        <input type="checkbox" class="sr-only" ${isSelected ? 'checked' : ''}>
+                        <div class="w-4 h-4 border-2 border-gray-300 rounded mr-3 flex items-center justify-center ${isSelected ? 'bg-purple-500 border-purple-500' : ''}">
+                            ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
                         </div>
                         <span class="font-medium text-gray-900">${collection.name}</span>
                     </label>
-                `).join('');
+                    `;
+                }).join('');
             }
 
             modal.classList.remove('hidden');
@@ -551,7 +559,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Get collection name by ID
         function getCollectionNameById(collectionId) {
-            const collection = userCollections.find(c => c.id === collectionId);
+            // Handle both string and numeric IDs
+            const numericId = parseInt(collectionId, 10);
+            const stringId = String(collectionId);
+            
+            const collection = userCollections.find(c => 
+                c.id === collectionId || c.id === numericId || c.id === stringId
+            );
             return collection ? collection.name : null;
         }
 
@@ -3078,8 +3092,15 @@ async function showVideoFor(restaurant) {
         const clearCollectionFilters = document.getElementById('clear-collection-filters');
         if (clearCollectionFilters) {
             clearCollectionFilters.addEventListener('click', () => {
+                console.log('Clear collection filters (desktop) clicked');
                 selectedCollections.clear();
-                showCollectionFilterModal(); // Refresh the modal
+                updateCollectionFilterButtonAppearance();
+                showDesktopCollectionFilterModal(); // Refresh the modal
+                
+                // Apply the cleared filter immediately to update the display
+                if (currentRestaurants && currentRestaurants.length > 0) {
+                    applyAllFiltersAndDisplay();
+                }
             });
         }
         
@@ -3182,8 +3203,15 @@ async function showVideoFor(restaurant) {
         const clearMobileCollectionFilters = document.getElementById('clear-collection-filters-mobile');
         if (clearMobileCollectionFilters) {
             clearMobileCollectionFilters.addEventListener('click', () => {
+                console.log('Clear collection filters (mobile) clicked');
                 selectedCollections.clear();
+                updateCollectionFilterButtonAppearance();
                 showMobileCollectionFilterModal(); // Refresh the modal
+                
+                // Apply the cleared filter immediately to update the display
+                if (currentRestaurants && currentRestaurants.length > 0) {
+                    applyAllFiltersAndDisplay();
+                }
             });
         }
 
