@@ -545,6 +545,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('🔍 Starting collection filter process');
             console.log('Selected collections:', Array.from(selectedCollections));
             console.log('Total restaurants to filter:', restaurants.length);
+            console.log('Current collectionRestaurantMappings size:', collectionRestaurantMappings.size);
+            console.log('Current collectionRestaurantMappings contents:', Array.from(collectionRestaurantMappings.entries()));
 
             if (selectedCollections.size === 0) {
                 console.log('No collections selected, returning all restaurants');
@@ -553,7 +555,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             try {
                 // Load restaurant mappings for selected collections
+                console.log('🔄 Loading restaurant mappings for collections:', Array.from(selectedCollections));
                 await loadRestaurantsForCollections(Array.from(selectedCollections));
+                console.log('🔄 After loading - collectionRestaurantMappings size:', collectionRestaurantMappings.size);
+                console.log('🔄 After loading - collectionRestaurantMappings contents:', Array.from(collectionRestaurantMappings.entries()));
 
                 // Get all restaurant IDs that are in any of the selected collections
                 const restaurantIdsInCollections = new Set();
@@ -972,6 +977,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         syncCollectionCheckboxes();
         updateFilterButtonAppearance();
         updateCollectionFilterButtonAppearance();
+        
+        // Pre-load collection-restaurant mappings if collections are selected
+        if (selectedCollections.size > 0) {
+            console.log('🔄 Pre-loading collection mappings for selected collections:', Array.from(selectedCollections));
+            await loadRestaurantsForCollections(Array.from(selectedCollections));
+        }
         
         // Handle window resize to ensure proper filter behavior
         window.addEventListener('resize', function() {
@@ -3090,6 +3101,12 @@ async function showVideoFor(restaurant) {
             // Show skeleton loaders while loading
             displayRestaurants([], true);
             await loadRestaurantsForCity(selectedOption.value);
+            
+            // Pre-load collection mappings if collections are selected
+            if (selectedCollections.size > 0) {
+                console.log('🔄 Pre-loading collection mappings for city change:', Array.from(selectedCollections));
+                await loadRestaurantsForCollections(Array.from(selectedCollections));
+            }
             
             // Apply saved filters after loading new city's restaurants
             console.log('🔄 Applying saved filters after city change...');
