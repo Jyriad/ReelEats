@@ -2387,7 +2387,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
 async function showVideoFor(restaurant) {
-    if (!restaurant.embed_html) {
+    if (!restaurant.tiktok_embed_html) {
         showNoVideoMessage(videoContainer, restaurant.name);
         videoModal.classList.add('show');
         return;
@@ -2418,7 +2418,7 @@ async function showVideoFor(restaurant) {
     document.body.appendChild(preloadContainer);
 
     // 2. Inject the raw TikTok blockquote HTML into the hidden container
-    preloadContainer.innerHTML = restaurant.embed_html;
+    preloadContainer.innerHTML = restaurant.tiktok_embed_html;
 
     // 3. Tell the TikTok script (if it's ready) to process the new embed
     if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
