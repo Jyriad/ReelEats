@@ -2451,24 +2451,73 @@ async function showVideoFor(restaurant) {
 
     console.log('🎬 Hidden blockquotes prepared:', hiddenBlockquotes.length);
 
-    // Trigger TikTok script to process the embed
-    console.log('🎬 Triggering TikTok script...');
-    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-        console.log('✅ TikTok script available, calling load()...');
-        window.tiktokEmbed.load();
-    } else {
-        console.log('⏳ TikTok script not ready, waiting and retrying...');
-        const checkAndTrigger = () => {
+            // Try multiple approaches to trigger TikTok embed processing
+            console.log('🎬 Attempting to trigger TikTok embed processing...');
+
+            // Method 1: Use TikTok's official API if available
             if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                console.log('✅ TikTok script ready, calling load()...');
+                console.log('✅ TikTok script available, calling load()...');
                 window.tiktokEmbed.load();
             } else {
-                console.log('⏳ Still waiting for TikTok script...');
-                setTimeout(checkAndTrigger, 200);
+                console.log('⏳ TikTok script not ready, trying alternative methods...');
+
+                // Method 2: Try to find and trigger existing TikTok embeds
+                const existingEmbeds = document.querySelectorAll('blockquote.tiktok-embed');
+                if (existingEmbeds.length > 0) {
+                    console.log('🔍 Found existing TikTok embeds:', existingEmbeds.length);
+                    // TikTok script might already be processing existing embeds
+                }
+
+                // Method 3: Try to manually create the iframe
+                console.log('🔄 Attempting manual iframe creation...');
+                const videoId = restaurant.tiktok_embed_html.match(/data-video-id="([^"]+)"/)?.[1];
+                if (videoId) {
+                    console.log('🎬 Found video ID:', videoId);
+                    const iframe = document.createElement('iframe');
+                    iframe.src = `https://www.tiktok.com/embed/v2/${videoId}`;
+                    iframe.width = '330';
+                    iframe.height = '585';
+                    iframe.frameBorder = '0';
+                    iframe.allowFullscreen = true;
+                    iframe.allow = 'encrypted-media';
+                    iframe.style.border = 'none';
+                    iframe.style.background = 'black';
+
+                    console.log('✅ Created iframe manually, adding to modal...');
+                    videoContainer.innerHTML = '';
+                    videoContainer.appendChild(iframe);
+
+                    // Clean up the preload container since we're not using it
+                    document.body.removeChild(preloadContainer);
+                    observer.disconnect();
+                    return;
+                } else {
+                    console.log('❌ Could not extract video ID from embed HTML');
+                }
+
+                // Method 4: Force reload TikTok script
+                console.log('🔄 Attempting to reload TikTok script...');
+                const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
+                if (existingScript) {
+                    existingScript.remove();
+                }
+
+                const newScript = document.createElement('script');
+                newScript.src = 'https://www.tiktok.com/embed.js';
+                newScript.async = true;
+                newScript.onload = () => {
+                    console.log('✅ TikTok script reloaded');
+                    setTimeout(() => {
+                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                            console.log('✅ TikTok script ready after reload, calling load()...');
+                            window.tiktokEmbed.load();
+                        } else {
+                            console.log('❌ TikTok script still not working after reload');
+                        }
+                    }, 1000);
+                };
+                document.head.appendChild(newScript);
             }
-        };
-        setTimeout(checkAndTrigger, 200);
-    }
 
     // Use MutationObserver to wait for iframe creation
     const observer = new MutationObserver((mutations, obs) => {
