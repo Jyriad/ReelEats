@@ -70,32 +70,27 @@ function loadVideoWithBlockquote(videoContainer, embedHtml) {
     const cleanEmbedHtml = embedHtml.replace(/<script[^>]*>.*?<\/script>/gi, '');
     console.log('🧹 Cleaned embed HTML:', cleanEmbedHtml);
 
-    // Set initial opacity for fade-in effect
-    videoContainer.style.opacity = '0';
+    // Load the TikTok embed directly - let TikTok handle its own loading
     videoContainer.innerHTML = cleanEmbedHtml;
 
-    // Make sure blockquotes are properly styled and visible
+    // Make sure the container is ready for TikTok's loading process
+    videoContainer.style.background = 'black';
+
+    // Find and prepare the blockquote
     const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
     console.log('🔍 Found blockquotes:', blockquotes.length);
 
     blockquotes.forEach((bq, index) => {
         console.log(`📋 Blockquote ${index}:`, bq);
-        // Override TikTok's default styling that causes the half-and-half effect
+        // Ensure the blockquote is visible and ready for TikTok's processing
         bq.style.visibility = 'visible';
         bq.style.display = 'block';
-        bq.style.width = '100%';
-        bq.style.height = '100%';
-        bq.style.maxWidth = '100%';
-        bq.style.minWidth = '100%';
-        bq.style.margin = '0 auto';
-        bq.style.opacity = '1';
-        bq.style.background = 'transparent';
-        // Remove any hidden classes or attributes
+        // Remove any hidden attributes that might interfere
         bq.removeAttribute('hidden');
         bq.classList.remove('hidden');
     });
 
-    // Trigger TikTok script to load the embed
+    // Trigger TikTok script to process the embed
     if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
         console.log('✅ TikTok script found, loading embed...');
         window.tiktokEmbed.load();
@@ -111,12 +106,6 @@ function loadVideoWithBlockquote(videoContainer, embedHtml) {
             }
         }
     }
-
-    // Add smooth fade-in transition after a short delay
-    setTimeout(() => {
-        videoContainer.style.transition = 'opacity 0.5s ease-in-out';
-        videoContainer.style.opacity = '1';
-    }, 300);
 }
 
 function showNoVideoMessage(videoContainer, restaurantName) {
@@ -2472,22 +2461,10 @@ function showVideoFor(restaurant) {
             // Scroll to the restaurant in the side panel (desktop only)
             scrollToRestaurant(restaurant.id);
     
-            // Show TikTok-style loading indicator
+            // Show minimal loading state - let TikTok handle its own loading
             videoContainer.innerHTML = `
-                <div class="w-full h-full flex items-center justify-center bg-black">
-                    <div class="text-center">
-                        <div class="relative">
-                            <!-- TikTok-style loading animation -->
-                            <div class="w-16 h-16 mx-auto mb-4 relative">
-                                <div class="absolute inset-0 rounded-full border-4 border-gray-600"></div>
-                                <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-white animate-spin"></div>
-                                <div class="absolute inset-2 rounded-full border-2 border-transparent border-r-pink-500 animate-spin" style="animation-direction: reverse; animation-duration: 0.8s;"></div>
-                            </div>
-                            <!-- TikTok logo -->
-                            <div class="text-white text-2xl font-bold mb-2">♪</div>
-                            <p class="text-gray-300 text-sm">Loading TikTok video...</p>
-                        </div>
-                    </div>
+                <div class="w-full h-full flex items-center justify-center bg-black text-white text-sm">
+                    Loading TikTok video...
                 </div>
             `;
     
