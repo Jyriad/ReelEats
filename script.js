@@ -2924,26 +2924,50 @@ async function showVideoFor(restaurant) {
             const card = e.target.closest('.collection-filter-card');
             if (card) {
                 const collectionId = card.dataset.collectionId;
+                console.log('Collection card clicked:', collectionId);
+
+                // Toggle selection
                 if (selectedCollections.has(collectionId)) {
                     selectedCollections.delete(collectionId);
+                    console.log('Deselected collection:', collectionId);
                 } else {
                     selectedCollections.add(collectionId);
+                    console.log('Selected collection:', collectionId);
                 }
-                showCollectionFilterModal(); // Refresh the modal
+
+                // Update visual state immediately
+                if (selectedCollections.has(collectionId)) {
+                    card.classList.add('border-purple-500', 'bg-purple-100');
+                    card.querySelector('.w-5').classList.add('bg-purple-500', 'border-purple-500');
+                } else {
+                    card.classList.remove('border-purple-500', 'bg-purple-100');
+                    card.querySelector('.w-5').classList.remove('bg-purple-500', 'border-purple-500');
+                }
+
+                // Update button appearance
+                updateCollectionFilterButtonAppearance();
+                console.log('Selected collections:', Array.from(selectedCollections));
             }
         });
 
         // Handle collection checkbox clicks (mobile)
-        document.addEventListener('change', (e) => {
-            const checkbox = e.target.closest('.collection-checkbox input[type="checkbox"]');
-            if (checkbox) {
-                const label = checkbox.closest('.collection-checkbox');
+        document.addEventListener('click', (e) => {
+            const label = e.target.closest('.collection-checkbox');
+            if (label) {
                 const collectionId = label.dataset.collectionId;
+                const checkbox = label.querySelector('input[type="checkbox"]');
+
+                console.log('Collection checkbox clicked:', collectionId);
+
+                // Toggle checkbox state
+                checkbox.checked = !checkbox.checked;
 
                 if (checkbox.checked) {
                     selectedCollections.add(collectionId);
+                    console.log('Selected collection:', collectionId);
                 } else {
                     selectedCollections.delete(collectionId);
+                    console.log('Deselected collection:', collectionId);
                 }
 
                 // Update visual state
@@ -2954,6 +2978,10 @@ async function showVideoFor(restaurant) {
                     label.classList.remove('border-purple-500', 'bg-purple-100');
                     label.querySelector('.w-4').classList.remove('bg-purple-500', 'border-purple-500');
                 }
+
+                // Update button appearance
+                updateCollectionFilterButtonAppearance();
+                console.log('Selected collections:', Array.from(selectedCollections));
             }
         });
 
