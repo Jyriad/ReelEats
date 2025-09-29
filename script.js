@@ -303,7 +303,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                         </svg>
                         <p class="text-lg font-medium mb-2">No collections yet</p>
-                        <p class="text-sm">Create collections to filter restaurants</p>
+                        <p class="text-sm mb-4">Create collections to organize and filter your favorite restaurants</p>
+                        <button id="create-first-collection-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                            Create Your First Collection
+                        </button>
                     </div>
                 `;
             } else {
@@ -337,7 +340,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                         </svg>
                         <p class="text-lg font-medium mb-2">No collections yet</p>
-                        <p class="text-sm">Create collections to filter restaurants</p>
+                        <p class="text-sm mb-4">Create collections to organize and filter your favorite restaurants</p>
+                        <button id="create-first-collection-btn-mobile" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                            Create Your First Collection
+                        </button>
                     </div>
                 `;
             } else {
@@ -2983,6 +2989,36 @@ async function showVideoFor(restaurant) {
                 updateCollectionFilterButtonAppearance();
             });
         }
+
+        // Add event listeners for "Create First Collection" buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'create-first-collection-btn' || e.target.id === 'create-first-collection-btn-mobile') {
+                // Close the collection filter modal
+                const collectionModal = document.getElementById('collection-filter-modal');
+                const mobileCollectionModal = document.getElementById('collection-filter-modal-mobile');
+
+                if (collectionModal) {
+                    collectionModal.classList.add('hidden');
+                    collectionModal.classList.remove('flex');
+                }
+                if (mobileCollectionModal) {
+                    mobileCollectionModal.classList.add('hidden');
+                    mobileCollectionModal.classList.remove('flex');
+                }
+
+                // Open the collections modal
+                const collectionsModal = document.getElementById('collections-modal');
+                if (collectionsModal) {
+                    collectionsModal.classList.remove('hidden');
+                    collectionsModal.classList.add('flex');
+                    // Focus on the input field
+                    setTimeout(() => {
+                        const input = document.getElementById('new-collection-name');
+                        if (input) input.focus();
+                    }, 100);
+                }
+            }
+        });
     
     } catch (error) {
         console.error("An error occurred during initialization:", error);
