@@ -450,6 +450,38 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        // Combined filter function that applies both cuisine and collection filters
+        async function applyAllFilters(restaurants) {
+            console.log('🎯 Starting combined filter process');
+            console.log('Total restaurants to filter:', restaurants.length);
+            
+            let filteredRestaurants = [...restaurants]; // Start with all restaurants
+            
+            // Apply cuisine filter first
+            const selectedCuisines = getSelectedCuisines();
+            console.log('Selected cuisines:', selectedCuisines);
+            
+            if (selectedCuisines.length > 0) {
+                filteredRestaurants = filteredRestaurants.filter(restaurant => {
+                    return restaurant.cuisines && restaurant.cuisines.some(cuisine => 
+                        selectedCuisines.includes(cuisine.name)
+                    );
+                });
+                console.log(`🍽️ After cuisine filter: ${filteredRestaurants.length} restaurants`);
+            }
+            
+            // Apply collection filter second
+            console.log('Selected collections:', Array.from(selectedCollections));
+            
+            if (selectedCollections.size > 0) {
+                filteredRestaurants = await filterRestaurantsByCollections(filteredRestaurants);
+                console.log(`📚 After collection filter: ${filteredRestaurants.length} restaurants`);
+            }
+            
+            console.log(`🎉 Final filtered results: ${filteredRestaurants.length} restaurants`);
+            return filteredRestaurants;
+        }
+
         // Filter restaurants by selected collections
         async function filterRestaurantsByCollections(restaurants) {
             console.log('🔍 Starting collection filter process');
@@ -1523,39 +1555,55 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // Filter restaurants by selected cuisines (multiple selection)
-        function filterRestaurantsByCuisines() {
-            const selectedCuisines = getSelectedCuisines();
+        // Apply combined filters (cuisine + collection)
+        async function applyAllFiltersAndDisplay() {
+            console.log('🎯 Applying all filters and updating display');
             
-            // Update filter button appearance
+            // Update filter button appearances
             updateFilterButtonAppearance();
+            updateCollectionFilterButtonAppearance();
             
             // Show skeleton loaders briefly for better UX
             displayRestaurants([], true);
             
             // Use setTimeout to show skeleton loading briefly
-            setTimeout(() => {
-                if (selectedCuisines.length === 0) {
-                    // Show all restaurants if no cuisines selected
-                    displayRestaurants(currentRestaurants);
-                    // Fit map to show all restaurants
-                    fitMapToRestaurants(currentRestaurants);
-                } else {
-                    // Filter restaurants that have ANY of the selected cuisines
-                    const filteredRestaurants = currentRestaurants.filter(restaurant => {
-                        if (!restaurant.cuisines || restaurant.cuisines.length === 0) {
-                            return false;
+            setTimeout(async () => {
+                try {
+                    const filteredRestaurants = await applyAllFilters(currentRestaurants);
+                    
+                    if (filteredRestaurants.length === 0) {
+                        // Show empty state message
+                        const restaurantList = document.getElementById('restaurant-list');
+                        if (restaurantList) {
+                            restaurantList.innerHTML = `
+                                <div class="text-center py-8 text-gray-500">
+                                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                    <h3 class="text-lg font-medium mb-2">No restaurants found</h3>
+                                    <p class="text-sm">No restaurants match your current filters. Try adjusting your cuisine or collection selections.</p>
+                                </div>
+                            `;
                         }
-                        // Check if restaurant has at least one of the selected cuisines
-                        const hasMatchingCuisine = selectedCuisines.some(selectedCuisine => 
-                            restaurant.cuisines.some(cuisine => cuisine.name === selectedCuisine)
-                        );
-                        return hasMatchingCuisine;
-                    });
-                    displayRestaurants(filteredRestaurants);
+                    } else {
+                        displayRestaurants(filteredRestaurants);
+                    }
+                    
                     // Fit map to show filtered restaurants
-                    fitMapToRestaurants(filteredRestaurants);
+                    if (map && mapInitialized) {
+                        fitMapToRestaurants(filteredRestaurants);
+                    }
+                } catch (error) {
+                    console.error('❌ Error applying filters:', error);
+                    // On error, show all restaurants
+                    displayRestaurants(currentRestaurants);
                 }
-            }, 300); // Brief delay to show skeleton loading
+            }, 300);
+        }
+
+        function filterRestaurantsByCuisines() {
+            // Use the new combined filter function
+            applyAllFiltersAndDisplay();
         }
         
         // Get selected cuisines from checkboxes
@@ -3041,40 +3089,10 @@ async function showVideoFor(restaurant) {
                 console.log('Apply collection filter (desktop) clicked');
                 console.log('Selected collections:', Array.from(selectedCollections));
                 
-                // Apply the filter
+                // Apply combined filters
                 if (currentRestaurants && currentRestaurants.length > 0) {
-                    console.log('🚀 Starting filter application...');
-                    filterRestaurantsByCollections(currentRestaurants).then(filteredRestaurants => {
-                        console.log('📊 Filter completed. Results:', filteredRestaurants.length);
-                        
-                        if (filteredRestaurants.length === 0) {
-                            console.log('📋 No restaurants found in selected collections');
-                            // Show empty state message
-                            const restaurantList = document.getElementById('restaurant-list');
-                            if (restaurantList) {
-                                restaurantList.innerHTML = `
-                                    <div class="text-center py-8 text-gray-500">
-                                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                        </svg>
-                                        <h3 class="text-lg font-medium mb-2">No restaurants found</h3>
-                                        <p class="text-sm">No restaurants in the selected collection(s) for this area.</p>
-                                    </div>
-                                `;
-                            }
-                        } else {
-                            displayRestaurants(filteredRestaurants);
-                        }
-                        
-                        // Update map to show only filtered restaurants
-                        if (map && mapInitialized) {
-                            fitMapToRestaurants(filteredRestaurants);
-                        }
-                    }).catch(error => {
-                        console.error('❌ Error applying filter:', error);
-                        // On error, show all restaurants
-                        displayRestaurants(currentRestaurants);
-                    });
+                    console.log('🚀 Starting combined filter application...');
+                    applyAllFiltersAndDisplay();
                 }
                 
                 // Close modal
@@ -3175,40 +3193,10 @@ async function showVideoFor(restaurant) {
                 console.log('Apply collection filter (mobile) clicked');
                 console.log('Selected collections:', Array.from(selectedCollections));
                 
-                // Apply the filter
+                // Apply combined filters
                 if (currentRestaurants && currentRestaurants.length > 0) {
-                    console.log('🚀 Starting filter application (mobile)...');
-                    filterRestaurantsByCollections(currentRestaurants).then(filteredRestaurants => {
-                        console.log('📊 Mobile filter completed. Results:', filteredRestaurants.length);
-                        
-                        if (filteredRestaurants.length === 0) {
-                            console.log('📋 No restaurants found in selected collections');
-                            // Show empty state message
-                            const restaurantList = document.getElementById('restaurant-list');
-                            if (restaurantList) {
-                                restaurantList.innerHTML = `
-                                    <div class="text-center py-8 text-gray-500">
-                                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                        </svg>
-                                        <h3 class="text-lg font-medium mb-2">No restaurants found</h3>
-                                        <p class="text-sm">No restaurants in the selected collection(s) for this area.</p>
-                                    </div>
-                                `;
-                            }
-                        } else {
-                            displayRestaurants(filteredRestaurants);
-                        }
-
-                        // Update map to show only filtered restaurants
-                        if (map && mapInitialized) {
-                            fitMapToRestaurants(filteredRestaurants);
-                        }
-                    }).catch(error => {
-                        console.error('❌ Error applying mobile filter:', error);
-                        // On error, show all restaurants
-                        displayRestaurants(currentRestaurants);
-                    });
+                    console.log('🚀 Starting combined filter application (mobile)...');
+                    applyAllFiltersAndDisplay();
                 }
 
                 // Close modal
