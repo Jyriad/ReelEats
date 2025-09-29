@@ -2419,22 +2419,46 @@ function showVideoFor(restaurant) {
             console.log('🎬 Loading TikTok embed directly...');
             console.log('🎬 TikTok embed HTML:', restaurant.tiktok_embed_html);
 
-            // Load the TikTok embed directly without any wrapper or styling changes
-            videoContainer.innerHTML = restaurant.tiktok_embed_html;
+            // Clean and fix the TikTok embed HTML
+            let cleanEmbedHtml = restaurant.tiktok_embed_html;
+            // Remove the script tag and make the blockquote visible
+            cleanEmbedHtml = cleanEmbedHtml.replace(/<script[^>]*>.*?<\/script>/gi, '');
+            cleanEmbedHtml = cleanEmbedHtml.replace(/visibility:\s*hidden/gi, 'visibility: visible');
 
-            // Trigger TikTok script immediately
-            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                console.log('✅ TikTok script available, triggering load...');
-                window.tiktokEmbed.load();
-            } else {
-                console.log('⏳ TikTok script not ready, will trigger when available...');
-                // Wait a bit and try again
-                setTimeout(() => {
-                    if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                        window.tiktokEmbed.load();
-                    }
-                }, 100);
-            }
+            console.log('🧹 Cleaned embed HTML:', cleanEmbedHtml);
+
+            // Load the cleaned TikTok embed
+            videoContainer.innerHTML = cleanEmbedHtml;
+
+            // Ensure the container is ready for TikTok
+            videoContainer.style.background = 'black';
+            videoContainer.style.display = 'flex';
+            videoContainer.style.alignItems = 'center';
+            videoContainer.style.justifyContent = 'center';
+
+            // Make sure the blockquote is visible
+            const blockquotes = videoContainer.querySelectorAll('blockquote.tiktok-embed');
+            blockquotes.forEach(bq => {
+                bq.style.visibility = 'visible';
+                bq.style.display = 'block';
+                bq.style.width = '100%';
+                bq.style.height = '100%';
+                bq.style.margin = '0';
+            });
+
+            // Trigger TikTok script with proper timing
+            const triggerTikTok = () => {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    console.log('✅ TikTok script available, triggering load...');
+                    window.tiktokEmbed.load();
+                } else {
+                    console.log('⏳ TikTok script not ready, waiting...');
+                    setTimeout(triggerTikTok, 200);
+                }
+            };
+
+            // Start trying to trigger TikTok
+            setTimeout(triggerTikTok, 100);
         }
 
         function scrollToRestaurant(restaurantId) {
