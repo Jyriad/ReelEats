@@ -362,20 +362,78 @@ document.addEventListener('DOMContentLoaded', async function() {
             modal.classList.add('flex');
         }
 
+        // Store collection-specific restaurant mappings
+        let collectionRestaurantMappings = new Map();
+
+        // Load restaurants for specific collections
+        async function loadRestaurantsForCollections(collectionIds) {
+            console.log('Loading restaurants for collections:', collectionIds);
+            if (collectionIds.length === 0) return;
+
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .select('restaurant_id, collection_id')
+                    .in('collection_id', collectionIds);
+
+                if (error) {
+                    console.error('Error loading collection restaurants:', error);
+                } else {
+                    console.log('Collection restaurant data:', data);
+                    // Store mappings for each collection
+                    data.forEach(item => {
+                        if (!collectionRestaurantMappings.has(item.collection_id)) {
+                            collectionRestaurantMappings.set(item.collection_id, new Set());
+                        }
+                        collectionRestaurantMappings.get(item.collection_id).add(item.restaurant_id);
+                    });
+                    console.log('Collection restaurant mappings:', collectionRestaurantMappings);
+                }
+            } catch (error) {
+                console.error('Error loading collection restaurants:', error);
+            }
+        }
+
         // Filter restaurants by selected collections
-        function filterRestaurantsByCollections(restaurants) {
+        async function filterRestaurantsByCollections(restaurants) {
+            console.log('Filtering restaurants by collections');
+            console.log('Selected collections:', Array.from(selectedCollections));
+            console.log('Total restaurants to filter:', restaurants.length);
+
             if (selectedCollections.size === 0) {
+                console.log('No collections selected, returning all restaurants');
                 return restaurants;
             }
-            
-            return restaurants.filter(restaurant => {
-                // Check if restaurant is in any of the selected collections
-                return Array.from(selectedCollections).some(collectionId => {
-                    // This would need to be implemented based on your data structure
-                    // For now, we'll use the collectedRestaurants set as a proxy
-                    return collectedRestaurants.has(restaurant.id);
-                });
+
+            // Load restaurant mappings for selected collections
+            await loadRestaurantsForCollections(Array.from(selectedCollections));
+
+            // Get all restaurant IDs that are in any of the selected collections
+            const restaurantIdsInCollections = new Set();
+            selectedCollections.forEach(collectionId => {
+                const restaurantsInCollection = collectionRestaurantMappings.get(collectionId);
+                if (restaurantsInCollection) {
+                    restaurantsInCollection.forEach(restaurantId => {
+                        restaurantIdsInCollections.add(restaurantId);
+                    });
+                }
             });
+
+            console.log('Restaurant IDs in selected collections:', Array.from(restaurantIdsInCollections));
+
+            const filtered = restaurants.filter(restaurant => {
+                const isInCollection = restaurantIdsInCollections.has(restaurant.id);
+                if (isInCollection) {
+                    console.log(`Restaurant ${restaurant.name} (ID: ${restaurant.id}) is in selected collections`);
+                }
+                return isInCollection;
+            });
+
+            console.log('Filtered restaurants:', filtered.length);
+            return filtered;
         }
 
         // Get collection name by ID
@@ -2896,26 +2954,31 @@ async function showVideoFor(restaurant) {
             });
         }
         
-        const applyCollectionFilter = document.getElementById('apply-collection-filter');
-        if (applyCollectionFilter) {
-            applyCollectionFilter.addEventListener('click', () => {
-            // Apply the filter
-            if (currentRestaurants && currentRestaurants.length > 0) {
-                const filteredRestaurants = filterRestaurantsByCollections(currentRestaurants);
-                displayRestaurants(filteredRestaurants);
+        const applyCollectionFilterDesktop = document.getElementById('apply-collection-filter-desktop');
+        if (applyCollectionFilterDesktop) {
+            applyCollectionFilterDesktop.addEventListener('click', () => {
+                console.log('Apply collection filter (desktop) clicked');
+                console.log('Selected collections:', Array.from(selectedCollections));
                 
-                // Update map to show only filtered restaurants
-                if (map && mapInitialized) {
-                    fitMapToRestaurants(filteredRestaurants);
+                // Apply the filter
+                if (currentRestaurants && currentRestaurants.length > 0) {
+                    filterRestaurantsByCollections(currentRestaurants).then(filteredRestaurants => {
+                        console.log('Filtered restaurants count:', filteredRestaurants.length);
+                        displayRestaurants(filteredRestaurants);
+                        
+                        // Update map to show only filtered restaurants
+                        if (map && mapInitialized) {
+                            fitMapToRestaurants(filteredRestaurants);
+                        }
+                    });
                 }
-            }
-            
-            // Close modal
-            document.getElementById('collection-filter-modal').classList.add('hidden');
-            document.getElementById('collection-filter-modal').classList.remove('flex');
-            
-            // Update button appearance
-            updateCollectionFilterButtonAppearance();
+                
+                // Close modal
+                document.getElementById('collection-filter-modal').classList.add('hidden');
+                document.getElementById('collection-filter-modal').classList.remove('flex');
+                
+                // Update button appearance
+                updateCollectionFilterButtonAppearance();
             });
         }
         
@@ -3005,15 +3068,20 @@ async function showVideoFor(restaurant) {
         const applyMobileCollectionFilter = document.getElementById('apply-collection-filter-mobile');
         if (applyMobileCollectionFilter) {
             applyMobileCollectionFilter.addEventListener('click', () => {
+                console.log('Apply collection filter (mobile) clicked');
+                console.log('Selected collections:', Array.from(selectedCollections));
+                
                 // Apply the filter
                 if (currentRestaurants && currentRestaurants.length > 0) {
-                    const filteredRestaurants = filterRestaurantsByCollections(currentRestaurants);
-                    displayRestaurants(filteredRestaurants);
+                    filterRestaurantsByCollections(currentRestaurants).then(filteredRestaurants => {
+                        console.log('Filtered restaurants count:', filteredRestaurants.length);
+                        displayRestaurants(filteredRestaurants);
 
-                    // Update map to show only filtered restaurants
-                    if (map && mapInitialized) {
-                        fitMapToRestaurants(filteredRestaurants);
-                    }
+                        // Update map to show only filtered restaurants
+                        if (map && mapInitialized) {
+                            fitMapToRestaurants(filteredRestaurants);
+                        }
+                    });
                 }
 
                 // Close modal
