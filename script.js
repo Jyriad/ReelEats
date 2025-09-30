@@ -282,6 +282,68 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
+        // Show collection removal modal for restaurants already in collections
+        async function showCollectionRemovalModal(restaurantId) {
+            // Fetch collections that contain this restaurant
+            const { data: collections } = await supabaseClient
+                .from('collection_restaurants')
+                .select(`
+                    collection_id,
+                    user_collections!inner(id, name)
+                `)
+                .eq('restaurant_id', restaurantId);
+            
+            if (!collections || collections.length === 0) {
+                showToast('Restaurant not found in any collections', 'warning');
+                return;
+            }
+            
+            // Create modal HTML
+            const modal = document.createElement('div');
+            modal.id = 'collection-removal-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4';
+            
+            const collectionsList = collections.map(c => `
+                <div class="collection-removal-option p-4 border-b border-gray-200 cursor-pointer hover:bg-red-50 transition-colors" data-collection-id="${c.collection_id}" data-restaurant-id="${restaurantId}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-red-500 mr-3"></div>
+                            <span class="text-lg font-medium text-gray-900">${c.user_collections.name}</span>
+                        </div>
+                        <div class="text-red-500 text-sm">Remove</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                    <div class="p-4 border-b border-gray-200 bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">Remove from Collection</h3>
+                            <button id="close-removal-modal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                        </div>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto">
+                        ${collectionsList}
+                    </div>
+                </div>
+            `;
+            
+            // Add to body
+            document.body.appendChild(modal);
+            
+            // Add event listeners
+            document.getElementById('close-removal-modal').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
         // Load user collections from database
         async function loadUserCollections() {
             const { data: { user } } = await supabaseClient.auth.getUser();
@@ -2398,11 +2460,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return;
                 }
 
-                // Store the restaurant ID for later use
-                window.quickCreateRestaurantId = restaurantId;
-                
-                // Show the collection selection modal
-                showCollectionModal(restaurantId);
+                // Check if restaurant is already in collections
+                if (collectedRestaurants.has(restaurantId)) {
+                    // Show removal modal for restaurants already in collections
+                    showCollectionRemovalModal(restaurantId);
+                } else {
+                    // Store the restaurant ID for later use
+                    window.quickCreateRestaurantId = restaurantId;
+                    
+                    // Show the collection selection modal
+                    showCollectionModal(restaurantId);
+                }
             }
         });
 
@@ -2516,6 +2584,57 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 listItem.closest('.add-to-collection-popup').remove();
+            }
+            
+            // Check if clicked on a collection removal option
+            const removalOption = e.target.closest('.collection-removal-option');
+            if (removalOption) {
+                const collectionId = removalOption.dataset.collectionId;
+                const restaurantId = removalOption.dataset.restaurantId;
+                const collectionName = removalOption.querySelector('.text-lg').textContent;
+
+                // Remove from collection
+                const { error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .delete()
+                    .eq('collection_id', collectionId)
+                    .eq('restaurant_id', restaurantId);
+
+                if (error) {
+                    console.error('Error removing from collection:', error);
+                    showToast('Error removing from collection. Please try again.', 'error');
+                } else {
+                    showToast(`Removed from ${collectionName}`);
+                    
+                    // Check if restaurant is still in any collections
+                    const { data: remainingCollections } = await supabaseClient
+                        .from('collection_restaurants')
+                        .select('collection_id')
+                        .eq('restaurant_id', restaurantId);
+                    
+                    if (!remainingCollections || remainingCollections.length === 0) {
+                        // Remove from collected restaurants if not in any collections
+                        collectedRestaurants.delete(restaurantId);
+                        
+                        // Update the specific restaurant card
+                        const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+                        if (restaurantCard) {
+                            const bookmarkBtn = restaurantCard.querySelector('.add-to-collection-btn');
+                            if (bookmarkBtn) {
+                                bookmarkBtn.classList.remove('collected');
+                            }
+                        }
+                    }
+                    
+                    // Re-display restaurants to show updated collection status
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        console.log('Re-displaying restaurants after removing from collection');
+                        await applyAllFiltersAndDisplay();
+                    }
+                }
+                
+                // Close the removal modal
+                document.getElementById('collection-removal-modal').remove();
             } else if (!e.target.closest('.add-to-collection-btn')) {
                 // Hide popups when clicking elsewhere
                 document.querySelectorAll('.add-to-collection-popup').forEach(p => p.remove());
