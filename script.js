@@ -2216,11 +2216,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 collectionsList.innerHTML = data.map(collection => `
                     <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
-                        <div>
+                        <div class="flex-1 cursor-pointer collection-item" data-collection-id="${collection.id}" data-collection-name="${collection.name}">
                             <p class="font-semibold">${collection.name}</p>
                             <p class="text-sm text-gray-500">${collection.collection_restaurants[0].count} items</p>
                         </div>
-                        <button class="delete-collection-btn text-red-500 hover:text-red-700" data-collection-id="${collection.id}">Delete</button>
+                        <button class="delete-collection-btn text-red-500 hover:text-red-700 ml-2" data-collection-id="${collection.id}">Delete</button>
                     </div>
                 `).join('');
             }
@@ -2240,6 +2240,33 @@ document.addEventListener('DOMContentLoaded', async function() {
                 document.getElementById('collection-name-to-delete').textContent = collectionName;
                 document.getElementById('delete-collection-modal').classList.remove('hidden');
                 document.getElementById('delete-collection-modal').classList.add('flex');
+            } else if (e.target.closest('.collection-item')) {
+                // Handle collection item click for filtering
+                const collectionItem = e.target.closest('.collection-item');
+                const collectionId = collectionItem.dataset.collectionId;
+                const collectionName = collectionItem.dataset.collectionName;
+                
+                console.log('Collection clicked for filtering:', collectionName, 'ID:', collectionId);
+                
+                // Clear any existing collection filters
+                selectedCollections.clear();
+                
+                // Add this collection to selected collections
+                selectedCollections.add(collectionId);
+                saveFilterStates();
+                
+                // Update collection filter button appearance
+                updateCollectionFilterButtonAppearance();
+                
+                // Apply the filter
+                await applyAllFiltersAndDisplay();
+                
+                // Close the collections modal
+                document.getElementById('collections-modal').classList.add('hidden');
+                document.getElementById('collections-modal').classList.remove('flex');
+                
+                // Show success message
+                showToast(`Filtering by collection: ${collectionName}`);
             }
         });
 
