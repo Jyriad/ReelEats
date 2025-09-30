@@ -3295,8 +3295,16 @@ async function showVideoFor(restaurant) {
             // Debug: Log all touch events on the handle and touch areas
             touchElements.forEach((element, index) => {
                 const elementName = index === 0 ? 'handle' : (index === 1 ? 'touch-area-top' : 'touch-area-bottom');
+                
+                // Add visual debugging - make touch areas slightly visible for testing
+                if (index > 0) {
+                    element.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // Very light red for debugging
+                    element.style.border = '1px dashed red'; // Dashed border for debugging
+                }
+                
                 element.addEventListener('touchstart', (e) => {
                     console.log(`Touch start detected on ${elementName}`);
+                    console.log(`Element bounds:`, element.getBoundingClientRect());
                 });
                 element.addEventListener('touchmove', (e) => {
                     console.log(`Touch move detected on ${elementName}`);

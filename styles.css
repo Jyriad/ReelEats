@@ -271,6 +271,7 @@ html, body {
         padding: 0 !important;
         display: flex;
         flex-direction: column;
+        overflow: visible; /* Allow touch areas to extend beyond bounds */
     }
 /* Mobile drawer handle - clean rebuild */
 #drawer-handle {
@@ -298,6 +299,11 @@ html, body {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 15; /* Higher than handle z-index of 5 */
+    pointer-events: auto;
 }
 
 /* Position the touch areas correctly */
