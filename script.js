@@ -1177,11 +1177,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             }, 500); // Small delay to ensure elements are rendered
         }
 
-        function completeTutorial() {
-            // Hide the modal
+        function hideTutorialModal() {
+            // Hide the modal but keep pulsing
             tutorialModal.classList.add('hidden');
             tutorialModal.classList.remove('flex');
+        }
 
+        function completeTutorial() {
             // Remove pulsing animations
             document.querySelectorAll('.pulse-me').forEach(el => el.classList.remove('pulse-me'));
             
@@ -1192,10 +1194,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.removeEventListener('restaurant-clicked', completeTutorial);
         }
 
-        // Event listener for the close button
-        closeTutorialBtn.addEventListener('click', completeTutorial);
+        // Event listener for the close button - only hide modal, don't complete tutorial
+        closeTutorialBtn.addEventListener('click', hideTutorialModal);
 
-        // Listen for restaurant clicks to complete tutorial
+        // Listen for restaurant clicks to complete tutorial (stop pulsing)
         document.addEventListener('restaurant-clicked', completeTutorial);
 
         // --- Initialization ---
@@ -3037,11 +3039,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 listItem.classList.add('active-list-item');
                 showVideoFor(restaurant);
                 map.flyTo([restaurant.lat, restaurant.lon], 15);
-                
-                // Dispatch custom event for tutorial completion
-                document.dispatchEvent(new CustomEvent('restaurant-clicked', { 
-                    detail: { restaurant: restaurant, source: 'card' } 
-                }));
             });
 
             // Event listener for the favorite button
@@ -3099,11 +3096,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 showVideoFor(restaurant);
-                
-                // Dispatch custom event for tutorial completion
-                document.dispatchEvent(new CustomEvent('restaurant-clicked', { 
-                    detail: { restaurant: restaurant, source: 'marker' } 
-                }));
             });
             return marker;
         }
@@ -3205,6 +3197,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
 async function showVideoFor(restaurant) {
+    // Complete tutorial when user watches their first video
+    if (document.querySelector('.pulse-me')) {
+        document.dispatchEvent(new CustomEvent('restaurant-clicked', { 
+            detail: { restaurant: restaurant, source: 'video-watch' } 
+        }));
+    }
+    
     if (!restaurant.tiktok_embed_html) {
         showNoVideoMessage(videoContainer, restaurant.name);
         videoModal.classList.add('show');
