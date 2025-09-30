@@ -726,10 +726,7 @@ html, body {
 }
 
 .add-to-collection-btn.collected {
-    color: #6366f1; /* Purple color when collected */
-    background-color: rgba(99, 102, 241, 0.15);
-    border-color: #6366f1;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    color: #6366f1; /* Purple color when collected - just solid color, no background or border */
 }
 
 .add-to-collection-btn svg {

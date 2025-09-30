@@ -317,7 +317,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const actionClass = isInCollection ? 'hover:bg-red-50' : 'hover:bg-green-50';
                 const actionText = isInCollection ? 'Remove' : 'Add';
                 const actionColor = isInCollection ? 'text-red-500' : 'text-green-500';
-                const iconColor = isInCollection ? 'bg-red-500' : 'bg-green-500';
                 
                 return `
                     <div class="collection-management-option p-4 border-b border-gray-200 cursor-pointer ${actionClass} transition-colors" 
@@ -326,7 +325,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                          data-action="${isInCollection ? 'remove' : 'add'}">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
-                                <div class="w-3 h-3 rounded-full ${iconColor} mr-3"></div>
                                 <span class="text-lg font-medium text-gray-900">${collection.name}</span>
                             </div>
                             <div class="${actionColor} text-sm font-medium">${actionText}</div>
