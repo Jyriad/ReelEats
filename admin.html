@@ -3,14 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReelEats Admin Panel</title>
+    <title>ReelEats Admin Panel v1.140</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Hide admin content by default until authenticated */
+        .admin-content { display: none; }
+        .admin-content.authenticated { display: block; }
+        
+        /* Loading state styles */
+        .loading-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f9fafb;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Maps Places API -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU&libraries=places,marker&v=weekly"></script>
 </head>
 <body class="h-full">
-    <div class="min-h-full">
+    <!-- Loading screen shown during authentication check -->
+    <div class="loading-screen" id="loading-screen">
+        <div class="text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Checking admin access...</p>
+        </div>
+    </div>
+    
+    <div class="min-h-full admin-content" id="admin-content">
         <!-- Header -->
         <header class="bg-white shadow">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -472,11 +506,22 @@
             const isAuthenticated = await checkAdminAuth();
             console.log('Auth check result:', isAuthenticated);
             
+            // Hide loading screen
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+            
             if (isAuthenticated) {
                 console.log('Loading admin.js...');
+                // Show admin content
+                const adminContent = document.getElementById('admin-content');
+                if (adminContent) {
+                    adminContent.classList.add('authenticated');
+                }
                 // Load admin script only if authenticated
                 const script = document.createElement('script');
-                script.src = 'admin.js?v=113';
+                script.src = 'admin.js?v=140';
                 script.onload = function() {
                     console.log('admin.js loaded successfully');
                 };

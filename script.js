@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.favoritedRestaurants = new Set();
         window.markerClusterGroup = null; // Marker cluster group for map clustering
         
-        // Watched videos state management
+        // Watched videos state management (session-only)
         let watchedVideos = new Set();
         
         // Collected restaurants state management
@@ -158,12 +158,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let selectedCuisines = new Set();
         
         // Load watched videos from localStorage
-        function loadWatchedVideos() {
-            const watched = localStorage.getItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS);
-            if (watched) {
-                watchedVideos = new Set(JSON.parse(watched));
-            }
-        }
+        // Removed loadWatchedVideos() - now using session-only tracking
         
         // Load filter states from localStorage
         function loadFilterStates() {
@@ -743,13 +738,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
         
-        // Load watched videos now that the variable is declared
-        loadWatchedVideos();
+        // Watched videos are now session-only, no need to load from localStorage
         
-        // Add video to watched list and save to localStorage
+        // Add video to watched list (session-only, no localStorage)
         function addVideoToWatched(restaurantId) {
             watchedVideos.add(restaurantId);
-            localStorage.setItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS, JSON.stringify([...watchedVideos]));
         }
         
         // Create watched icon element
