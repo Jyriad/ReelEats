@@ -1188,15 +1188,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Set the flag in localStorage so it doesn't show again
             localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
 
-            // Also remove the tutorial on the first user interaction
-            document.body.removeEventListener('click', completeTutorial);
+            // Remove restaurant click listeners
+            document.removeEventListener('restaurant-clicked', completeTutorial);
         }
 
         // Event listener for the close button
         closeTutorialBtn.addEventListener('click', completeTutorial);
 
-        // Also close the tutorial on any first click on the page
-        document.body.addEventListener('click', completeTutorial, { once: true });
+        // Listen for restaurant clicks to complete tutorial
+        document.addEventListener('restaurant-clicked', completeTutorial);
 
         // --- Initialization ---
         initializeMap();
@@ -3037,6 +3037,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 listItem.classList.add('active-list-item');
                 showVideoFor(restaurant);
                 map.flyTo([restaurant.lat, restaurant.lon], 15);
+                
+                // Dispatch custom event for tutorial completion
+                document.dispatchEvent(new CustomEvent('restaurant-clicked', { 
+                    detail: { restaurant: restaurant, source: 'card' } 
+                }));
             });
 
             // Event listener for the favorite button
@@ -3094,6 +3099,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 showVideoFor(restaurant);
+                
+                // Dispatch custom event for tutorial completion
+                document.dispatchEvent(new CustomEvent('restaurant-clicked', { 
+                    detail: { restaurant: restaurant, source: 'marker' } 
+                }));
             });
             return marker;
         }
