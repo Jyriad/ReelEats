@@ -67,6 +67,97 @@ function showNoVideoMessage(videoContainer, restaurantName, additionalInfo = '')
     videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">${message}</div>`;
 }
 
+function loadVideoWithBlockquote(videoContainer, embedHtml) {
+    // Create a temporary, hidden container off-screen for TikTok processing
+    const preloadContainer = document.createElement('div');
+    preloadContainer.style.position = 'absolute';
+    preloadContainer.style.top = '-9999px';
+    preloadContainer.style.left = '-9999px';
+    preloadContainer.style.width = '330px';
+    preloadContainer.style.height = '585px';
+    preloadContainer.style.background = 'black';
+    document.body.appendChild(preloadContainer);
+
+    // Inject the raw TikTok blockquote HTML into the hidden container
+    preloadContainer.innerHTML = embedHtml;
+
+    // Make sure the blockquote is visible for TikTok processing
+    const hiddenBlockquotes = preloadContainer.querySelectorAll('blockquote.tiktok-embed');
+    hiddenBlockquotes.forEach(bq => {
+        bq.style.visibility = 'visible';
+        bq.style.display = 'block';
+        bq.removeAttribute('hidden');
+        bq.classList.remove('hidden');
+    });
+
+    // Use MutationObserver to wait for iframe creation
+    const observer = new MutationObserver((mutations, obs) => {
+        const iframe = preloadContainer.querySelector('iframe');
+
+        if (iframe) {
+            // Clear loading spinner and add iframe
+            videoContainer.innerHTML = '';
+            videoContainer.appendChild(iframe);
+
+            // Clean up
+            document.body.removeChild(preloadContainer);
+            obs.disconnect();
+        }
+    });
+
+    observer.observe(preloadContainer, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src', 'style']
+    });
+
+    // Timeout fallback
+    setTimeout(() => {
+        if (document.body.contains(preloadContainer)) {
+            document.body.removeChild(preloadContainer);
+            observer.disconnect();
+            showNoVideoMessage(videoContainer, 'Restaurant', 'Video loading failed');
+        }
+    }, 8000);
+}
+
+async function ensureTikTokScriptIsReady() {
+    return new Promise((resolve) => {
+        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+            resolve();
+            return;
+        }
+
+        // Try to find and trigger existing TikTok embeds
+        const existingEmbeds = document.querySelectorAll('blockquote.tiktok-embed');
+        if (existingEmbeds.length > 0) {
+            // TikTok script might already be processing existing embeds
+            setTimeout(resolve, 1000);
+            return;
+        }
+
+        // Force reload TikTok script
+        const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
+        if (existingScript) {
+            existingScript.remove();
+        }
+
+        const newScript = document.createElement('script');
+        newScript.src = 'https://www.tiktok.com/embed.js';
+        newScript.async = true;
+        newScript.onload = () => {
+            setTimeout(() => {
+                if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                    window.tiktokEmbed.load();
+                }
+                resolve();
+            }, 1000);
+        };
+        document.head.appendChild(newScript);
+    });
+}
+
 // --- Skeleton Loader Functions ---
 function createSkeletonCard() {
     const skeletonCard = document.createElement('div');
@@ -3035,13 +3126,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
 async function showVideoFor(restaurant) {
-            console.log('🎬 showVideoFor called with restaurant:', restaurant);
-            console.log('🎬 restaurant.tiktok_embed_html:', restaurant.tiktok_embed_html);
-            console.log('🎬 restaurant.tiktok_embed_html type:', typeof restaurant.tiktok_embed_html);
-            console.log('🎬 restaurant.tiktok_embed_html length:', restaurant.tiktok_embed_html ? restaurant.tiktok_embed_html.length : 'N/A');
-
     if (!restaurant.tiktok_embed_html) {
-        console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
         showNoVideoMessage(videoContainer, restaurant.name);
         videoModal.classList.add('show');
         return;
@@ -3051,158 +3136,24 @@ async function showVideoFor(restaurant) {
     addVideoToWatched(restaurant.id);
     const listItem = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
     if (listItem && !listItem.querySelector('.watched-icon')) {
-        const watchedIcon = createWatchedIcon();
-        listItem.appendChild(watchedIcon);
+        listItem.appendChild(createWatchedIcon());
     }
 
-    // Show the modal with a loading indicator
+    // Show modal and loading state
     videoModal.classList.add('show');
     scrollToRestaurant(restaurant.id);
-    videoContainer.innerHTML = `
-        <div class="w-full h-full flex items-center justify-center text-white">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-        </div>
-    `;
+    videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div></div>`;
 
-    // Create a temporary, hidden container off-screen for TikTok processing
-    const preloadContainer = document.createElement('div');
-    preloadContainer.style.position = 'absolute';
-    preloadContainer.style.top = '-9999px';
-    preloadContainer.style.left = '-9999px';
-    preloadContainer.style.width = '330px';
-    preloadContainer.style.height = '585px';
-    preloadContainer.style.background = 'black';
-    document.body.appendChild(preloadContainer);
+    const videoId = extractVideoId(restaurant.tiktok_embed_html);
 
-    console.log('🎬 Preload container created, injecting TikTok HTML...');
-    console.log('🎬 TikTok HTML length:', restaurant.tiktok_embed_html.length);
-
-    // Inject the raw TikTok blockquote HTML into the hidden container
-    preloadContainer.innerHTML = restaurant.tiktok_embed_html;
-    console.log('🎬 TikTok HTML injected into preload container');
-
-    // Make sure the blockquote is visible for TikTok processing
-    const hiddenBlockquotes = preloadContainer.querySelectorAll('blockquote.tiktok-embed');
-    hiddenBlockquotes.forEach(bq => {
-        bq.style.visibility = 'visible';
-        bq.style.display = 'block';
-        bq.removeAttribute('hidden');
-        bq.classList.remove('hidden');
-    });
-
-    console.log('🎬 Hidden blockquotes prepared:', hiddenBlockquotes.length);
-
-            // Try multiple approaches to trigger TikTok embed processing
-            console.log('🎬 Attempting to trigger TikTok embed processing...');
-
-            // Method 1: Use TikTok's official API if available
-            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                console.log('✅ TikTok script available, calling load()...');
-                window.tiktokEmbed.load();
-            } else {
-                console.log('⏳ TikTok script not ready, trying alternative methods...');
-
-                // Method 2: Try to find and trigger existing TikTok embeds
-                const existingEmbeds = document.querySelectorAll('blockquote.tiktok-embed');
-                if (existingEmbeds.length > 0) {
-                    console.log('🔍 Found existing TikTok embeds:', existingEmbeds.length);
-                    // TikTok script might already be processing existing embeds
-                }
-
-                // Method 3: Try to manually create the iframe
-                console.log('🔄 Attempting manual iframe creation...');
-                const videoId = restaurant.tiktok_embed_html.match(/data-video-id="([^"]+)"/)?.[1];
-                if (videoId) {
-                    console.log('🎬 Found video ID:', videoId);
-                    const iframe = document.createElement('iframe');
-                    iframe.src = `https://www.tiktok.com/embed/v2/${videoId}`;
-                    iframe.width = '330';
-                    iframe.height = '585';
-                    iframe.frameBorder = '0';
-                    iframe.allowFullscreen = true;
-                    iframe.allow = 'encrypted-media';
-                    iframe.style.border = 'none';
-                    iframe.style.background = 'black';
-
-                    console.log('✅ Created iframe manually, adding to modal...');
-                    videoContainer.innerHTML = '';
-                    videoContainer.appendChild(iframe);
-
-                    // Clean up the preload container since we're not using it
-                    document.body.removeChild(preloadContainer);
-                    observer.disconnect();
-                    return;
-                } else {
-                    console.log('❌ Could not extract video ID from embed HTML');
-                }
-
-                // Method 4: Force reload TikTok script
-                console.log('🔄 Attempting to reload TikTok script...');
-                const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
-                if (existingScript) {
-                    existingScript.remove();
-                }
-
-                const newScript = document.createElement('script');
-                newScript.src = 'https://www.tiktok.com/embed.js';
-                newScript.async = true;
-                newScript.onload = () => {
-                    console.log('✅ TikTok script reloaded');
-                    setTimeout(() => {
-                        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                            console.log('✅ TikTok script ready after reload, calling load()...');
-                            window.tiktokEmbed.load();
-                        } else {
-                            console.log('❌ TikTok script still not working after reload');
-                        }
-                    }, 1000);
-                };
-                document.head.appendChild(newScript);
-            }
-
-    // Use MutationObserver to wait for iframe creation
-    const observer = new MutationObserver((mutations, obs) => {
-        console.log('🔍 MutationObserver triggered, checking for iframe...');
-        const iframe = preloadContainer.querySelector('iframe');
-
-        if (iframe) {
-            console.log('✅ TikTok iframe detected! Moving to modal...');
-            console.log('🎬 Iframe src:', iframe.src);
-            console.log('🎬 Iframe readyState:', iframe.readyState);
-
-            // Clear loading spinner and add iframe
-            videoContainer.innerHTML = '';
-            videoContainer.appendChild(iframe);
-
-            // Clean up
-            document.body.removeChild(preloadContainer);
-            obs.disconnect();
-            console.log('✅ Video loading complete');
-        } else {
-            console.log('⏳ No iframe found yet, mutations:', mutations.length);
-            mutations.forEach(m => console.log('  - Mutation:', m.type, m.addedNodes.length, 'nodes'));
-        }
-    });
-
-    console.log('🎬 Starting MutationObserver...');
-    observer.observe(preloadContainer, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['src', 'style']
-    });
-
-    // Increased timeout with better error handling
-    setTimeout(() => {
-        if (document.body.contains(preloadContainer)) {
-            console.error('❌ TikTok embed timed out after 8 seconds');
-            console.log('🔍 Final preload container contents:', preloadContainer.innerHTML);
-
-            document.body.removeChild(preloadContainer);
-            observer.disconnect();
-            showNoVideoMessage(videoContainer, restaurant.name, 'Video loading failed');
-        }
-    }, 8000);
+    if (videoId) {
+        // Primary, fast method: Direct iframe
+        videoContainer.innerHTML = createVideoIframe(videoId);
+    } else {
+        // Fallback, slower method: Use the blockquote and ensure the script is ready
+        await ensureTikTokScriptIsReady();
+        loadVideoWithBlockquote(videoContainer, restaurant.tiktok_embed_html);
+    }
 }
 
         function scrollToRestaurant(restaurantId) {
