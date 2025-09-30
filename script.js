@@ -3275,9 +3275,8 @@ async function showVideoFor(restaurant) {
                 lastTap = currentTime;
             }
 
-            // Add drag event listeners to handle and top touch area
+            // Add drag event listeners only to the drawer handle
             const dragElements = [drawerHandle];
-            if (drawerTouchAreaTop) dragElements.push(drawerTouchAreaTop);
             
             dragElements.forEach(element => {
                 element.addEventListener('touchstart', startDrag, { passive: false });
@@ -3290,15 +3289,9 @@ async function showVideoFor(restaurant) {
             document.addEventListener('touchend', endDrag);
             document.addEventListener('mouseup', endDrag);
 
-            // Debug: Log all touch events on the handle and touch area
+            // Debug: Log all touch events on the handle
             dragElements.forEach((element, index) => {
-                const elementName = index === 0 ? 'handle' : 'touch-area-top';
-                
-                // Add visual debugging - make touch area slightly visible for testing
-                if (index > 0) {
-                    element.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // Very light red for debugging
-                    element.style.border = '1px dashed red'; // Dashed border for debugging
-                }
+                const elementName = 'handle';
                 
                 element.addEventListener('touchstart', (e) => {
                     console.log(`Touch start detected on ${elementName}`);
@@ -3336,12 +3329,10 @@ async function showVideoFor(restaurant) {
                 }
             });
 
-            // Prevent default touch behavior on drag elements only
-            dragElements.forEach(element => {
-                element.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                }, { passive: false });
-            });
+            // Prevent default touch behavior on drawer handle only
+            drawerHandle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            }, { passive: false });
         }
 
         // --- Event Listeners ---
