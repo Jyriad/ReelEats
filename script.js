@@ -1090,15 +1090,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Hide the modal
             tutorialModal.classList.add('hidden');
             tutorialModal.classList.remove('flex');
-
-            // Remove pulsing animations
-            document.querySelectorAll('.pulse-me').forEach(el => el.classList.remove('pulse-me'));
             
             // Set the flag in localStorage so it doesn't show again
             localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
 
             // Also remove the tutorial on the first user interaction
             document.body.removeEventListener('click', completeTutorial);
+        }
+
+        function stopPulsingAnimation() {
+            // Remove pulsing animations when user selects a restaurant
+            document.querySelectorAll('.pulse-me').forEach(el => el.classList.remove('pulse-me'));
         }
 
         // Event listener for the close button
@@ -2873,6 +2875,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Prevent opening video if the favorite button or collection button was clicked
                 if (e.target.closest('.favorite-btn') || e.target.closest('.add-to-collection-btn')) return;
 
+                // Stop pulsing animation when user selects a restaurant
+                stopPulsingAnimation();
+
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
                 listItem.classList.add('active-list-item');
                 showVideoFor(restaurant);
@@ -2923,6 +2928,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             
             marker.on('click', () => {
+                // Stop pulsing animation when user selects a restaurant
+                stopPulsingAnimation();
+
                 // Remove active class from all cards
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {
                     card.classList.remove('active-list-item');
