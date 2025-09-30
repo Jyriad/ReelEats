@@ -289,9 +289,8 @@ html, body {
     min-height: 32px; /* Reduced from 44px for better space optimization */
 }
 
-/* Invisible touch areas for easier drawer dragging */
-#drawer-touch-area-top,
-#drawer-touch-area-bottom {
+/* Invisible touch area for easier drawer dragging */
+#drawer-touch-area-top {
     background: transparent;
     cursor: ns-resize;
     touch-action: none;
@@ -300,21 +299,12 @@ html, body {
     -moz-user-select: none;
     -ms-user-select: none;
     position: absolute;
+    top: 0;
     left: 0;
     right: 0;
+    height: 80px; /* Much thicker area that covers handle + filter buttons */
     z-index: 15; /* Higher than handle z-index of 5 */
     pointer-events: auto;
-}
-
-/* Position the touch areas correctly */
-#drawer-touch-area-top {
-    top: 0;
-    height: 32px; /* 32px touch area above handle */
-}
-
-#drawer-touch-area-bottom {
-    bottom: 0;
-    height: 32px; /* 32px touch area below handle */
 }
 
 #drawer-handle::after {

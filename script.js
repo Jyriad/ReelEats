@@ -3191,7 +3191,6 @@ async function showVideoFor(restaurant) {
         function setupMobileDrawer() {
             const drawerHandle = document.getElementById('drawer-handle');
             const drawerTouchAreaTop = document.getElementById('drawer-touch-area-top');
-            const drawerTouchAreaBottom = document.getElementById('drawer-touch-area-bottom');
             const aside = document.querySelector('aside');
             let isDragging = false;
             let startY = 0;
@@ -3276,10 +3275,9 @@ async function showVideoFor(restaurant) {
                 lastTap = currentTime;
             }
 
-            // Add all event listeners to handle and touch areas
+            // Add all event listeners to handle and top touch area
             const touchElements = [drawerHandle];
             if (drawerTouchAreaTop) touchElements.push(drawerTouchAreaTop);
-            if (drawerTouchAreaBottom) touchElements.push(drawerTouchAreaBottom);
             
             touchElements.forEach(element => {
                 element.addEventListener('touchstart', startDrag, { passive: false });
@@ -3292,11 +3290,11 @@ async function showVideoFor(restaurant) {
             document.addEventListener('touchend', endDrag);
             document.addEventListener('mouseup', endDrag);
 
-            // Debug: Log all touch events on the handle and touch areas
+            // Debug: Log all touch events on the handle and touch area
             touchElements.forEach((element, index) => {
-                const elementName = index === 0 ? 'handle' : (index === 1 ? 'touch-area-top' : 'touch-area-bottom');
+                const elementName = index === 0 ? 'handle' : 'touch-area-top';
                 
-                // Add visual debugging - make touch areas slightly visible for testing
+                // Add visual debugging - make touch area slightly visible for testing
                 if (index > 0) {
                     element.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // Very light red for debugging
                     element.style.border = '1px dashed red'; // Dashed border for debugging
@@ -3316,8 +3314,16 @@ async function showVideoFor(restaurant) {
 
             // Add click event as fallback to all touch elements
             touchElements.forEach((element, index) => {
-                const elementName = index === 0 ? 'handle' : (index === 1 ? 'touch-area-top' : 'touch-area-bottom');
+                const elementName = index === 0 ? 'handle' : 'touch-area-top';
                 element.addEventListener('click', (e) => {
+                    // Check if the click was on a filter button
+                    const filterBtn = e.target.closest('#filter-toggle-btn, #collection-filter-btn');
+                    if (filterBtn) {
+                        // Let the filter button handle its own click
+                        console.log('Click on filter button, not dragging');
+                        return;
+                    }
+                    
                     console.log(`Click on drawer ${elementName}`);
                     const currentHeight = parseInt(getComputedStyle(aside).height);
                     const collapsedHeight = 150;
