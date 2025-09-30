@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const collectionId = String(collection.id); // Convert to string for consistency
                     const isSelected = selectedCollections.has(collectionId) || selectedCollections.has(collection.id);
                     return `
-                    <div class="collection-filter-card p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collectionId}">
+                    <div class="collection-filter-card p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 mb-3 ${isSelected ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collectionId}">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 <div class="w-3 h-3 rounded-full bg-purple-500 mr-3"></div>
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const collectionId = String(collection.id); // Convert to string for consistency
                     const isSelected = selectedCollections.has(collectionId) || selectedCollections.has(collection.id);
                     return `
-                    <label class="collection-checkbox flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collectionId}">
+                    <label class="collection-checkbox flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 mb-3 ${isSelected ? 'border-purple-500 bg-purple-100' : ''}" data-collection-id="${collectionId}">
                         <input type="checkbox" class="sr-only" ${isSelected ? 'checked' : ''}>
                         <div class="w-4 h-4 border-2 border-gray-300 rounded mr-3 flex items-center justify-center ${isSelected ? 'bg-purple-500 border-purple-500' : ''}">
                             ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
@@ -1965,23 +1965,30 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // Apply mobile filter
-        function applyMobileFilter() {
+        async function applyMobileFilter() {
             // Sync desktop checkboxes with mobile state
             syncDesktopFilterWithMobile();
             
-            // Apply the filter
-            filterRestaurantsByCuisines();
+            // Apply the filter using the new combined system
+            await applyAllFiltersAndDisplay();
             
             // Close modal
             closeMobileFilterModal();
         }
         
         // Clear mobile filter
-        function clearMobileFilter() {
+        async function clearMobileFilter() {
+            // Clear persistent state
+            selectedCuisines.clear();
+            saveFilterStates();
+            
             const mobileCheckboxes = document.querySelectorAll('#cuisine-filter-container-mobile .cuisine-checkbox');
             mobileCheckboxes.forEach(checkbox => {
                 checkbox.checked = false;
             });
+            
+            // Apply the cleared filter
+            await applyAllFiltersAndDisplay();
         }
         
         // Sync mobile filter with desktop state
@@ -2408,7 +2415,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Re-display restaurants to show updated collection status
                     if (currentRestaurants && currentRestaurants.length > 0) {
                         console.log('Re-displaying restaurants after adding to collection');
-                        displayRestaurants(currentRestaurants);
+                        await applyAllFiltersAndDisplay();
                     }
                 }
                 
@@ -2476,7 +2483,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // Re-display restaurants to show updated collection status
                         if (currentRestaurants && currentRestaurants.length > 0) {
                             console.log('Re-displaying restaurants after adding to collection');
-                            displayRestaurants(currentRestaurants);
+                            await applyAllFiltersAndDisplay();
                         }
                     }
                 }
