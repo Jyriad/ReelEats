@@ -1058,6 +1058,55 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Handle OAuth redirect on page load
         handleOAuthRedirect();
 
+        // --- First-Time User Tutorial ---
+
+        const tutorialModal = document.getElementById('tutorial-modal');
+        const closeTutorialBtn = document.getElementById('close-tutorial-btn');
+        const TUTORIAL_COMPLETED_KEY = 'reelEats_tutorialCompleted';
+
+        function showTutorial() {
+            // Check if the user has seen the tutorial before
+            if (localStorage.getItem(TUTORIAL_COMPLETED_KEY)) {
+                return; // Don't show if already completed
+            }
+
+            // Show the modal
+            tutorialModal.classList.remove('hidden');
+            tutorialModal.classList.add('flex');
+
+            // Add a pulsing animation to the first restaurant card and marker
+            setTimeout(() => {
+                const firstCard = document.querySelector('#restaurant-list > div');
+                if (firstCard && restaurantMarkers.length > 0) {
+                    firstCard.classList.add('pulse-me');
+                    if (restaurantMarkers[0]._icon) {
+                        restaurantMarkers[0]._icon.classList.add('pulse-me');
+                    }
+                }
+            }, 500); // Small delay to ensure elements are rendered
+        }
+
+        function completeTutorial() {
+            // Hide the modal
+            tutorialModal.classList.add('hidden');
+            tutorialModal.classList.remove('flex');
+
+            // Remove pulsing animations
+            document.querySelectorAll('.pulse-me').forEach(el => el.classList.remove('pulse-me'));
+            
+            // Set the flag in localStorage so it doesn't show again
+            localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
+
+            // Also remove the tutorial on the first user interaction
+            document.body.removeEventListener('click', completeTutorial);
+        }
+
+        // Event listener for the close button
+        closeTutorialBtn.addEventListener('click', completeTutorial);
+
+        // Also close the tutorial on any first click on the page
+        document.body.addEventListener('click', completeTutorial, { once: true });
+
         // --- Initialization ---
         initializeMap();
         await loadCitiesAndInitialRestaurants();
@@ -2755,6 +2804,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Update restaurant cards with distance information if user location is available
             updateRestaurantCardsWithDistance();
+            
+            // Show tutorial for first-time users
+            showTutorial();
         }
         
         function createListItem(restaurant, index) {

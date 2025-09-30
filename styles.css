@@ -729,6 +729,37 @@ html, body {
     color: #6366f1; /* Purple color when collected - just solid color, no background or border */
 }
 
+/* 'Click Me' Pulsing Animation */
+@keyframes pulse-animation {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 15px rgba(59, 130, 246, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.pulse-me {
+  animation: pulse-animation 2s infinite;
+  z-index: 100 !important; /* Ensure it's on top */
+}
+
+/* Style for tutorial modal to animate in */
+#tutorial-modal .transform {
+    animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 .add-to-collection-btn svg {
     width: 16px;
     height: 16px;
