@@ -3196,6 +3196,9 @@ async function showVideoFor(restaurant) {
             let startY = 0;
             let startHeight = 0;
             let lastTap = 0;
+            let dragThreshold = 10; // Minimum movement to consider it a drag
+            let hasMoved = false;
+            let startTime = 0;
 
             if (!drawerHandle || !aside) {
                 console.log('Drawer handle or aside not found');
@@ -3209,10 +3212,19 @@ async function showVideoFor(restaurant) {
                 aside.style.height = '33vh';
             }
 
-            // Unified event handler for both touch and mouse
+            // Smart drag detection - only start drag if there's actual movement
             function startDrag(e) {
+                // Check if this is a click on a filter button - if so, don't start drag
+                const filterBtn = e.target.closest('#filter-toggle-btn, #collection-filter-btn');
+                if (filterBtn) {
+                    console.log('Touch on filter button, not starting drag');
+                    return;
+                }
+
                 console.log('Start drag event');
                 isDragging = true;
+                hasMoved = false;
+                startTime = Date.now();
                 
                 // Get coordinates from either touch or mouse event
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -3230,10 +3242,19 @@ async function showVideoFor(restaurant) {
                 if (!isDragging) return;
                 
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const deltaY = startY - clientY; // Inverted because we want to drag up to expand
-                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
+                const deltaY = Math.abs(startY - clientY);
                 
-                console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
+                // Only consider it a drag if there's significant movement
+                if (deltaY > dragThreshold) {
+                    hasMoved = true;
+                }
+                
+                if (!hasMoved) return;
+                
+                const deltaYActual = startY - clientY; // Inverted because we want to drag up to expand
+                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaYActual));
+                
+                console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaYActual, 'startHeight:', startHeight, 'newHeight:', newHeight);
                 
                 // Update both the style and the CSS variable
                 aside.style.height = `${newHeight}px`;
@@ -3255,6 +3276,22 @@ async function showVideoFor(restaurant) {
                 const finalHeight = parseInt(getComputedStyle(aside).height);
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
                 
+                // If it was a quick tap without movement, treat it as a click
+                if (!hasMoved && (Date.now() - startTime) < 300) {
+                    console.log('Quick tap detected - toggling drawer');
+                    const currentHeight = parseInt(getComputedStyle(aside).height);
+                    const collapsedHeight = 150;
+                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                    
+                    if (currentHeight < expandedHeight / 2) {
+                        aside.style.height = `${expandedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
+                    } else {
+                        aside.style.height = `${collapsedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
+                    }
+                }
+                
                 // Double tap detection
                 const currentTime = new Date().getTime();
                 const tapLength = currentTime - lastTap;
@@ -3275,8 +3312,9 @@ async function showVideoFor(restaurant) {
                 lastTap = currentTime;
             }
 
-            // Add drag event listeners only to the drawer handle
+            // Add drag event listeners to both handle and touch area
             const dragElements = [drawerHandle];
+            if (drawerTouchAreaTop) dragElements.push(drawerTouchAreaTop);
             
             dragElements.forEach(element => {
                 element.addEventListener('touchstart', startDrag, { passive: false });
@@ -3289,9 +3327,15 @@ async function showVideoFor(restaurant) {
             document.addEventListener('touchend', endDrag);
             document.addEventListener('mouseup', endDrag);
 
-            // Debug: Log all touch events on the handle
+            // Debug: Log all touch events on the handle and touch area
             dragElements.forEach((element, index) => {
-                const elementName = 'handle';
+                const elementName = index === 0 ? 'handle' : 'touch-area-top';
+                
+                // Add visual debugging - make touch area slightly visible for testing
+                if (index > 0) {
+                    element.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // Very light red for debugging
+                    element.style.border = '1px dashed red'; // Dashed border for debugging
+                }
                 
                 element.addEventListener('touchstart', (e) => {
                     console.log(`Touch start detected on ${elementName}`);
@@ -3305,34 +3349,12 @@ async function showVideoFor(restaurant) {
                 });
             });
 
-            // Add click event only to the drawer handle (not touch area)
-            drawerHandle.addEventListener('click', (e) => {
-                // Check if the click was on a filter button
-                const filterBtn = e.target.closest('#filter-toggle-btn, #collection-filter-btn');
-                if (filterBtn) {
-                    // Let the filter button handle its own click
-                    console.log('Click on filter button, not dragging');
-                    return;
-                }
-                
-                console.log('Click on drawer handle');
-                const currentHeight = parseInt(getComputedStyle(aside).height);
-                const collapsedHeight = 150;
-                const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
-                
-                if (currentHeight < expandedHeight / 2) {
-                    aside.style.height = `${expandedHeight}px`;
-                    document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
-                } else {
-                    aside.style.height = `${collapsedHeight}px`;
-                    document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
-                }
+            // Prevent default touch behavior on drag elements
+            dragElements.forEach(element => {
+                element.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
             });
-
-            // Prevent default touch behavior on drawer handle only
-            drawerHandle.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-            }, { passive: false });
         }
 
         // --- Event Listeners ---

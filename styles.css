@@ -304,7 +304,7 @@ html, body {
     right: 0;
     height: 100px; /* Even thicker area that covers handle + filter buttons */
     z-index: 15; /* Higher than handle z-index of 5 */
-    pointer-events: none; /* Allow clicks to pass through to filter buttons */
+    pointer-events: auto; /* Re-enable for drag detection */
 }
 
 #drawer-handle::after {
