@@ -3190,6 +3190,8 @@ async function showVideoFor(restaurant) {
         // --- Mobile Drawer Functionality ---
         function setupMobileDrawer() {
             const drawerHandle = document.getElementById('drawer-handle');
+            const drawerTouchAreaTop = document.getElementById('drawer-touch-area-top');
+            const drawerTouchAreaBottom = document.getElementById('drawer-touch-area-bottom');
             const aside = document.querySelector('aside');
             let isDragging = false;
             let startY = 0;
@@ -3274,9 +3276,15 @@ async function showVideoFor(restaurant) {
                 lastTap = currentTime;
             }
 
-            // Add all event listeners
-            drawerHandle.addEventListener('touchstart', startDrag, { passive: false });
-            drawerHandle.addEventListener('mousedown', startDrag);
+            // Add all event listeners to handle and touch areas
+            const touchElements = [drawerHandle];
+            if (drawerTouchAreaTop) touchElements.push(drawerTouchAreaTop);
+            if (drawerTouchAreaBottom) touchElements.push(drawerTouchAreaBottom);
+            
+            touchElements.forEach(element => {
+                element.addEventListener('touchstart', startDrag, { passive: false });
+                element.addEventListener('mousedown', startDrag);
+            });
             
             document.addEventListener('touchmove', drag, { passive: false });
             document.addEventListener('mousemove', drag);
@@ -3284,37 +3292,45 @@ async function showVideoFor(restaurant) {
             document.addEventListener('touchend', endDrag);
             document.addEventListener('mouseup', endDrag);
 
-            // Debug: Log all touch events on the handle
-            drawerHandle.addEventListener('touchstart', (e) => {
-                console.log('Touch start detected on handle');
-            });
-            drawerHandle.addEventListener('touchmove', (e) => {
-                console.log('Touch move detected on handle');
-            });
-            drawerHandle.addEventListener('touchend', (e) => {
-                console.log('Touch end detected on handle');
-            });
-
-            // Add click event as fallback
-            drawerHandle.addEventListener('click', (e) => {
-                console.log('Click on drawer handle');
-                const currentHeight = parseInt(getComputedStyle(aside).height);
-                const collapsedHeight = 150;
-                const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
-                
-                if (currentHeight < expandedHeight / 2) {
-                    aside.style.height = `${expandedHeight}px`;
-                    document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
-                } else {
-                    aside.style.height = `${collapsedHeight}px`;
-                    document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
-                }
+            // Debug: Log all touch events on the handle and touch areas
+            touchElements.forEach((element, index) => {
+                const elementName = index === 0 ? 'handle' : (index === 1 ? 'touch-area-top' : 'touch-area-bottom');
+                element.addEventListener('touchstart', (e) => {
+                    console.log(`Touch start detected on ${elementName}`);
+                });
+                element.addEventListener('touchmove', (e) => {
+                    console.log(`Touch move detected on ${elementName}`);
+                });
+                element.addEventListener('touchend', (e) => {
+                    console.log(`Touch end detected on ${elementName}`);
+                });
             });
 
-            // Prevent default touch behavior on the handle
-            drawerHandle.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-            }, { passive: false });
+            // Add click event as fallback to all touch elements
+            touchElements.forEach((element, index) => {
+                const elementName = index === 0 ? 'handle' : (index === 1 ? 'touch-area-top' : 'touch-area-bottom');
+                element.addEventListener('click', (e) => {
+                    console.log(`Click on drawer ${elementName}`);
+                    const currentHeight = parseInt(getComputedStyle(aside).height);
+                    const collapsedHeight = 150;
+                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                    
+                    if (currentHeight < expandedHeight / 2) {
+                        aside.style.height = `${expandedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
+                    } else {
+                        aside.style.height = `${collapsedHeight}px`;
+                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
+                    }
+                });
+            });
+
+            // Prevent default touch behavior on all touch elements
+            touchElements.forEach(element => {
+                element.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+            });
         }
 
         // --- Event Listeners ---

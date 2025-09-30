@@ -288,6 +288,29 @@ html, body {
     min-height: 32px; /* Reduced from 44px for better space optimization */
 }
 
+/* Invisible touch areas for easier drawer dragging */
+#drawer-touch-area-top,
+#drawer-touch-area-bottom {
+    background: transparent;
+    cursor: ns-resize;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Position the touch areas correctly */
+#drawer-touch-area-top {
+    top: 0;
+    height: 32px; /* 32px touch area above handle */
+}
+
+#drawer-touch-area-bottom {
+    bottom: 0;
+    height: 32px; /* 32px touch area below handle */
+}
+
 #drawer-handle::after {
     content: '';
     width: 50px;
