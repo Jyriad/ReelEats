@@ -7,7 +7,53 @@ html, body {
 #map { 
     height: 100%; 
     width: 100%; 
-    background-color: #e5e7eb;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    position: relative;
+    transition: opacity 0.3s ease;
+}
+
+/* Map loading overlay */
+#map-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    opacity: 1;
+    visibility: visible;
+}
+
+#map-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.map-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e2e8f0;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: map-spin 1s linear infinite;
+}
+
+@keyframes map-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.map-loading-text {
+    margin-top: 12px;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
 }
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;

@@ -1280,6 +1280,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        // --- Map Loading Helper Functions ---
+        function hideMapLoadingOverlay() {
+            const loadingOverlay = document.getElementById('map-loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('hidden');
+                console.log('Map loading overlay hidden');
+            }
+        }
+
+        function showMapLoadingOverlay() {
+            const loadingOverlay = document.getElementById('map-loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                console.log('Map loading overlay shown');
+            }
+        }
+
         function initializeMap() {
             if (mapInitialized) {
                 console.log('Map already initialized, skipping...');
@@ -1288,6 +1305,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             try {
                 console.log('Initializing map...');
+                
+                // Show loading overlay
+                showMapLoadingOverlay();
                 // Check if map is already initialized
                 if (map) {
                     map.remove();
@@ -1298,12 +1318,61 @@ document.addEventListener('DOMContentLoaded', async function() {
                 mapElement.innerHTML = '';
                 mapElement._leaflet_id = null;
                 
-                map = L.map(mapElement, { preferCanvas: true }).setView([51.5074, -0.1278], 13);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                map = L.map(mapElement, { 
+                    preferCanvas: true,
+                    fadeAnimation: true,
+                    zoomAnimation: true,
+                    zoomAnimationThreshold: 4
+                }).setView([51.5074, -0.1278], 13);
+                
+                // Create tile layer with loading events
+                const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap &copy; CARTO',
                     subdomains: 'abcd',
-                    maxZoom: 20
-                }).addTo(map);
+                    maxZoom: 20,
+                    crossOrigin: true,
+                    loading: 'lazy'
+                });
+                
+                // Add loading event listeners
+                let tilesLoaded = 0;
+                let totalTiles = 0;
+                let loadingTimeout;
+                
+                tileLayer.on('loading', function() {
+                    console.log('Map tiles loading...');
+                    // Show loading overlay if not already visible
+                    const loadingOverlay = document.getElementById('map-loading-overlay');
+                    if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
+                        // Already showing, just update text
+                        const loadingText = loadingOverlay.querySelector('.map-loading-text');
+                        if (loadingText) {
+                            loadingText.textContent = 'Loading map tiles...';
+                        }
+                    }
+                });
+                
+                tileLayer.on('tileload', function() {
+                    tilesLoaded++;
+                    if (tilesLoaded >= 4) { // Wait for at least 4 tiles to load
+                        clearTimeout(loadingTimeout);
+                        loadingTimeout = setTimeout(() => {
+                            hideMapLoadingOverlay();
+                        }, 500); // Small delay to ensure smooth transition
+                    }
+                });
+                
+                tileLayer.on('tileerror', function() {
+                    console.log('Tile loading error');
+                });
+                
+                // Add the tile layer to the map
+                tileLayer.addTo(map);
+                
+                // Fallback timeout in case tiles don't load
+                setTimeout(() => {
+                    hideMapLoadingOverlay();
+                }, 3000);
 
                 // Initialize the marker cluster group with tighter clustering
                 window.markerClusterGroup = L.markerClusterGroup({
@@ -3306,7 +3375,14 @@ async function showVideoFor(restaurant) {
             console.log('🔄 Applying saved filters after city change...');
             await applyAllFiltersAndDisplay();
             
-            map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
+            // Smooth transition to new city
+            if (map) {
+                map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12, {
+                    animate: true,
+                    duration: 1.5,
+                    easeLinearity: 0.1
+                });
+            }
         });
         closeVideoBtn.addEventListener('click', closeVideo);
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
