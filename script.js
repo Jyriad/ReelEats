@@ -3187,46 +3187,31 @@ async function showVideoFor(restaurant) {
             videoContainer.innerHTML = '';
         }
 
-        // --- Mobile Drawer Functionality ---
+        // --- Mobile Drawer Functionality - Simplified ---
         function setupMobileDrawer() {
             const drawerHandle = document.getElementById('drawer-handle');
-            const drawerTouchAreaTop = document.getElementById('drawer-touch-area-top');
             const aside = document.querySelector('aside');
             let isDragging = false;
             let startY = 0;
             let startHeight = 0;
-            let lastTap = 0;
-            let dragThreshold = 10; // Minimum movement to consider it a drag
-            let hasMoved = false;
-            let startTime = 0;
 
             if (!drawerHandle || !aside) {
                 console.log('Drawer handle or aside not found');
                 return;
             }
 
-            console.log('Setting up mobile drawer functionality');
+            console.log('Setting up simplified mobile drawer functionality');
 
             // Set initial height on mobile
             if (window.innerWidth <= 768) {
                 aside.style.height = '33vh';
             }
 
-            // Smart drag detection - only start drag if there's actual movement
+            // Simple drag start - only on the visible handle
             function startDrag(e) {
-                // Check if this is a click on a filter button - if so, don't start drag
-                const filterBtn = e.target.closest('#filter-toggle-btn, #collection-filter-btn');
-                if (filterBtn) {
-                    console.log('Touch on filter button, not starting drag');
-                    return;
-                }
-
-                console.log('Start drag event');
+                console.log('Start drag on handle');
                 isDragging = true;
-                hasMoved = false;
-                startTime = Date.now();
                 
-                // Get coordinates from either touch or mouse event
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 startY = clientY;
                 startHeight = parseInt(getComputedStyle(aside).height);
@@ -3242,19 +3227,8 @@ async function showVideoFor(restaurant) {
                 if (!isDragging) return;
                 
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const deltaY = Math.abs(startY - clientY);
-                
-                // Only consider it a drag if there's significant movement
-                if (deltaY > dragThreshold) {
-                    hasMoved = true;
-                }
-                
-                if (!hasMoved) return;
-                
-                const deltaYActual = startY - clientY; // Inverted because we want to drag up to expand
-                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaYActual));
-                
-                console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaYActual, 'startHeight:', startHeight, 'newHeight:', newHeight);
+                const deltaY = startY - clientY; // Inverted because we want to drag up to expand
+                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
                 
                 // Update both the style and the CSS variable
                 aside.style.height = `${newHeight}px`;
@@ -3266,7 +3240,7 @@ async function showVideoFor(restaurant) {
             function endDrag(e) {
                 if (!isDragging) return;
                 
-                console.log('End drag event');
+                console.log('End drag');
                 isDragging = false;
                 
                 // Visual feedback
@@ -3275,51 +3249,26 @@ async function showVideoFor(restaurant) {
                 // Persist the final height
                 const finalHeight = parseInt(getComputedStyle(aside).height);
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
-                
-                // If it was a quick tap without movement, treat it as a click
-                if (!hasMoved && (Date.now() - startTime) < 300) {
-                    console.log('Quick tap detected - toggling drawer');
-                    const currentHeight = parseInt(getComputedStyle(aside).height);
-                    const collapsedHeight = 150;
-                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
-                    
-                    if (currentHeight < expandedHeight / 2) {
-                        aside.style.height = `${expandedHeight}px`;
-                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
-                    } else {
-                        aside.style.height = `${collapsedHeight}px`;
-                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
-                    }
-                }
-                
-                // Double tap detection
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 500 && tapLength > 0) {
-                    console.log('Double tap detected');
-                    const currentHeight = parseInt(getComputedStyle(aside).height);
-                    const collapsedHeight = 150;
-                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
-                    
-                    if (currentHeight < expandedHeight / 2) {
-                        aside.style.height = `${expandedHeight}px`;
-                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
-                    } else {
-                        aside.style.height = `${collapsedHeight}px`;
-                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
-                    }
-                }
-                lastTap = currentTime;
             }
 
-            // Add drag event listeners to both handle and touch area
-            const dragElements = [drawerHandle];
-            if (drawerTouchAreaTop) dragElements.push(drawerTouchAreaTop);
-            
-            dragElements.forEach(element => {
-                element.addEventListener('touchstart', startDrag, { passive: false });
-                element.addEventListener('mousedown', startDrag);
-            });
+            // Simple click to toggle drawer height
+            function toggleDrawer() {
+                const currentHeight = parseInt(getComputedStyle(aside).height);
+                const collapsedHeight = 150;
+                const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                
+                if (currentHeight < expandedHeight / 2) {
+                    aside.style.height = `${expandedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
+                } else {
+                    aside.style.height = `${collapsedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
+                }
+            }
+
+            // Add event listeners only to the drawer handle
+            drawerHandle.addEventListener('touchstart', startDrag, { passive: false });
+            drawerHandle.addEventListener('mousedown', startDrag);
             
             document.addEventListener('touchmove', drag, { passive: false });
             document.addEventListener('mousemove', drag);
@@ -3327,34 +3276,17 @@ async function showVideoFor(restaurant) {
             document.addEventListener('touchend', endDrag);
             document.addEventListener('mouseup', endDrag);
 
-            // Debug: Log all touch events on the handle and touch area
-            dragElements.forEach((element, index) => {
-                const elementName = index === 0 ? 'handle' : 'touch-area-top';
-                
-                // Add visual debugging - make touch area slightly visible for testing
-                if (index > 0) {
-                    element.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // Very light red for debugging
-                    element.style.border = '1px dashed red'; // Dashed border for debugging
-                }
-                
-                element.addEventListener('touchstart', (e) => {
-                    console.log(`Touch start detected on ${elementName}`);
-                    console.log(`Element bounds:`, element.getBoundingClientRect());
-                });
-                element.addEventListener('touchmove', (e) => {
-                    console.log(`Touch move detected on ${elementName}`);
-                });
-                element.addEventListener('touchend', (e) => {
-                    console.log(`Touch end detected on ${elementName}`);
-                });
+            // Add click to toggle
+            drawerHandle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleDrawer();
             });
 
-            // Prevent default touch behavior on drag elements
-            dragElements.forEach(element => {
-                element.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                }, { passive: false });
-            });
+            // Prevent default touch behavior on handle
+            drawerHandle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            }, { passive: false });
         }
 
         // --- Event Listeners ---
