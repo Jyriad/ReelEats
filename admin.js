@@ -8,13 +8,11 @@ async function checkAuth() {
     // First, check if there is a logged-in user session
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError || !session) {
-        console.log('No active session found.');
         return false; // Not authenticated
     }
 
     // If there is a session, check if that user has the 'admin' role
     const user = session.user;
-    console.log('Checking roles for user:', user.id);
 
     try {
         const { data: userRole, error: roleError } = await supabaseClient
@@ -31,10 +29,8 @@ async function checkAuth() {
         }
 
         if (userRole) {
-            console.log('Admin role confirmed for user.');
             return session; // User is an admin, return the session object
         } else {
-            console.log('User does not have admin role.');
             return false; // User is logged in, but not an admin
         }
 
@@ -86,20 +82,16 @@ async function adminLogout() {
 
 // Initialize admin panel
 async function initializeAdminPanel() {
-    console.log('Admin panel initializing...');
     
     // Check if user is authenticated
     const session = await checkAuth();
-    console.log('Auth check result:', session);
     
     if (!session) {
-        console.log('No session, checking for existing user session...');
         
         // Check if there's an existing session from the main app
         const { data: { session: existingSession }, error: sessionError } = await supabaseClient.auth.getSession();
         
         if (existingSession && existingSession.user) {
-            console.log('Found existing session, checking admin role...');
             
             // Check if this user has admin role
             try {
@@ -111,10 +103,8 @@ async function initializeAdminPanel() {
                     .single();
                 
                 if (userRole) {
-                    console.log('Existing user has admin role, proceeding...');
                     // User is already authenticated and has admin role, proceed
                 } else {
-                    console.log('Existing user does not have admin role');
                     document.body.innerHTML = '<div style="text-align:center;padding:50px;"><h1>Access Denied</h1><p>Admin privileges required.</p><a href="index.html">Return to Map</a></div>';
                     return;
                 }
@@ -124,7 +114,6 @@ async function initializeAdminPanel() {
                 return;
             }
         } else {
-            console.log('No existing session, redirecting to main app for login...');
             // No existing session, redirect to main app
             window.location.href = 'index.html';
             return;
@@ -132,33 +121,25 @@ async function initializeAdminPanel() {
     }
     
     try {
-        console.log('Loading dashboard data...');
         await loadDashboardData();
-        console.log('Dashboard data loaded successfully');
     } catch (error) {
         console.error('Failed to load dashboard data:', error);
     }
     
     try {
-        console.log('Loading cities...');
         await loadCitiesForSelect();
-        console.log('Cities loaded successfully');
     } catch (error) {
         console.error('Failed to load cities:', error);
     }
     
     try {
-        console.log('Loading recent restaurants...');
         await loadRecentRestaurants();
-        console.log('Recent restaurants loaded successfully');
     } catch (error) {
         console.error('Failed to load recent restaurants:', error);
     }
     
     try {
-        console.log('Loading restaurants without videos...');
         await loadRestaurantsWithoutVideos();
-        console.log('Restaurants without videos loaded successfully');
     } catch (error) {
         console.error('Failed to load restaurants without videos:', error);
     }
@@ -177,9 +158,7 @@ async function initializeAdminPanel() {
     
     // Load cuisines for the add restaurant form
     try {
-        console.log('Loading cuisines...');
         await loadAndDisplayCuisines('cuisine-selection');
-        console.log('Cuisines loaded successfully');
     } catch (error) {
         console.error('Failed to load cuisines:', error);
     }
@@ -254,14 +233,12 @@ async function loadCitiesForSelect() {
 // Load recent restaurants
 async function loadRecentRestaurants() {
     try {
-        console.log('🏪 Loading recent restaurants...');
         const { data: restaurants, error } = await supabaseClient
             .from('restaurants')
             .select('id, name, description, created_at, city_id')
             .order('created_at', { ascending: false })
             .limit(10);
             
-        console.log('🏪 Restaurants query result:', { restaurants, error });
         
         if (error) throw error;
         
@@ -318,7 +295,6 @@ function toggleRecentRestaurants() {
 
 // Select restaurant from "Restaurants Without Videos" to pre-fill TikTok form
 function selectRestaurantForTikTok(restaurantId, restaurantName) {
-    console.log('🎯 Selecting restaurant for TikTok:', { restaurantId, restaurantName });
     
     // Pre-fill the TikTok form
     document.getElementById('selected-restaurant-id').value = restaurantId;
@@ -406,10 +382,8 @@ async function loadAndDisplayCuisines(containerId, preselectedCuisines = []) {
 
 // Set up cuisine selection functionality
 function setupCuisineSelection(containerId = null) {
-    console.log('🍽️ Setting up cuisine selection...');
     const selector = containerId ? `#${containerId} .cuisine-btn` : '.cuisine-btn';
     const cuisineButtons = document.querySelectorAll(selector);
-    console.log('🍽️ Found cuisine buttons:', cuisineButtons.length);
     
     cuisineButtons.forEach((button, index) => {
         // Remove any existing event listeners
@@ -418,12 +392,10 @@ function setupCuisineSelection(containerId = null) {
     
     // Re-query after cloning to get fresh elements
     const freshButtons = document.querySelectorAll('.cuisine-btn');
-    console.log('🍽️ Fresh cuisine buttons:', freshButtons.length);
     
     freshButtons.forEach((button, index) => {
         button.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('🍽️ Cuisine button clicked:', button.dataset.cuisine);
             
             // Toggle selection
             if (button.classList.contains('selected')) {
@@ -434,18 +406,15 @@ function setupCuisineSelection(containerId = null) {
                 const textColor = button.dataset.textColor || '#1F2937';
                 button.style.backgroundColor = bgColor;
                 button.style.color = textColor;
-                console.log('🍽️ Deselected:', button.dataset.cuisine);
             } else {
                 // Select
                 button.classList.add('selected');
                 button.style.backgroundColor = '#3B82F6';
                 button.style.color = 'white';
-                console.log('🍽️ Selected:', button.dataset.cuisine);
             }
             
             // Debug: Show current selection
             const selectedCuisines = getSelectedCuisines();
-            console.log('🍽️ Currently selected cuisines:', selectedCuisines);
         });
     });
 }
@@ -475,10 +444,8 @@ function resetCuisineSelection() {
 // Add cuisine relationships to restaurant_cuisines table
 async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
     try {
-        console.log('🍽️ Adding cuisines for restaurant:', restaurantId, 'Selected cuisines:', selectedCuisineNames);
         
         if (!selectedCuisineNames || selectedCuisineNames.length === 0) {
-            console.log('🍽️ No cuisines selected, skipping cuisine relationships');
             return;
         }
         
@@ -494,14 +461,12 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
             return;
         }
         
-        console.log('🍽️ Found cuisine IDs:', cuisines);
         
         // Check if any cuisines are missing and create them
         const foundCuisineNames = cuisines.map(c => c.name);
         const missingCuisines = selectedCuisineNames.filter(name => !foundCuisineNames.includes(name));
         
         if (missingCuisines.length > 0) {
-            console.log('🍽️ Creating missing cuisines:', missingCuisines);
             const newCuisines = missingCuisines.map(name => ({ name }));
             
             const { data: createdCuisines, error: createError } = await supabaseClient
@@ -515,12 +480,10 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
                 return;
             }
             
-            console.log('🍽️ Created missing cuisines:', createdCuisines);
             cuisines.push(...createdCuisines);
         }
         
         if (!cuisines || cuisines.length === 0) {
-            console.log('🍽️ No cuisines found or created for selected names:', selectedCuisineNames);
             showStatus('Restaurant added, but no cuisines could be processed.', 'warning');
             return;
         }
@@ -531,7 +494,6 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
             cuisine_id: cuisine.id
         }));
         
-        console.log('🍽️ Creating relationships:', relationshipData);
         
         const { error: relationshipError } = await supabaseClient
             .from('restaurant_cuisines')
@@ -541,7 +503,6 @@ async function addRestaurantCuisines(restaurantId, selectedCuisineNames) {
             console.error('Error adding restaurant cuisines:', relationshipError);
             showStatus('Restaurant added, but failed to link cuisines. Please add them manually.', 'warning');
         } else {
-            console.log('✅ Successfully added', relationshipData.length, 'cuisine relationships');
         }
         
     } catch (error) {
@@ -582,7 +543,6 @@ async function loadRestaurantsWithoutVideos() {
             return;
         }
         
-        console.log('🎯 Restaurants without videos:', restaurantsWithoutVideos);
         
         container.innerHTML = restaurantsWithoutVideos.map(restaurant => `
             <div class="flex justify-between items-start p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors duration-200" 
@@ -600,7 +560,6 @@ async function loadRestaurantsWithoutVideos() {
             </div>
         `).join('');
         
-        console.log('✅ Updated restaurants without videos display');
         
         // Update dashboard count
         document.getElementById('restaurants-without-videos-count').textContent = restaurantsWithoutVideos.length;
@@ -689,9 +648,6 @@ async function handleAddRestaurant(e) {
     
     // Debug: Check current authentication status
     const { data: { session } } = await supabaseClient.auth.getSession();
-    console.log('🔐 Current session:', session);
-    console.log('🔐 User ID:', session?.user?.id);
-    console.log('🔐 User email:', session?.user?.email);
     
     if (!session) {
         showStatus('Not authenticated! Please refresh and log in again.', 'error');
@@ -717,7 +673,6 @@ async function handleAddRestaurant(e) {
         created_at: new Date().toISOString()
     };
     
-    console.log('📝 Form data to insert:', formData);
     
     try {
         // Add restaurant
@@ -735,12 +690,10 @@ async function handleAddRestaurant(e) {
             throw restaurantError;
         }
         
-        console.log('✅ Restaurant added successfully:', restaurant);
         
         // Check if TikTok URL was provided
         const tiktokUrl = document.getElementById('restaurant-tiktok-url').value.trim();
         if (tiktokUrl) {
-            console.log('🎬 TikTok URL provided, adding video for restaurant:', restaurant.id);
             
             try {
                 // Extract video ID and creator handle from TikTok URL
@@ -768,7 +721,6 @@ async function handleAddRestaurant(e) {
                         console.error('🚨 Error adding TikTok video:', tiktokError);
                         showStatus('Restaurant added successfully, but failed to add TikTok video. You can add it manually.', 'warning');
                     } else {
-                        console.log('✅ TikTok video added successfully as featured');
                         showStatus('Restaurant and featured TikTok video added successfully!', 'success');
                     }
                 }
@@ -782,12 +734,9 @@ async function handleAddRestaurant(e) {
         
         // Add cuisine relationships
         const selectedCuisines = getSelectedCuisines();
-        console.log('🍽️ Selected cuisines from form:', selectedCuisines);
         if (selectedCuisines.length > 0) {
-            console.log('🍽️ Adding cuisine relationships:', selectedCuisines);
             await addRestaurantCuisines(restaurant.id, selectedCuisines);
         } else {
-            console.log('🍽️ No cuisines selected for this restaurant');
         }
         
         // Reset form
@@ -839,15 +788,12 @@ async function handleFindOnMap() {
     
     const useNewAPI = false; // Set to false temporarily to use legacy API while fixing issues
     
-    console.log('🔍 useNewAPI flag:', useNewAPI);
     
     try {        
         if (useNewAPI) {
-            console.log('🆕 Using NEW Places API...');
             // Use new Places API (New) - REST API
             await searchWithNewAPI(restaurantName, statusEl);
         } else {
-            console.log('🔄 Using LEGACY Places API...');
             // Fallback to legacy Places API
             await searchWithLegacyAPI(restaurantName, statusEl);
         }
@@ -860,7 +806,6 @@ async function handleFindOnMap() {
         
         // If new API fails, try legacy as fallback
         if (useNewAPI) {
-            console.log('New API failed, trying legacy API...');
             try {
                 await searchWithLegacyAPI(restaurantName, statusEl);
             } catch (legacyError) {
@@ -892,7 +837,6 @@ async function searchWithNewAPI(restaurantName, statusEl) {
     }
     
     const data = await response.json();
-    console.log('🆕 New Places API response:', data);
     
     if (data.places && data.places.length > 0) {
         // Convert new API format to legacy format for compatibility
@@ -930,7 +874,6 @@ async function searchWithLegacyAPI(restaurantName, statusEl, formType = 'create'
             fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types']
         };
         
-        console.log('🔍 Searching for:', request.query);
         
         // Perform multiple searches for better coverage
         let allResults = [];
@@ -940,7 +883,6 @@ async function searchWithLegacyAPI(restaurantName, statusEl, formType = 'create'
         // Search 1: Standard search
         service.textSearch(request, (results, status) => {
             if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-                console.log('🔄 Standard search results:', results.length);
                 allResults = allResults.concat(results);
             }
             searchesCompleted++;
@@ -958,7 +900,6 @@ async function searchWithLegacyAPI(restaurantName, statusEl, formType = 'create'
         setTimeout(() => {
             service.textSearch(ukRequest, (results, status) => {
                 if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-                    console.log('🇬🇧 UK-biased search results:', results.length);
                     allResults = allResults.concat(results);
                 }
                 searchesCompleted++;

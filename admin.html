@@ -403,34 +403,28 @@
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
                 
                 if (sessionError) {
-                    console.log('Session error:', sessionError);
                     return false;
                 }
 
                 if (!session) {
-                    console.log('No active session found.');
                     return false;
                 }
 
                 // Check if session is still valid (not expired)
                 const now = Math.floor(Date.now() / 1000);
                 if (session.expires_at && session.expires_at < now) {
-                    console.log('Session expired, attempting refresh...');
                     
                     // Try to refresh the session
                     const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
                     
                     if (refreshError || !refreshData.session) {
-                        console.log('Session refresh failed:', refreshError);
                         return false;
                     }
                     
-                    console.log('Session refreshed successfully');
                 }
 
                 // Get the user from the session
                 const user = session.user;
-                console.log('Checking admin role for user:', user.id);
                 
                 // Check if user has admin role
                 const { data: userRole, error: roleError } = await supabaseClient
@@ -444,7 +438,6 @@
                     throw new Error('Admin access required');
                 }
                 
-                console.log('Admin access verified');
                 return true;
                 
             } catch (error) {
@@ -468,17 +461,13 @@
         
         // Run auth check when page loads
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('Starting admin auth check...');
             const isAuthenticated = await checkAdminAuth();
-            console.log('Auth check result:', isAuthenticated);
             
             if (isAuthenticated) {
-                console.log('Loading admin.js...');
                 // Load admin script only if authenticated
                 const script = document.createElement('script');
                 script.src = 'admin.js?v=113';
                 script.onload = function() {
-                    console.log('admin.js loaded successfully');
                 };
                 script.onerror = function() {
                     console.error('Failed to load admin.js');
