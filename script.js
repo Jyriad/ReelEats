@@ -3275,11 +3275,11 @@ async function showVideoFor(restaurant) {
                 lastTap = currentTime;
             }
 
-            // Add all event listeners to handle and top touch area
-            const touchElements = [drawerHandle];
-            if (drawerTouchAreaTop) touchElements.push(drawerTouchAreaTop);
+            // Add drag event listeners to handle and top touch area
+            const dragElements = [drawerHandle];
+            if (drawerTouchAreaTop) dragElements.push(drawerTouchAreaTop);
             
-            touchElements.forEach(element => {
+            dragElements.forEach(element => {
                 element.addEventListener('touchstart', startDrag, { passive: false });
                 element.addEventListener('mousedown', startDrag);
             });
@@ -3291,7 +3291,7 @@ async function showVideoFor(restaurant) {
             document.addEventListener('mouseup', endDrag);
 
             // Debug: Log all touch events on the handle and touch area
-            touchElements.forEach((element, index) => {
+            dragElements.forEach((element, index) => {
                 const elementName = index === 0 ? 'handle' : 'touch-area-top';
                 
                 // Add visual debugging - make touch area slightly visible for testing
@@ -3312,35 +3312,32 @@ async function showVideoFor(restaurant) {
                 });
             });
 
-            // Add click event as fallback to all touch elements
-            touchElements.forEach((element, index) => {
-                const elementName = index === 0 ? 'handle' : 'touch-area-top';
-                element.addEventListener('click', (e) => {
-                    // Check if the click was on a filter button
-                    const filterBtn = e.target.closest('#filter-toggle-btn, #collection-filter-btn');
-                    if (filterBtn) {
-                        // Let the filter button handle its own click
-                        console.log('Click on filter button, not dragging');
-                        return;
-                    }
-                    
-                    console.log(`Click on drawer ${elementName}`);
-                    const currentHeight = parseInt(getComputedStyle(aside).height);
-                    const collapsedHeight = 150;
-                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
-                    
-                    if (currentHeight < expandedHeight / 2) {
-                        aside.style.height = `${expandedHeight}px`;
-                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
-                    } else {
-                        aside.style.height = `${collapsedHeight}px`;
-                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
-                    }
-                });
+            // Add click event only to the drawer handle (not touch area)
+            drawerHandle.addEventListener('click', (e) => {
+                // Check if the click was on a filter button
+                const filterBtn = e.target.closest('#filter-toggle-btn, #collection-filter-btn');
+                if (filterBtn) {
+                    // Let the filter button handle its own click
+                    console.log('Click on filter button, not dragging');
+                    return;
+                }
+                
+                console.log('Click on drawer handle');
+                const currentHeight = parseInt(getComputedStyle(aside).height);
+                const collapsedHeight = 150;
+                const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                
+                if (currentHeight < expandedHeight / 2) {
+                    aside.style.height = `${expandedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
+                } else {
+                    aside.style.height = `${collapsedHeight}px`;
+                    document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
+                }
             });
 
-            // Prevent default touch behavior on all touch elements
-            touchElements.forEach(element => {
+            // Prevent default touch behavior on drag elements only
+            dragElements.forEach(element => {
                 element.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                 }, { passive: false });
