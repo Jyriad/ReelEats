@@ -3477,7 +3477,7 @@ async function showVideoFor(restaurant) {
             });
         }
         
-        const clearCollectionFilters = document.getElementById('clear-collection-filters');
+        const clearCollectionFilters = document.getElementById('clear-collection-filters-desktop');
         if (clearCollectionFilters) {
             clearCollectionFilters.addEventListener('click', () => {
                 console.log('Clear collection filters (desktop) clicked');
@@ -3486,6 +3486,9 @@ async function showVideoFor(restaurant) {
                 console.log('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
+                
+                // Sync checkboxes to reflect cleared state
+                syncCollectionCheckboxes();
                 
                 // Apply the cleared filter immediately to update the display
                 if (currentRestaurants && currentRestaurants.length > 0) {
@@ -3604,6 +3607,9 @@ async function showVideoFor(restaurant) {
                 console.log('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
+                
+                // Sync checkboxes to reflect cleared state
+                syncCollectionCheckboxes();
                 
                 // Apply the cleared filter immediately to update the display
                 if (currentRestaurants && currentRestaurants.length > 0) {
