@@ -379,7 +379,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (error) {
                     console.error('Error loading collected restaurants:', error);
                 } else {
-                    collectedRestaurants = new Set(data.map(item => item.restaurant_id));
+                    // Store both string and numeric versions for compatibility
+                    collectedRestaurants = new Set();
+                    data.forEach(item => {
+                        collectedRestaurants.add(item.restaurant_id); // numeric version
+                        collectedRestaurants.add(String(item.restaurant_id)); // string version
+                    });
                     console.log('Loaded collected restaurants:', collectedRestaurants);
                 }
             } catch (error) {
@@ -2413,8 +2418,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                             } else {
                                 showToast(`Collection "${collectionName}" created and restaurant added!`);
                                 
-                                // Update collection state
+                                // Update collection state (store both string and numeric versions)
                                 collectedRestaurants.add(restaurantId);
+                                collectedRestaurants.add(parseInt(restaurantId, 10));
                                 console.log('Updated collectedRestaurants (quick create):', collectedRestaurants);
                                 
                                 // Close modal and reset
@@ -2460,8 +2466,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return;
                 }
 
-                // Check if restaurant is already in collections
-                if (collectedRestaurants.has(restaurantId)) {
+                // Check if restaurant is already in collections (check both string and numeric versions)
+                const numericRestaurantId = parseInt(restaurantId, 10);
+                const isInCollections = collectedRestaurants.has(restaurantId) || collectedRestaurants.has(numericRestaurantId);
+                
+                console.log('Checking restaurant collection status:', {
+                    restaurantId,
+                    numericRestaurantId,
+                    collectedRestaurants: Array.from(collectedRestaurants),
+                    isInCollections
+                });
+                
+                if (isInCollections) {
                     // Show removal modal for restaurants already in collections
                     showCollectionRemovalModal(restaurantId);
                 } else {
@@ -2494,8 +2510,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     showToast('Error adding to collection. Please try again.', 'error');
                 } else {
                     showToast('Added to collection!');
-                    // Update collection state immediately
+                    // Update collection state immediately (store both string and numeric versions)
                     collectedRestaurants.add(restaurantId);
+                    collectedRestaurants.add(parseInt(restaurantId, 10));
                     console.log('Updated collectedRestaurants:', collectedRestaurants);
                     
                     // Update the specific restaurant card immediately
@@ -2572,8 +2589,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         showToast('Error adding to collection. Please try again.', 'error');
                     } else {
                         showToast('Added to collection!');
-                        // Update collection state
+                        // Update collection state (store both string and numeric versions)
                         collectedRestaurants.add(restaurantId);
+                        collectedRestaurants.add(parseInt(restaurantId, 10));
                         console.log('Updated collectedRestaurants:', collectedRestaurants);
                         // Re-display restaurants to show updated collection status
                         if (currentRestaurants && currentRestaurants.length > 0) {
@@ -2613,8 +2631,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         .eq('restaurant_id', restaurantId);
                     
                     if (!remainingCollections || remainingCollections.length === 0) {
-                        // Remove from collected restaurants if not in any collections
+                        // Remove from collected restaurants if not in any collections (remove both string and numeric versions)
                         collectedRestaurants.delete(restaurantId);
+                        collectedRestaurants.delete(parseInt(restaurantId, 10));
                         
                         // Update the specific restaurant card
                         const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
