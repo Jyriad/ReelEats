@@ -878,6 +878,52 @@ html, body {
     padding: 0 !important;
 }
 
+/* New styles for SVG markers */
+.svg-marker-container svg {
+    width: 100%;
+    height: 100%;
+    /* You can add a drop shadow for better visibility on the map */
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+
+/* Scale SVG icons in restaurant card cuisine tags */
+.restaurant-item span svg,
+.restaurant-item .inline-block svg {
+    width: 12px !important;
+    height: 12px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 4px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Ensure all SVG elements in cuisine tags are small */
+#restaurant-list span svg {
+    width: 12px !important;
+    height: 12px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 4px !important;
+}
+
+/* Scale SVG icons in cuisine filter modal */
+.cuisine-card-content svg,
+.cuisine-card-content div svg {
+    width: 32px !important;
+    height: 32px !important;
+    display: block !important;
+    margin: 0 auto 8px auto !important;
+}
+
+/* Scale SVG icons in category headers */
+.space-y-3 span svg {
+    width: 24px !important;
+    height: 24px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 8px !important;
+}
+
 /* Collection Selection Modal Styles */
 #collection-selection-modal {
     animation: fadeIn 0.2s ease-out;

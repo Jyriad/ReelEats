@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.favoritedRestaurants = new Set();
         window.markerClusterGroup = null; // Marker cluster group for map clustering
         
-        // Watched videos state management
+        // Watched videos state management (session-only)
         let watchedVideos = new Set();
         
         // Collected restaurants state management
@@ -158,12 +158,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let selectedCuisines = new Set();
         
         // Load watched videos from localStorage
-        function loadWatchedVideos() {
-            const watched = localStorage.getItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS);
-            if (watched) {
-                watchedVideos = new Set(JSON.parse(watched));
-            }
-        }
+        // Removed loadWatchedVideos() - now using session-only tracking
         
         // Load filter states from localStorage
         function loadFilterStates() {
@@ -743,13 +738,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
         
-        // Load watched videos now that the variable is declared
-        loadWatchedVideos();
+        // Watched videos are now session-only, no need to load from localStorage
         
-        // Add video to watched list and save to localStorage
+        // Add video to watched list (session-only, no localStorage)
         function addVideoToWatched(restaurantId) {
             watchedVideos.add(restaurantId);
-            localStorage.setItem(CONFIG.STORAGE_KEYS.WATCHED_VIDEOS, JSON.stringify([...watchedVideos]));
         }
         
         // Create watched icon element
@@ -1090,9 +1083,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Hide the modal
             tutorialModal.classList.add('hidden');
             tutorialModal.classList.remove('flex');
-
-            // Remove pulsing animations
-            document.querySelectorAll('.pulse-me').forEach(el => el.classList.remove('pulse-me'));
             
             // Set the flag in localStorage so it doesn't show again
             localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
@@ -1101,11 +1091,66 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.body.removeEventListener('click', completeTutorial);
         }
 
+        function stopPulsingAnimation() {
+            // Remove pulsing animations when user selects a restaurant
+            document.querySelectorAll('.pulse-me').forEach(el => el.classList.remove('pulse-me'));
+        }
+
         // Event listener for the close button
         closeTutorialBtn.addEventListener('click', completeTutorial);
 
         // Also close the tutorial on any first click on the page
         document.body.addEventListener('click', completeTutorial, { once: true });
+
+        // Request geolocation on page load to show distances immediately
+        function requestGeolocationOnLoad() {
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser');
+                return;
+            }
+
+            console.log('Requesting geolocation on page load...');
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 8000, // Shorter timeout for page load
+                maximumAge: 300000 // 5 minutes
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                async function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    
+                    console.log('User location found on page load:', userLat, userLon);
+                    
+                    // Store user location globally for distance calculations
+                    window.userLocation = { lat: userLat, lon: userLon };
+                    
+                    // Re-order restaurants by distance now that we have user location
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        currentRestaurants.sort((a, b) => {
+                            const distanceA = calculateDistance(userLat, userLon, a.lat, a.lon);
+                            const distanceB = calculateDistance(userLat, userLon, b.lat, b.lon);
+                            return distanceA - distanceB;
+                        });
+                        await applyAllFiltersAndDisplay();
+                        console.log('Restaurants re-ordered by distance from user location on page load');
+                    }
+                    
+                    // Update restaurant cards with distances
+                    updateRestaurantCardsWithDistance();
+                    
+                    console.log('Distance information added to restaurant cards on page load');
+                },
+                function(error) {
+                    console.log('Geolocation error on page load:', error.message);
+                    // Don't show any error to user - just silently fail
+                    // The location button is still available for manual request
+                },
+                options
+            );
+        }
 
         // --- Initialization ---
         initializeMap();
@@ -1119,6 +1164,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         syncCollectionCheckboxes();
         updateFilterButtonAppearance();
         updateCollectionFilterButtonAppearance();
+        
+        // Request geolocation on page load to show distances immediately
+        requestGeolocationOnLoad();
         
         // Pre-load collection-restaurant mappings if collections are selected
         if (selectedCollections.size > 0) {
@@ -2873,6 +2921,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Prevent opening video if the favorite button or collection button was clicked
                 if (e.target.closest('.favorite-btn') || e.target.closest('.add-to-collection-btn')) return;
 
+                // Stop pulsing animation when user selects a restaurant
+                stopPulsingAnimation();
+
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => card.classList.remove('active-list-item'));
                 listItem.classList.add('active-list-item');
                 showVideoFor(restaurant);
@@ -2911,10 +2962,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const favoritedClass = isFavorited ? 'favorited' : '';
             const icon = L.divIcon({
-                className: 'numbered-marker',
-                html: `<div class="numbered-marker-content ${favoritedClass}">${displayContent}</div>`,
-                iconSize: [40, 40],
-                iconAnchor: [20, 20]
+                className: 'svg-marker',
+                html: `<div class="svg-marker-container ${favoritedClass}">${displayContent}</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
@@ -2923,6 +2974,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             
             marker.on('click', () => {
+                // Stop pulsing animation when user selects a restaurant
+                stopPulsingAnimation();
+
                 // Remove active class from all cards
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {
                     card.classList.remove('active-list-item');
@@ -2931,6 +2985,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const correspondingCard = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
                 if (correspondingCard) {
                     correspondingCard.classList.add('active-list-item');
+                    
+                    // Scroll the restaurant list to make the clicked restaurant visible
+                    correspondingCard.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
                 }
                 
                 showVideoFor(restaurant);
@@ -3476,7 +3536,7 @@ async function showVideoFor(restaurant) {
             });
         }
         
-        const clearCollectionFilters = document.getElementById('clear-collection-filters');
+        const clearCollectionFilters = document.getElementById('clear-collection-filters-desktop');
         if (clearCollectionFilters) {
             clearCollectionFilters.addEventListener('click', () => {
                 console.log('Clear collection filters (desktop) clicked');
@@ -3485,6 +3545,9 @@ async function showVideoFor(restaurant) {
                 console.log('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
+                
+                // Sync checkboxes to reflect cleared state
+                syncCollectionCheckboxes();
                 
                 // Apply the cleared filter immediately to update the display
                 if (currentRestaurants && currentRestaurants.length > 0) {
@@ -3603,6 +3666,9 @@ async function showVideoFor(restaurant) {
                 console.log('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
+                
+                // Sync checkboxes to reflect cleared state
+                syncCollectionCheckboxes();
                 
                 // Apply the cleared filter immediately to update the display
                 if (currentRestaurants && currentRestaurants.length > 0) {
