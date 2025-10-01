@@ -116,6 +116,9 @@ async function testSupabaseConnection() {
 
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        // --- Handle Email Confirmation First ---
+        handleEmailConfirmation();
+        
         // --- UI Element References ---
         const mapElement = document.getElementById('map');
         const restaurantList = document.getElementById('restaurant-list');
@@ -894,15 +897,56 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        // --- Handle Email Confirmation Redirect ---
+        function handleEmailConfirmation() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const accessToken = urlParams.get('access_token');
+            const refreshToken = urlParams.get('refresh_token');
+            const type = urlParams.get('type');
+            
+            if (type === 'signup' && accessToken) {
+                console.log('Email confirmation detected, processing...');
+                
+                // Set the session with the tokens
+                supabaseClient.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken
+                }).then(({ data, error }) => {
+                    if (error) {
+                        console.error('Error setting session:', error);
+                        showAuthFeedback('Email confirmation failed. Please try signing up again.');
+                    } else {
+                        console.log('Email confirmation successful');
+                        showAuthFeedback('Email confirmed successfully! You are now logged in.', false);
+                        
+                        // Clean up the URL by removing the tokens
+                        const cleanUrl = window.location.origin + window.location.pathname;
+                        window.history.replaceState({}, document.title, cleanUrl);
+                        
+                        // Close any open auth modals
+                        const authModal = document.getElementById('auth-modal');
+                        if (authModal) {
+                            authModal.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        }
+
         // --- Supabase Auth Logic ---
         async function handleSignUp(email, password) {
             try {
+                // Get current domain dynamically
+                const currentOrigin = window.location.origin;
+                const redirectUrl = currentOrigin + '/';
+                
+                console.log('Signing up with redirect URL:', redirectUrl);
+                
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                     options: {
-                        // Redirect to your main page after email confirmation
-                        emailRedirectTo: window.location.origin + '/'
+                        emailRedirectTo: redirectUrl
                     }
                 });
                 if (error) throw error;
