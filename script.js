@@ -900,6 +900,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
+                    options: {
+                        // Redirect to your main page after email confirmation
+                        emailRedirectTo: window.location.origin + '/'
+                    }
                 });
                 if (error) throw error;
                 showAuthFeedback('Success! Please check your email for a confirmation link.', false);
