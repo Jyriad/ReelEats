@@ -887,12 +887,23 @@ html, body {
 }
 
 /* Scale SVG icons in restaurant card cuisine tags */
-.restaurant-item span svg {
-    width: 16px;
-    height: 16px;
-    display: inline-block;
-    vertical-align: middle;
-    margin-right: 4px;
+.restaurant-item span svg,
+.restaurant-item .inline-block svg {
+    width: 12px !important;
+    height: 12px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 4px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Ensure all SVG elements in cuisine tags are small */
+#restaurant-list span svg {
+    width: 12px !important;
+    height: 12px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 4px !important;
 }
 
 /* Collection Selection Modal Styles */
