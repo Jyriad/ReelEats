@@ -899,13 +899,37 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // --- Handle Email Confirmation Redirect ---
         function handleEmailConfirmation() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const accessToken = urlParams.get('access_token');
-            const refreshToken = urlParams.get('refresh_token');
-            const type = urlParams.get('type');
+            // Check both hash fragment and query parameters
+            const hash = window.location.hash.substring(1); // Remove the # character
+            const search = window.location.search.substring(1); // Remove the ? character
+            
+            let accessToken, refreshToken, type, expiresAt, expiresIn, tokenType;
+            
+            // Try to parse from hash fragment first (most common)
+            if (hash) {
+                const hashParams = new URLSearchParams(hash);
+                accessToken = hashParams.get('access_token');
+                refreshToken = hashParams.get('refresh_token');
+                type = hashParams.get('type');
+                expiresAt = hashParams.get('expires_at');
+                expiresIn = hashParams.get('expires_in');
+                tokenType = hashParams.get('token_type');
+            }
+            
+            // Fallback to query parameters if not found in hash
+            if (!accessToken && search) {
+                const urlParams = new URLSearchParams(search);
+                accessToken = urlParams.get('access_token');
+                refreshToken = urlParams.get('refresh_token');
+                type = urlParams.get('type');
+                expiresAt = urlParams.get('expires_at');
+                expiresIn = urlParams.get('expires_in');
+                tokenType = urlParams.get('token_type');
+            }
             
             if (type === 'signup' && accessToken) {
-                console.log('Email confirmation detected, processing...');
+                console.log('Email confirmation detected in URL, processing...');
+                console.log('Token type:', tokenType, 'Expires at:', expiresAt);
                 
                 // Set the session with the tokens
                 supabaseClient.auth.setSession({
@@ -928,6 +952,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                         if (authModal) {
                             authModal.style.display = 'none';
                         }
+                        
+                        // Reload the page to refresh the UI state
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
                     }
                 });
             }
