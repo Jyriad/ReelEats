@@ -1102,6 +1102,56 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Also close the tutorial on any first click on the page
         document.body.addEventListener('click', completeTutorial, { once: true });
 
+        // Request geolocation on page load to show distances immediately
+        function requestGeolocationOnLoad() {
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser');
+                return;
+            }
+
+            console.log('Requesting geolocation on page load...');
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 8000, // Shorter timeout for page load
+                maximumAge: 300000 // 5 minutes
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                async function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    
+                    console.log('User location found on page load:', userLat, userLon);
+                    
+                    // Store user location globally for distance calculations
+                    window.userLocation = { lat: userLat, lon: userLon };
+                    
+                    // Re-order restaurants by distance now that we have user location
+                    if (currentRestaurants && currentRestaurants.length > 0) {
+                        currentRestaurants.sort((a, b) => {
+                            const distanceA = calculateDistance(userLat, userLon, a.lat, a.lon);
+                            const distanceB = calculateDistance(userLat, userLon, b.lat, b.lon);
+                            return distanceA - distanceB;
+                        });
+                        await applyAllFiltersAndDisplay();
+                        console.log('Restaurants re-ordered by distance from user location on page load');
+                    }
+                    
+                    // Update restaurant cards with distances
+                    updateRestaurantCardsWithDistance();
+                    
+                    console.log('Distance information added to restaurant cards on page load');
+                },
+                function(error) {
+                    console.log('Geolocation error on page load:', error.message);
+                    // Don't show any error to user - just silently fail
+                    // The location button is still available for manual request
+                },
+                options
+            );
+        }
+
         // --- Initialization ---
         initializeMap();
         await loadCitiesAndInitialRestaurants();
@@ -1114,6 +1164,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         syncCollectionCheckboxes();
         updateFilterButtonAppearance();
         updateCollectionFilterButtonAppearance();
+        
+        // Request geolocation on page load to show distances immediately
+        requestGeolocationOnLoad();
         
         // Pre-load collection-restaurant mappings if collections are selected
         if (selectedCollections.size > 0) {
