@@ -886,6 +886,15 @@ html, body {
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
 }
 
+/* Scale SVG icons in restaurant card cuisine tags */
+.restaurant-item span svg {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
 /* Collection Selection Modal Styles */
 #collection-selection-modal {
     animation: fadeIn 0.2s ease-out;
