@@ -872,7 +872,7 @@ async function handleFindOnMap() {
 
 // Search using new Places API (New) - REST API
 async function searchWithNewAPI(restaurantName, statusEl) {
-    const API_KEY = 'AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU';
+    const API_KEY = 'AIzaSyA23UG6AynwlN6KszWs7SDdACYEVyhVZLY';
     
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
@@ -1156,7 +1156,7 @@ async function handleShareLink(shareUrl, statusEl, formType = 'create') {
 async function getPlaceFromId(placeId, statusEl, formType = 'create') {
     try {
         // Try new Places API first
-        const API_KEY = 'AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU';
+        const API_KEY = 'AIzaSyA23UG6AynwlN6KszWs7SDdACYEVyhVZLY';
         
         const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
             method: 'GET',
