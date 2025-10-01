@@ -2962,10 +2962,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const favoritedClass = isFavorited ? 'favorited' : '';
             const icon = L.divIcon({
-                className: 'numbered-marker',
-                html: `<div class="numbered-marker-content ${favoritedClass}">${displayContent}</div>`,
-                iconSize: [40, 40],
-                iconAnchor: [20, 20]
+                className: 'svg-marker',
+                html: `<div class="svg-marker-container ${favoritedClass}">${displayContent}</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 

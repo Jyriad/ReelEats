@@ -878,6 +878,14 @@ html, body {
     padding: 0 !important;
 }
 
+/* New styles for SVG markers */
+.svg-marker-container svg {
+    width: 100%;
+    height: 100%;
+    /* You can add a drop shadow for better visibility on the map */
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+
 /* Collection Selection Modal Styles */
 #collection-selection-modal {
     animation: fadeIn 0.2s ease-out;
