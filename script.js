@@ -2985,6 +2985,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const correspondingCard = document.querySelector(`[data-restaurant-id="${restaurant.id}"]`);
                 if (correspondingCard) {
                     correspondingCard.classList.add('active-list-item');
+                    
+                    // Scroll the restaurant list to make the clicked restaurant visible
+                    correspondingCard.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
                 }
                 
                 showVideoFor(restaurant);
