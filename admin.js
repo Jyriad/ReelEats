@@ -1461,38 +1461,6 @@ function extractTikTokCreatorHandle(url) {
     return match ? match[1] : null;
 }
 
-// Delete restaurant
-async function deleteRestaurant(restaurantId) {
-    if (!confirm('Are you sure you want to delete this restaurant?')) {
-        return;
-    }
-    
-    try {
-        // Delete associated TikToks first
-        await supabaseClient
-            .from('tiktoks')
-            .delete()
-            .eq('restaurant_id', restaurantId);
-        
-        // Delete restaurant
-        const { error } = await supabaseClient
-            .from('restaurants')
-            .delete()
-            .eq('id', restaurantId);
-        
-        if (error) throw error;
-        
-        // Refresh data
-        await loadDashboardData();
-        await loadRecentRestaurants();
-        
-        showStatus('Restaurant deleted successfully!', 'success');
-        
-    } catch (error) {
-        console.error('Error deleting restaurant:', error);
-        showStatus('Error deleting restaurant: ' + error.message, 'error');
-    }
-}
 
 // Delete TikTok video
 async function deleteTikTok(tiktokId) {
