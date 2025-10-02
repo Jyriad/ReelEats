@@ -281,7 +281,7 @@ async function loadRecentRestaurants() {
                     <p class="text-sm text-gray-600">City ID: ${restaurant.city_id || 'Unknown'}</p>
                     <p class="text-xs text-gray-500 mt-1">${new Date(restaurant.created_at).toLocaleDateString()}</p>
                 </div>
-                <button onclick="deleteRestaurant(${restaurant.id})" 
+                <button onclick="deleteRestaurant(${restaurant.id}, '${restaurant.name}')" 
                         class="text-red-600 hover:text-red-800 text-sm ml-2">
                     Delete
                 </button>
