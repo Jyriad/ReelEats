@@ -381,7 +381,7 @@ async function loadAndDisplayCuisines(containerId, preselectedCuisines = []) {
                             data-bg-color="${bgColor}"
                             data-text-color="${textColor}"
                             style="background-color: ${isSelected ? '#3B82F6' : bgColor}; color: ${isSelected ? 'white' : textColor};">
-                        <span class="inline-block w-4 h-4 mr-1" style="font-size: 16px; line-height: 1;">${cuisine.icon || '🍽️'}</span> ${cuisine.name}
+                        <span class="inline-block w-3 h-3 mr-1 flex items-center justify-center" style="font-size: 12px; line-height: 1; overflow: hidden;">${cuisine.icon || '🍽️'}</span> ${cuisine.name}
                     </button>
                 `;
             }).join('');

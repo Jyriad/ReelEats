@@ -70,6 +70,21 @@
         .tiktok-embed[style*="visibility: hidden"] {
             display: none !important;
         }
+        
+        /* Ensure cuisine icons are properly contained */
+        .cuisine-btn span {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            object-fit: contain !important;
+        }
+        
+        /* Additional containment for SVG icons */
+        .cuisine-btn svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 12px !important;
+            max-height: 12px !important;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Maps Places API -->
