@@ -71,19 +71,25 @@
             display: none !important;
         }
         
-        /* Ensure cuisine icons are properly contained */
+        /* Ensure cuisine icons are properly contained and centered */
+        .cuisine-btn {
+            display: flex !important;
+            align-items: center !important;
+        }
+        
         .cuisine-btn span {
             max-width: 100% !important;
             max-height: 100% !important;
             object-fit: contain !important;
+            flex-shrink: 0 !important;
         }
         
         /* Additional containment for SVG icons */
         .cuisine-btn svg {
             width: 100% !important;
             height: 100% !important;
-            max-width: 12px !important;
-            max-height: 12px !important;
+            max-width: 14px !important;
+            max-height: 14px !important;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
