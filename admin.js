@@ -1,6 +1,8 @@
 // Admin Panel JavaScript
 // Note: SUPABASE_URL, SUPABASE_ANON_KEY, and supabaseClient are declared in admin.html
 
+import { CONFIG } from './config.js';
+
 // admin.js
 
 // Check if user is authenticated AND has the 'admin' role
@@ -872,7 +874,7 @@ async function handleFindOnMap() {
 
 // Search using new Places API (New) - REST API
 async function searchWithNewAPI(restaurantName, statusEl) {
-    const API_KEY = 'AIzaSyA23UG6AynwlN6KszWs7SDdACYEVyhVZLY';
+    const API_KEY = CONFIG.GOOGLE_MAPS_KEYS.ADMIN_KEY;
     
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
@@ -1156,7 +1158,7 @@ async function handleShareLink(shareUrl, statusEl, formType = 'create') {
 async function getPlaceFromId(placeId, statusEl, formType = 'create') {
     try {
         // Try new Places API first
-        const API_KEY = 'AIzaSyA23UG6AynwlN6KszWs7SDdACYEVyhVZLY';
+        const API_KEY = CONFIG.GOOGLE_MAPS_KEYS.ADMIN_KEY;
         
         const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
             method: 'GET',
