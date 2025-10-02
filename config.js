@@ -8,7 +8,7 @@ export const CONFIG = {
     
     // Application Configuration
     APP_NAME: 'ReelEats',
-    APP_VERSION: '1.36',
+    APP_VERSION: '1.149',
     
     // Local Storage Keys
     STORAGE_KEYS: {
