@@ -595,8 +595,8 @@ async function loadRestaurantsWithoutVideos() {
                     <p class="text-xs text-gray-500 mt-1">Added: ${new Date(restaurant.created_at).toLocaleDateString()}</p>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                        🎬 Click to Add Video
+                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 gap-1">
+                        <span style="font-size: 12px; line-height: 1;">🎬</span> Click to Add Video
                     </span>
                 </div>
             </div>
@@ -1689,12 +1689,12 @@ function displayRestaurantVideoGroups(restaurantGroups) {
                 </div>
                 <div class="flex space-x-2">
                     <button onclick="editRestaurant(${restaurant.id})" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                        ✏️ Edit Restaurant
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                        <span style="font-size: 12px; line-height: 1;">✏️</span> Edit Restaurant
                     </button>
                     <button onclick="deleteRestaurant(${restaurant.id}, '${restaurant.name}')" 
-                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                        🗑️ Delete Restaurant
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                        <span style="font-size: 12px; line-height: 1;">🗑️</span> Delete Restaurant
                     </button>
                 </div>
             </div>
@@ -1716,12 +1716,12 @@ function displayRestaurantVideoGroups(restaurantGroups) {
             noVideosDiv.className = 'border border-dashed border-gray-300 rounded-lg p-4 bg-white text-center';
             noVideosDiv.innerHTML = `
                 <div class="text-gray-500 mb-2">
-                    <span class="text-2xl">📹</span>
+                    <span class="text-2xl" style="font-size: 24px; line-height: 1;">📹</span>
                 </div>
                 <p class="text-sm text-gray-600 mb-3">No videos added yet</p>
                 <button onclick="addVideoToRestaurant(${restaurant.id}, '${restaurant.name}')" 
-                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
-                    ➕ Add Video
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 mx-auto">
+                    <span style="font-size: 12px; line-height: 1;">➕</span> Add Video
                 </button>
             `;
             videosContainer.appendChild(noVideosDiv);
@@ -1748,8 +1748,8 @@ function displayRestaurantVideoGroups(restaurantGroups) {
                 infoDiv.className = 'flex flex-col sm:flex-row sm:items-center gap-2 mb-2';
                 
                 const statusSpan = document.createElement('span');
-                statusSpan.className = `text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit`;
-                statusSpan.textContent = isFeatured;
+                statusSpan.className = `text-xs px-2 py-1 rounded-full ${video.is_featured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} w-fit flex items-center gap-1`;
+                statusSpan.innerHTML = `<span class="text-xs" style="font-size: 12px; line-height: 1;">${video.is_featured ? '⭐' : '📹'}</span> <span>${video.is_featured ? 'Featured' : 'Regular'}</span>`;
                 
                 const videoIdSpan = document.createElement('span');
                 videoIdSpan.className = 'text-xs text-gray-500';
@@ -1796,7 +1796,7 @@ function displayRestaurantVideoGroups(restaurantGroups) {
                 // Edit button
                 const editBtn = document.createElement('button');
                 editBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
-                editBtn.textContent = '✏️ Edit';
+                editBtn.innerHTML = '<span style="font-size: 12px; line-height: 1;">✏️</span> Edit';
                 editBtn.onclick = () => editVideo(video.id);
                 
                 // Feature button
@@ -1808,7 +1808,7 @@ function displayRestaurantVideoGroups(restaurantGroups) {
                 // Delete button
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap';
-                deleteBtn.textContent = '🗑️ Delete';
+                deleteBtn.innerHTML = '<span style="font-size: 12px; line-height: 1;">🗑️</span> Delete';
                 deleteBtn.onclick = () => deleteVideo(video.id, restaurant.name);
                 
                 buttonsDiv.appendChild(editBtn);
@@ -2090,7 +2090,7 @@ async function editRestaurant(restaurantId) {
                             </div>
                             <div class="flex flex-col justify-end">
                                 <button type="button" id="edit-find-on-map-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                                    <span>🗺️</span>
+                                    <span style="font-size: 16px; line-height: 1;">🗺️</span>
                                     Find on Map
                                 </button>
                             </div>
