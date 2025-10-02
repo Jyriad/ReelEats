@@ -13,7 +13,39 @@
     connect-src 'self' https://*.basemaps.cartocdn.com https://jsuxrpnfofkigdfpnuua.supabase.co https://*.tiktok.com https://*.byteoversea.com https://*.tiktokv.com https://unpkg.com https://*.ttwstatic.com;
     media-src 'self' https://*.tiktok.com;
 ">
-    <title>London Food Map Supabase v1.149</title>
+    <title id="index-title">London Food Map Supabase</title>
+    
+    <!-- Load version number immediately -->
+    <script type="module">
+        async function loadVersionNumber() {
+            try {
+                const { versionNumber } = await import('./config.js');
+                // Update title
+                const titleElement = document.getElementById('index-title');
+                if (titleElement) {
+                    titleElement.textContent = `London Food Map Supabase v${versionNumber}`;
+                }
+                // Update H1
+                const h1Element = document.getElementById('index-h1');
+                if (h1Element) {
+                    h1Element.textContent = `Map v${versionNumber} 🗺️`;
+                }
+                // Update script version
+                const scriptElement = document.querySelector('script[src*="script.js"]');
+                if (scriptElement) {
+                    scriptElement.src = `script.js?v=${versionNumber}`;
+                }
+            } catch (error) {
+                console.log('Could not load version number from config, using fallback');
+                // Fallback versions
+                document.getElementById('index-title').textContent = 'London Food Map Supabase v1.155';
+                document.getElementById('index-h1').textContent = 'Map v1.155 🗺️';
+            }
+        }
+        
+        // Load version number immediately
+        loadVersionNumber();
+    </script>
     
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
     <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
@@ -41,7 +73,7 @@
 <body class="h-full flex flex-col">
 
     <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-2 md:px-4 shadow flex-shrink-0 z-20">
-        <h1 class="text-lg md:text-2xl font-bold truncate">Map v1.149 🗺️</h1>
+        <h1 id="index-h1" class="text-lg md:text-2xl font-bold truncate">Map 🗺️</h1>
         <div class="flex items-center gap-2">
             <label for="city-select" class="sr-only">Select city</label>
             <select id="city-select" class="bg-white text-gray-900 text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -451,7 +483,7 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script async src="https://www.tiktok.com/embed.js"></script>
-    <script src="script.js?v=149"></script>
+    <script src="script.js?v=155"></script>
 </body>
 </html>
 

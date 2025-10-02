@@ -1,6 +1,9 @@
 // --- Shared Configuration ---
 // This file contains all shared configuration constants for the ReelEats application
 
+// Centralized version number - update this single variable to change version everywhere
+export const versionNumber = '1.155';
+
 export const CONFIG = {
     // Supabase Configuration
     SUPABASE_URL: 'https://jsuxrpnfofkigdfpnuua.supabase.co',
@@ -8,7 +11,7 @@ export const CONFIG = {
     
     // Application Configuration
     APP_NAME: 'ReelEats',
-    APP_VERSION: '1.153',
+    APP_VERSION: versionNumber,
     
     // Local Storage Keys
     STORAGE_KEYS: {

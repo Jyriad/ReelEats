@@ -754,7 +754,7 @@ async function handleAddRestaurant(e) {
                     showStatus('Restaurant added, but TikTok URL was invalid. You can add the video manually.', 'warning');
                 } else {
                     // Create embed HTML
-                    const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`;
+                    const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden; position: absolute; top: -9999px; left: -9999px;"><section></section></blockquote>`;
                     
                     // Insert TikTok video
                     const { error: tiktokError } = await supabaseClient
@@ -1352,7 +1352,7 @@ async function handleAddTikTok(e) {
             return;
         }
         
-        const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden;"><section></section></blockquote>`;
+        const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden; position: absolute; top: -9999px; left: -9999px;"><section></section></blockquote>`;
         
         console.log('🎬 Attempting to insert TikTok with data:', {
             restaurant_id: parseInt(restaurantId),
@@ -1960,7 +1960,7 @@ function generateTikTokEmbed(url) {
     const videoId = videoIdMatch[1];
     
     // Generate the embed HTML
-    return `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px;">
+    return `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px; position: relative; overflow: hidden;">
         <section>
             <a target="_blank" title="@username" href="${url}">@username</a>
         </section>
