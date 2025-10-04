@@ -603,6 +603,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('selectedCollections contents:', Array.from(selectedCollections));
             
             let filteredRestaurants = [...restaurants]; // Start with all restaurants
+            window.filteredRestaurants = filteredRestaurants; // Make it globally accessible
             
             // Apply cuisine filter first
             const selectedCuisines = getSelectedCuisines();
@@ -1947,6 +1948,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             setTimeout(async () => {
                 try {
                     const filteredRestaurants = await applyAllFilters(currentRestaurants);
+                    window.filteredRestaurants = filteredRestaurants; // Make it globally accessible
                     
                     if (filteredRestaurants.length === 0) {
                         // Show empty state message
@@ -2925,10 +2927,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 window.restaurantMarkers.push(marker); // Keep track of markers for other interactions
                 restaurantMarkers = window.restaurantMarkers;
                 markerClusterGroup.addLayer(marker); // Add the marker to the cluster group
+                
+                // Set up intersection observer for the last item to trigger smart preloading
+                if (index === restaurants.length - 1) {
+                    setupIntersectionObserver(listItem);
+                }
             });
             
             // Update restaurant cards with distance information if user location is available
             updateRestaurantCardsWithDistance();
+            
+            // Preload videos for the first 5 restaurants
+            const initialBatch = restaurants.slice(0, 5);
+            preloadVideoBatch(initialBatch);
             
             // Show tutorial for first-time users
             showTutorial();
@@ -3168,6 +3179,115 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 }
             });
+        }
+
+        // Preload video for a single restaurant (extracted from showVideoFor)
+        async function preloadVideo(restaurant) {
+            if (!restaurant.tiktok_embed_html) {
+                console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
+                return;
+            }
+
+            // Create a temporary, hidden container off-screen for TikTok processing
+            const preloadContainer = document.createElement('div');
+            preloadContainer.style.position = 'absolute';
+            preloadContainer.style.top = '-9999px';
+            preloadContainer.style.left = '-9999px';
+            preloadContainer.style.width = '330px';
+            preloadContainer.style.height = '585px';
+            preloadContainer.style.background = 'black';
+            preloadContainer.dataset.restaurantId = restaurant.id; // Store restaurant ID for cleanup
+            document.body.appendChild(preloadContainer);
+
+            console.log('🎬 Preloading video for:', restaurant.name);
+
+            // Inject the raw TikTok blockquote HTML into the hidden container
+            preloadContainer.innerHTML = restaurant.tiktok_embed_html;
+
+            // Make sure the blockquote is visible for TikTok processing
+            const hiddenBlockquotes = preloadContainer.querySelectorAll('blockquote.tiktok-embed');
+            hiddenBlockquotes.forEach(bq => {
+                bq.style.visibility = 'visible';
+                bq.style.display = 'block';
+                bq.removeAttribute('hidden');
+                bq.classList.remove('hidden');
+            });
+
+            // Try to trigger TikTok embed processing
+            if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+                window.tiktokEmbed.load();
+            }
+
+            // Set up observer to detect when iframe is ready
+            const observer = new MutationObserver((mutations, obs) => {
+                const iframe = preloadContainer.querySelector('iframe');
+                if (iframe) {
+                    console.log('✅ Video preloaded for:', restaurant.name);
+                    // Store the preloaded iframe for later use
+                    restaurant._preloadedIframe = iframe.outerHTML;
+                    obs.disconnect();
+                    // Clean up the preload container
+                    if (document.body.contains(preloadContainer)) {
+                        document.body.removeChild(preloadContainer);
+                    }
+                }
+            });
+
+            observer.observe(preloadContainer, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['src']
+            });
+
+            // Cleanup timeout
+            setTimeout(() => {
+                if (document.body.contains(preloadContainer)) {
+                    observer.disconnect();
+                    document.body.removeChild(preloadContainer);
+                }
+            }, 5000); // Shorter timeout for preloading
+        }
+
+        // Preload videos in batches
+        function preloadVideoBatch(restaurants) {
+            console.log('🚀 Preloading video batch for', restaurants.length, 'restaurants');
+            restaurants.forEach(restaurant => {
+                preloadVideo(restaurant);
+            });
+        }
+
+        // Set up intersection observer for smart preloading
+        function setupIntersectionObserver(targetElement) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        console.log('👀 Last restaurant item is visible, loading next batch...');
+                        
+                        // Get current number of items in the list
+                        const restaurantList = document.getElementById('restaurant-list');
+                        const currentItemCount = restaurantList.children.length;
+                        
+                        // Calculate next batch of 5 restaurants
+                        const nextBatchStart = currentItemCount;
+                        const nextBatchEnd = Math.min(nextBatchStart + 5, window.filteredRestaurants.length);
+                        
+                        if (nextBatchStart < window.filteredRestaurants.length) {
+                            const nextBatch = window.filteredRestaurants.slice(nextBatchStart, nextBatchEnd);
+                            preloadVideoBatch(nextBatch);
+                        }
+                        
+                        // Stop observing this element to prevent multiple triggers
+                        observer.unobserve(targetElement);
+                    }
+                });
+            }, {
+                threshold: 0.1, // Trigger when 10% of the element is visible
+                rootMargin: '100px' // Start loading 100px before the element comes into view
+            });
+            
+            // Start observing the target element
+            observer.observe(targetElement);
         }
 
         // Show video for restaurant
