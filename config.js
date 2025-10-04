@@ -1,6 +1,9 @@
 // --- Shared Configuration ---
 // This file contains all shared configuration constants for the ReelEats application
 
+// Centralized version number - update this single variable to change version everywhere
+export const versionNumber = '1.157';
+
 export const CONFIG = {
     // Supabase Configuration
     SUPABASE_URL: 'https://jsuxrpnfofkigdfpnuua.supabase.co',
@@ -8,7 +11,7 @@ export const CONFIG = {
     
     // Application Configuration
     APP_NAME: 'ReelEats',
-    APP_VERSION: '1.34',
+    APP_VERSION: versionNumber,
     
     // Local Storage Keys
     STORAGE_KEYS: {
@@ -27,5 +30,11 @@ export const CONFIG = {
     VIDEO_CONFIG: {
         IFRAME_TIMEOUT: 3000,
         FALLBACK_DELAY: 100
+    },
+    
+    // Google Maps API Configuration
+    GOOGLE_MAPS_KEYS: {
+        WEBSITE_KEY: 'AIzaSyBH3tTjAVW8wPk2ojqzmtoKSFzlqeM42ek', // For loading the script in HTML
+        ADMIN_KEY: 'AIzaSyA23UG6AynwlN6KszWs7SDdACYEVyhVZLY'      // For direct API calls in JS
     }
 };

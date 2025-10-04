@@ -3,7 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReelEats Admin Panel v1.140</title>
+    <title id="admin-title">ReelEats Admin Panel</title>
+    
+    <!-- Load version number immediately -->
+    <script type="module">
+        async function loadVersionNumber() {
+            try {
+                const { versionNumber } = await import('./config.js');
+                // Update title
+                const titleElement = document.getElementById('admin-title');
+                if (titleElement) {
+                    titleElement.textContent = `ReelEats Admin Panel v${versionNumber}`;
+                }
+                // Update H1
+                const h1Element = document.getElementById('admin-h1');
+                if (h1Element) {
+                    h1Element.textContent = `ReelEats Admin v${versionNumber}`;
+                }
+            } catch (error) {
+                console.log('Could not load version number from config, using fallback');
+                // Fallback versions
+                document.getElementById('admin-title').textContent = 'ReelEats Admin Panel v1.155';
+                document.getElementById('admin-h1').textContent = 'ReelEats Admin v1.155';
+            }
+        }
+        
+        // Load version number immediately
+        loadVersionNumber();
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Hide admin content by default until authenticated */
@@ -30,10 +58,43 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Ensure TikTok embeds don't overflow */
+        .tiktok-embed {
+            max-width: 100% !important;
+            height: auto !important;
+            overflow: hidden !important;
+        }
+        
+        /* Hide any large elements that might be causing issues */
+        .tiktok-embed[style*="visibility: hidden"] {
+            display: none !important;
+        }
+        
+        /* Ensure cuisine icons are properly contained and centered */
+        .cuisine-btn {
+            display: flex !important;
+            align-items: center !important;
+        }
+        
+        .cuisine-btn span {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            object-fit: contain !important;
+            flex-shrink: 0 !important;
+        }
+        
+        /* Additional containment for SVG icons */
+        .cuisine-btn svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 14px !important;
+            max-height: 14px !important;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Maps Places API -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCtSwtAs5AldNeESZrgsGLQ7MOJzsIugFU&libraries=places,marker&v=weekly"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBH3tTjAVW8wPk2ojqzmtoKSFzlqeM42ek&libraries=places,marker&v=weekly"></script>
 </head>
 <body class="h-full">
     <!-- Loading screen shown during authentication check -->
@@ -50,7 +111,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center py-6">
                     <div class="flex items-center">
-                        <h1 class="text-3xl font-bold text-gray-900">ReelEats Admin</h1>
+                        <h1 id="admin-h1" class="text-3xl font-bold text-gray-900">ReelEats Admin</h1>
                     </div>
                     <div class="flex items-center space-x-4">
                         <button onclick="adminLogout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
@@ -521,7 +582,8 @@
                 }
                 // Load admin script only if authenticated
                 const script = document.createElement('script');
-                script.src = 'admin.js?v=140';
+                script.type = 'module';
+                script.src = `admin.js?v=${versionNumber}`;
                 script.onload = function() {
                     console.log('admin.js loaded successfully');
                 };
@@ -533,6 +595,21 @@
                 console.log('Not authenticated, not loading admin.js');
             }
         });
+        
+        // Load version number for script cache-busting
+        let versionNumber = '1.155'; // fallback version
+        
+        async function loadVersionForScript() {
+            try {
+                const { versionNumber: configVersion } = await import('./config.js');
+                versionNumber = configVersion;
+            } catch (error) {
+                console.log('Could not load version number from config, using fallback');
+            }
+        }
+        
+        // Load version number for script
+        loadVersionForScript();
     </script>
 </body>
 </html>
