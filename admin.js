@@ -872,31 +872,33 @@ async function handleFindOnMap() {
     }
 }
 
-// Search using new Places API (New) - REST API
+// Search using new Places API (New) - REST API via Supabase Edge Function
 async function searchWithNewAPI(restaurantName, statusEl) {
-    const API_KEY = CONFIG.GOOGLE_MAPS_KEYS.ADMIN_KEY;
-    
-    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    const response = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/google-places`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Goog-Api-Key': API_KEY,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types'
+            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-            textQuery: restaurantName + ' restaurant',
-            maxResultCount: 10
+            action: 'searchText',
+            data: {
+                textQuery: restaurantName + ' restaurant',
+                maxResultCount: 10
+            }
         })
     });
     
     if (!response.ok) {
-        throw new Error(`New Places API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(`Supabase Edge Function error: ${response.status} - ${errorData.error || response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('🆕 New Places API response:', data);
+    const result = await response.json();
+    console.log('🆕 Supabase Edge Function response:', result);
     
-    if (data.places && data.places.length > 0) {
+    if (result.success && result.data.places && result.data.places.length > 0) {
+        const data = result.data;
         // Convert new API format to legacy format for compatibility
         const convertedResults = data.places.map(place => ({
             place_id: place.id,
@@ -1157,20 +1159,30 @@ async function handleShareLink(shareUrl, statusEl, formType = 'create') {
 // Get place details from Place ID
 async function getPlaceFromId(placeId, statusEl, formType = 'create') {
     try {
-        // Try new Places API first
-        const API_KEY = CONFIG.GOOGLE_MAPS_KEYS.ADMIN_KEY;
-        
-        const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-            method: 'GET',
+        // Try new Places API first via Supabase Edge Function
+        const response = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/google-places`, {
+            method: 'POST',
             headers: {
-                'X-Goog-Api-Key': API_KEY,
-                'X-Goog-FieldMask': 'id,displayName,formattedAddress,location'
-            }
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+                action: 'getPlaceDetails',
+                data: {
+                    placeId: placeId
+                }
+            })
         });
         
         if (response.ok) {
-            const place = await response.json();
-            console.log('🆕 New Places API place details:', place);
+            const result = await response.json();
+            console.log('🆕 Supabase Edge Function place details:', result);
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to get place details');
+            }
+            
+            const place = result.data;
             
             // Convert to legacy format
             const convertedPlace = {

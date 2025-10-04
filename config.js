@@ -2,7 +2,7 @@
 // This file contains all shared configuration constants for the ReelEats application
 
 // Centralized version number - update this single variable to change version everywhere
-export const versionNumber = '1.157';
+export const versionNumber = '1.158';
 
 export const CONFIG = {
     // Supabase Configuration
@@ -33,8 +33,8 @@ export const CONFIG = {
     },
     
     // Google Maps API Configuration
+    // Note: API keys are now secured in Supabase Edge Functions
     GOOGLE_MAPS_KEYS: {
-        WEBSITE_KEY: 'AIzaSyBH3tTjAVW8wPk2ojqzmtoKSFzlqeM42ek', // For loading the script in HTML
-        ADMIN_KEY: 'AIzaSyA23UG6AynwlN6KszWs7SDdACYEVyhVZLY'      // For direct API calls in JS
+        WEBSITE_KEY: 'AIzaSyBH3tTjAVW8wPk2ojqzmtoKSFzlqeM42ek' // Only for loading Google Maps script in HTML
     }
 };
