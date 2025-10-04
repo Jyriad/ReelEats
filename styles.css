@@ -55,6 +55,82 @@ html, body {
     /* Adjust top for slight upward shift on mobile */
     top: -20px; /* This moves the video player up by 20px */
 }
+
+/* Video Header Styles */
+.video-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px 12px 0 0;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    margin-bottom: 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.video-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0; /* Allow text to truncate */
+}
+
+.video-restaurant-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.video-header-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.video-action-btn {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+}
+
+.video-action-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #374151;
+    transform: translateY(-1px);
+}
+
+.video-action-btn.favorited {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+.video-action-btn.collected {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.video-action-btn svg {
+    width: 20px;
+    height: 20px;
+}
 .video-container {
     width: 330px;
     height: 585px;
@@ -400,6 +476,30 @@ html, body {
     #video-modal { padding-bottom: 0; padding-top: 40px; }
     .video-container { height: min(80vh, 585px); width: calc(min(80vh, 585px) * 330 / 585); }
     #video-modal .video-container iframe { width: 100% !important; height: 100% !important; }
+    
+    /* Mobile video header styles */
+    .video-header {
+        padding: 12px 16px;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .video-restaurant-name {
+        font-size: 16px;
+        max-width: 150px;
+    }
+    
+    .video-header-actions {
+        gap: 6px;
+    }
+    
+    .video-action-btn {
+        padding: 6px;
+    }
+    
+    .video-action-btn svg {
+        width: 18px;
+        height: 18px;
+    }
     /* Hide Leaflet zoom controls on mobile */
     .leaflet-control-zoom { display: none !important; }
     /* Show directions button only on mobile */

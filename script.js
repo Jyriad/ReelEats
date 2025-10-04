@@ -3290,6 +3290,103 @@ document.addEventListener('DOMContentLoaded', async function() {
             observer.observe(targetElement);
         }
 
+        // Populate video header with restaurant information
+        function populateVideoHeader(restaurant) {
+            const restaurantNameEl = document.getElementById('video-restaurant-name');
+            const favoriteBtn = document.getElementById('video-favorite-btn');
+            const collectionBtn = document.getElementById('video-collection-btn');
+            
+            if (restaurantNameEl) {
+                restaurantNameEl.textContent = restaurant.name;
+            }
+            
+            // Update favorite button state
+            if (favoriteBtn) {
+                const isFavorited = favoritedRestaurants.has(restaurant.id);
+                favoriteBtn.classList.toggle('favorited', isFavorited);
+                favoriteBtn.title = isFavorited ? 'Remove from Favorites' : 'Add to Favorites';
+            }
+            
+            // Update collection button state
+            if (collectionBtn) {
+                const isCollected = collectedRestaurants.has(restaurant.id);
+                collectionBtn.classList.toggle('collected', isCollected);
+                collectionBtn.title = isCollected ? 'Remove from Collections' : 'Add to Collection';
+            }
+            
+            // Store current restaurant ID for button actions
+            if (favoriteBtn) favoriteBtn.dataset.restaurantId = restaurant.id;
+            if (collectionBtn) collectionBtn.dataset.restaurantId = restaurant.id;
+        }
+
+        // Toggle favorite from video header
+        async function toggleFavoriteFromVideoHeader(restaurantId) {
+            const restaurant = currentRestaurants.find(r => r.id == restaurantId);
+            if (!restaurant) return;
+            
+            const favoriteBtn = document.getElementById('video-favorite-btn');
+            const isCurrentlyFavorited = favoritedRestaurants.has(restaurantId);
+            
+            try {
+                if (isCurrentlyFavorited) {
+                    // Remove from favorites
+                    await removeFromFavorites(restaurantId);
+                    if (favoriteBtn) {
+                        favoriteBtn.classList.remove('favorited');
+                        favoriteBtn.title = 'Add to Favorites';
+                    }
+                    showToast('Removed from favorites');
+                } else {
+                    // Add to favorites
+                    await addToFavorites(restaurantId);
+                    if (favoriteBtn) {
+                        favoriteBtn.classList.add('favorited');
+                        favoriteBtn.title = 'Remove from Favorites';
+                    }
+                    showToast('Added to favorites');
+                }
+                
+                // Also update the restaurant card in the list
+                const listItem = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+                if (listItem) {
+                    const cardFavoriteBtn = listItem.querySelector('.favorite-btn');
+                    if (cardFavoriteBtn) {
+                        cardFavoriteBtn.classList.toggle('favorited', !isCurrentlyFavorited);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error toggling favorite:', error);
+                showToast('Error updating favorites', 'error');
+            }
+        }
+
+        // Show quick add to collection modal from video header
+        async function showQuickAddToCollection(restaurantId) {
+            const restaurant = currentRestaurants.find(r => r.id == restaurantId);
+            if (!restaurant) return;
+            
+            // Check if user is authenticated
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) {
+                showToast('Please sign in to use collections', 'error');
+                return;
+            }
+            
+            // Use the existing quick create collection modal
+            const modal = document.getElementById('quick-create-collection-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                
+                // Set up the form to add to collection after creation
+                const form = document.getElementById('quick-create-collection-form');
+                if (form) {
+                    form.dataset.restaurantId = restaurantId;
+                }
+            }
+        }
+
         // Show video for restaurant
 async function showVideoFor(restaurant) {
             console.log('🎬 showVideoFor called with restaurant:', restaurant);
@@ -3311,6 +3408,9 @@ async function showVideoFor(restaurant) {
         const watchedIcon = createWatchedIcon();
         listItem.appendChild(watchedIcon);
     }
+
+    // Populate video header with restaurant info
+    populateVideoHeader(restaurant);
 
     // Show the modal with a loading indicator
     videoModal.classList.add('show');
@@ -3644,6 +3744,26 @@ async function showVideoFor(restaurant) {
         });
         closeVideoBtn.addEventListener('click', closeVideo);
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        
+        // Video header button event listeners
+        const videoFavoriteBtn = document.getElementById('video-favorite-btn');
+        const videoCollectionBtn = document.getElementById('video-collection-btn');
+        
+        if (videoFavoriteBtn) {
+            videoFavoriteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const restaurantId = e.target.closest('[data-restaurant-id]').dataset.restaurantId;
+                await toggleFavoriteFromVideoHeader(restaurantId);
+            });
+        }
+        
+        if (videoCollectionBtn) {
+            videoCollectionBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const restaurantId = e.target.closest('[data-restaurant-id]').dataset.restaurantId;
+                await showQuickAddToCollection(restaurantId);
+            });
+        }
         
         // Check location availability and hide button only if user denies permission
         function checkLocationAvailability() {
