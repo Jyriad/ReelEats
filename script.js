@@ -3361,30 +3361,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
-        // Show quick add to collection modal from video header
-        async function showQuickAddToCollection(restaurantId) {
+        // Show collection management modal from video header (same as restaurant card)
+        async function showCollectionManagementFromVideoHeader(restaurantId) {
             const restaurant = currentRestaurants.find(r => r.id == restaurantId);
             if (!restaurant) return;
             
             // Check if user is authenticated
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) {
-                showToast('Please sign in to use collections', 'error');
+                openAuthModal();
                 return;
             }
             
-            // Use the existing quick create collection modal
-            const modal = document.getElementById('quick-create-collection-modal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                
-                // Set up the form to add to collection after creation
-                const form = document.getElementById('quick-create-collection-form');
-                if (form) {
-                    form.dataset.restaurantId = restaurantId;
-                }
-            }
+            // Use the same comprehensive collection management modal as restaurant cards
+            showCollectionManagementModal(restaurantId);
         }
 
         // Show video for restaurant
@@ -3761,7 +3751,7 @@ async function showVideoFor(restaurant) {
             videoCollectionBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const restaurantId = e.target.closest('[data-restaurant-id]').dataset.restaurantId;
-                await showQuickAddToCollection(restaurantId);
+                await showCollectionManagementFromVideoHeader(restaurantId);
             });
         }
         

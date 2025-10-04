@@ -96,40 +96,51 @@ html, body {
 }
 
 .video-action-btn {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    border-radius: 50%;
     padding: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6b7280;
+    color: #9ca3af; /* Same default gray as restaurant card buttons */
+    width: 2rem;
+    height: 2rem;
 }
 
 .video-action-btn:hover {
     background: rgba(255, 255, 255, 1);
     border-color: rgba(0, 0, 0, 0.2);
-    color: #374151;
-    transform: translateY(-1px);
+    transform: scale(1.1);
 }
 
-.video-action-btn.favorited {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.3);
+/* Favorite button specific styles to match restaurant cards */
+.video-action-btn#video-favorite-btn:hover {
+    color: #f59e0b; /* Yellow on hover */
 }
 
-.video-action-btn.collected {
-    color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.1);
-    border-color: rgba(139, 92, 246, 0.3);
+.video-action-btn#video-favorite-btn.favorited {
+    color: #f59e0b; /* Filled yellow color */
+    background: rgba(245, 158, 11, 0.1);
+}
+
+/* Collection button specific styles to match restaurant cards */
+.video-action-btn#video-collection-btn:hover {
+    color: #6366f1; /* Purple color on hover */
+    background-color: rgba(99, 102, 241, 0.1);
+    border-color: #6366f1;
+}
+
+.video-action-btn#video-collection-btn.collected {
+    color: #6366f1; /* Purple color when collected */
 }
 
 .video-action-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
 }
 .video-container {
     width: 330px;
@@ -494,11 +505,13 @@ html, body {
     
     .video-action-btn {
         padding: 6px;
+        width: 1.75rem;
+        height: 1.75rem;
     }
     
     .video-action-btn svg {
-        width: 18px;
-        height: 18px;
+        width: 14px;
+        height: 14px;
     }
     /* Hide Leaflet zoom controls on mobile */
     .leaflet-control-zoom { display: none !important; }
