@@ -804,6 +804,20 @@ html, body {
         height: 24px !important;
         margin: 0 auto 4px auto !important;
     }
+    
+    /* Fix oversized SVGs in mobile collection filter modal */
+    #collection-filter-container-mobile svg {
+        width: 24px !important;
+        height: 24px !important;
+        margin: 0 auto 4px auto !important;
+    }
+    
+    /* Ensure collection checkboxes have proper small SVGs on mobile */
+    #collection-filter-container-mobile .collection-checkbox svg {
+        width: 12px !important;
+        height: 12px !important;
+        margin: 0 !important;
+    }
 }
 
 /* Favorite Icon Styles */
