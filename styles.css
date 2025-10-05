@@ -1,13 +1,46 @@
+/* Force light mode across all browsers and prevent dark mode */
+:root {
+    color-scheme: light only;
+}
+
+html {
+    color-scheme: light only;
+}
+
 /* All your existing styles go here */
 html, body { 
     margin: 0; 
     padding: 0; 
     overflow: hidden; /* Prevent body scroll */
+    background-color: #f3f4f6 !important; /* Force light background */
+    color: #111827 !important; /* Force dark text */
 }
 #map { 
     height: 100%; 
     width: 100%; 
     background-color: #e5e7eb;
+}
+
+/* Force light mode scrollbars and prevent dark mode interference */
+::-webkit-scrollbar {
+    background-color: #f1f5f9 !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1 !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8 !important;
+}
+
+/* Prevent any dark mode media queries from overriding */
+@media (prefers-color-scheme: dark) {
+    :root, html, body {
+        color-scheme: light only !important;
+        background-color: #f3f4f6 !important;
+        color: #111827 !important;
+    }
 }
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
@@ -797,12 +830,16 @@ html, body {
         max-height: 50vh;
     }
     
-    /* Fix oversized SVGs in mobile cuisine filter modal */
+    /* Fix oversized SVGs in mobile cuisine filter modal - higher specificity */
     #cuisine-filter-container-mobile .cuisine-card-content svg,
-    #cuisine-filter-container-mobile .cuisine-card-content div svg {
-        width: 24px !important;
-        height: 24px !important;
-        margin: 0 auto 4px auto !important;
+    #cuisine-filter-container-mobile .cuisine-card-content div svg,
+    #cuisine-filter-container-mobile svg,
+    #cuisine-filter-container-mobile div svg {
+        width: 12px !important;
+        height: 12px !important;
+        margin: 0 auto 2px auto !important;
+        max-width: 12px !important;
+        max-height: 12px !important;
     }
     
     /* Fix oversized SVGs in mobile collection filter modal */
@@ -810,6 +847,14 @@ html, body {
         width: 24px !important;
         height: 24px !important;
         margin: 0 auto 4px auto !important;
+    }
+    
+    /* Catch-all rule for any massive SVGs in mobile filter modals */
+    #filter-modal svg,
+    #cuisine-filter-container-mobile svg,
+    #collection-filter-container-mobile svg {
+        max-width: 24px !important;
+        max-height: 24px !important;
     }
     
     /* Ensure collection checkboxes have proper small SVGs on mobile */
@@ -1041,13 +1086,15 @@ html, body {
     margin-right: 4px !important;
 }
 
-/* Scale SVG icons in cuisine filter modal */
-.cuisine-card-content svg,
-.cuisine-card-content div svg {
-    width: 32px !important;
-    height: 32px !important;
-    display: block !important;
-    margin: 0 auto 8px auto !important;
+/* Scale SVG icons in cuisine filter modal - desktop only */
+@media (min-width: 768px) {
+    .cuisine-card-content svg,
+    .cuisine-card-content div svg {
+        width: 32px !important;
+        height: 32px !important;
+        display: block !important;
+        margin: 0 auto 8px auto !important;
+    }
 }
 
 /* Scale SVG icons in category headers */
