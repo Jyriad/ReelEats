@@ -2707,6 +2707,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                     }
                     
+                    // Also update the video header collection button if it's visible
+                    const videoCollectionBtn = document.getElementById('video-collection-btn');
+                    if (videoCollectionBtn && videoCollectionBtn.dataset.restaurantId == restaurantId) {
+                        videoCollectionBtn.classList.add('collected');
+                        videoCollectionBtn.title = 'Remove from Collections';
+                    }
+                    
                     // Re-display restaurants to show updated collection status
                     if (currentRestaurants && currentRestaurants.length > 0) {
                         console.log('Re-displaying restaurants after adding to collection');
@@ -2826,6 +2833,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                             }
                         }
                         
+                        // Also update the video header collection button if it's visible
+                        const videoCollectionBtn = document.getElementById('video-collection-btn');
+                        if (videoCollectionBtn && videoCollectionBtn.dataset.restaurantId == restaurantId) {
+                            videoCollectionBtn.classList.add('collected');
+                            videoCollectionBtn.title = 'Remove from Collections';
+                        }
+                        
                         // Re-display restaurants to show updated collection status
                         if (currentRestaurants && currentRestaurants.length > 0) {
                             console.log('Re-displaying restaurants after adding to collection');
@@ -2864,6 +2878,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 if (bookmarkBtn) {
                                     bookmarkBtn.classList.remove('collected');
                                 }
+                            }
+                            
+                            // Also update the video header collection button if it's visible
+                            const videoCollectionBtn = document.getElementById('video-collection-btn');
+                            if (videoCollectionBtn && videoCollectionBtn.dataset.restaurantId == restaurantId) {
+                                videoCollectionBtn.classList.remove('collected');
+                                videoCollectionBtn.title = 'Add to Collection';
                             }
                         }
                         
