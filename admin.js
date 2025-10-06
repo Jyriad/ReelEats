@@ -1351,8 +1351,6 @@ function selectLocation(place, formType = 'create') {
     console.log('✅ Location selected successfully');
 }
 
-// Make selectLocation globally accessible
-window.selectLocation = selectLocation;
 
 // Handle add TikTok form submission
 async function handleAddTikTok(e) {
@@ -1509,8 +1507,24 @@ function selectRestaurant(id, name) {
     console.log('✅ Restaurant selected successfully');
 }
 
-// Make selectRestaurant globally accessible
+// Make functions globally accessible
 window.selectRestaurant = selectRestaurant;
+window.selectLocation = selectLocation;
+
+console.log('🌐 Global functions registered:', {
+    selectRestaurant: typeof window.selectRestaurant,
+    selectLocation: typeof window.selectLocation
+});
+
+// Test function availability
+setTimeout(() => {
+    console.log('🧪 Testing function availability after 1 second:', {
+        windowSelectLocation: typeof window.selectLocation,
+        windowSelectRestaurant: typeof window.selectRestaurant,
+        globalSelectLocation: typeof selectLocation,
+        globalSelectRestaurant: typeof selectRestaurant
+    });
+}, 1000);
 
 // Extract TikTok video ID from URL
 function extractTikTokVideoId(url) {
@@ -2560,4 +2574,16 @@ function addVideoToRestaurant(restaurantId, restaurantName) {
             restaurantSearch.dispatchEvent(new Event('input'));
         }
     }
+}
+
+// Ensure functions are globally accessible (for onclick handlers)
+// This is a fallback to make sure the functions are available
+if (typeof window !== 'undefined') {
+    window.selectLocation = selectLocation;
+    window.selectRestaurant = selectRestaurant;
+    
+    console.log('🔧 Fallback: Global functions registered at end of file:', {
+        selectLocation: typeof window.selectLocation,
+        selectRestaurant: typeof window.selectRestaurant
+    });
 }
