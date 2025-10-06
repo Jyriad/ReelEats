@@ -1340,9 +1340,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     maxZoom: 20
                 }).addTo(map);
 
-                // Initialize the marker cluster group with very aggressive clustering
+                // Initialize the marker cluster group with icon-based clustering
                 window.markerClusterGroup = L.markerClusterGroup({
-                    maxClusterRadius: 3, // Cluster markers when they're within 3 pixels (very tight clustering)
+                    maxClusterRadius: 30, // Cluster markers when they're within 30 pixels (icon size is 28px)
                     disableClusteringAtZoom: 20, // Disable clustering only at maximum zoom level
                     spiderfyOnMaxZoom: true, // Show individual markers when zoomed in
                     showCoverageOnHover: false, // Don't show coverage area on hover
