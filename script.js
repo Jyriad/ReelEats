@@ -1357,12 +1357,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     showCoverageOnHover: false, // Don't show coverage area on hover
                     zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
                     chunkedLoading: true, // Load markers in chunks for better performance
-                    // Custom cluster icon with restaurant SVG and count badge - uniform 32px circle
+                    // Custom cluster icon with restaurant SVG and count badge - uniform 38px circle (20% larger)
                     iconCreateFunction: function(cluster) {
                         const childCount = cluster.getChildCount();
-                        const size = 32; // Increased to 32px diameter for all clusters
-                        const badgeSize = 18; // Increased badge size
-                        const badgeOffset = 4; // Badge protrudes outside the circle
+                        const size = 38; // 20% larger than 32px (32 * 1.2 = 38.4, rounded to 38)
+                        const badgeSize = 22; // 20% larger than 18px (18 * 1.2 = 21.6, rounded to 22)
+                        const badgeOffset = 5; // Slightly increased offset for larger badge
                         
                         return L.divIcon({
                             html: `<div class="custom-cluster-icon" style="
@@ -1377,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 justify-content: center;
                                 box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                             ">
-                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512.546 512.546" style="enable-background:new 0 0 512.546 512.546;" xml:space="preserve" width="24px" height="24px">
+                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512.546 512.546" style="enable-background:new 0 0 512.546 512.546;" xml:space="preserve" width="28px" height="28px">
                                     <g>
                                         <g>
                                             <circle style="fill:#FFFFFF;" cx="255.863" cy="256.108" r="217.467"/>
@@ -1425,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                     display: flex;
                                     align-items: center;
                                     justify-content: center;
-                                    font-size: 11px;
+                                    font-size: 13px;
                                     font-weight: bold;
                                     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                                     z-index: 1000;
