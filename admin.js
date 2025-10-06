@@ -1260,7 +1260,11 @@ function displayLocationOptions(places, formType = 'create') {
     const resultsDiv = document.getElementById(formType === 'edit' ? 'edit-location-results' : 'location-results');
     const optionsDiv = document.getElementById(formType === 'edit' ? 'edit-location-options' : 'location-options');
     
-    optionsDiv.innerHTML = places.map((place, index) => {
+    // Clear any existing event listeners
+    optionsDiv.replaceWith(optionsDiv.cloneNode(true));
+    const newOptionsDiv = document.getElementById(formType === 'edit' ? 'edit-location-options' : 'location-options');
+    
+    newOptionsDiv.innerHTML = places.map((place, index) => {
         // Handle both new API format (direct values) and legacy API format (functions)
         const lat = typeof place.geometry.location.lat === 'function' 
             ? place.geometry.location.lat() 
@@ -1270,8 +1274,9 @@ function displayLocationOptions(places, formType = 'create') {
             : place.geometry.location.lng;
             
         return `
-            <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors" 
-                 onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')}, '${formType}')">
+            <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors location-option" 
+                 data-place='${JSON.stringify(place).replace(/'/g, "&#39;")}' 
+                 data-form-type="${formType}">
                 <div class="font-medium text-gray-900">${place.name}</div>
                 <div class="text-sm text-gray-600">${place.formatted_address}</div>
                 <div class="text-xs text-gray-500 mt-1">
@@ -1281,6 +1286,31 @@ function displayLocationOptions(places, formType = 'create') {
             </div>
         `;
     }).join('');
+    
+    // Add event delegation for location options
+    newOptionsDiv.addEventListener('click', (e) => {
+        const locationOption = e.target.closest('.location-option');
+        if (locationOption) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+                const placeData = JSON.parse(locationOption.dataset.place);
+                const formType = locationOption.dataset.formType;
+                
+                console.log('📍 Location option clicked:', { placeData, formType });
+                
+                // Call selectLocation function
+                if (typeof selectLocation === 'function') {
+                    selectLocation(placeData, formType);
+                } else {
+                    console.error('❌ selectLocation function not available');
+                }
+            } catch (error) {
+                console.error('❌ Error parsing place data:', error);
+            }
+        }
+    });
     
     resultsDiv.classList.remove('hidden');
 }
