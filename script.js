@@ -3406,7 +3406,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Check if user is authenticated
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) {
-                openAuthModal();
+                // Close video modal first so user can see the sign-up modal
+                closeVideo();
+                // Small delay to ensure video modal closes before opening auth modal
+                setTimeout(() => {
+                    openAuthModal();
+                }, 100);
                 return;
             }
             
