@@ -3524,9 +3524,26 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 }
                 
-                // Refresh markers to update gold border
-                if (currentRestaurants && currentRestaurants.length > 0) {
-                    await applyAllFiltersAndDisplay();
+                // Update markers to show gold border for favorited restaurants
+                if (window.restaurantMarkers && window.restaurantMarkers.length > 0) {
+                    window.restaurantMarkers.forEach(marker => {
+                        const markerLat = marker.getLatLng().lat;
+                        const markerLon = marker.getLatLng().lng;
+                        const restaurant = currentRestaurants.find(r => 
+                            Math.abs(r.lat - markerLat) < 0.0001 && Math.abs(r.lon - markerLon) < 0.0001
+                        );
+                        if (restaurant && restaurant.id == restaurantId) {
+                            // Update the marker's favorited state
+                            const isFavorited = favoritedRestaurants.has(restaurantId);
+                            const markerElement = marker.getElement();
+                            if (markerElement) {
+                                const markerContent = markerElement.querySelector('.svg-marker-container');
+                                if (markerContent) {
+                                    markerContent.classList.toggle('favorited', isFavorited);
+                                }
+                            }
+                        }
+                    });
                 }
                 
             } catch (error) {
@@ -3921,16 +3938,20 @@ async function showVideoFor(restaurant) {
         if (videoFavoriteBtn) {
             videoFavoriteBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const restaurantId = e.target.closest('[data-restaurant-id]').dataset.restaurantId;
-                await toggleFavoriteFromVideoHeader(restaurantId);
+                const restaurantId = videoFavoriteBtn.dataset.restaurantId;
+                if (restaurantId) {
+                    await toggleFavoriteFromVideoHeader(restaurantId);
+                }
             });
         }
         
         if (videoCollectionBtn) {
             videoCollectionBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const restaurantId = e.target.closest('[data-restaurant-id]').dataset.restaurantId;
-                await showCollectionManagementFromVideoHeader(restaurantId);
+                const restaurantId = videoCollectionBtn.dataset.restaurantId;
+                if (restaurantId) {
+                    await showCollectionManagementFromVideoHeader(restaurantId);
+                }
             });
         }
         
