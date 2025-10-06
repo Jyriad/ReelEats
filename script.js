@@ -1357,25 +1357,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     showCoverageOnHover: false, // Don't show coverage area on hover
                     zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
                     chunkedLoading: true, // Load markers in chunks for better performance
-                    // Custom cluster icon with restaurant SVG and count badge
+                    // Custom cluster icon with restaurant SVG and count badge - uniform 28px circle
                     iconCreateFunction: function(cluster) {
                         const childCount = cluster.getChildCount();
-                        let size = 50;
-                        
-                        // Scale cluster icon based on number of restaurants
-                        if (childCount < 10) {
-                            size = 50;
-                        } else if (childCount < 50) {
-                            size = 60;
-                        } else if (childCount < 100) {
-                            size = 70;
-                        } else {
-                            size = 80;
-                        }
-                        
-                        // Calculate badge size and position
-                        const badgeSize = Math.max(20, size * 0.35);
-                        const badgeOffset = size * 0.15;
+                        const size = 28; // Fixed 28px diameter for all clusters
+                        const badgeSize = 16; // Fixed badge size
+                        const badgeOffset = 4; // Badge protrudes outside the circle
                         
                         return L.divIcon({
                             html: `<div class="custom-cluster-icon" style="
@@ -1383,14 +1370,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 height: ${size}px; 
                                 position: relative;
                                 background: white;
-                                border: 3px solid #e5e7eb;
+                                border: 2px solid #e5e7eb;
                                 border-radius: 50%;
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                             ">
-                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512.546 512.546" style="enable-background:new 0 0 512.546 512.546;" xml:space="preserve" width="${size * 0.7}px" height="${size * 0.7}px">
+                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512.546 512.546" style="enable-background:new 0 0 512.546 512.546;" xml:space="preserve" width="20px" height="20px">
                                     <g>
                                         <g>
                                             <circle style="fill:#FFFFFF;" cx="255.863" cy="256.108" r="217.467"/>
@@ -1438,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                     display: flex;
                                     align-items: center;
                                     justify-content: center;
-                                    font-size: ${badgeSize * 0.5}px;
+                                    font-size: 10px;
                                     font-weight: bold;
                                     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                                 ">${childCount}</div>
@@ -3188,9 +3175,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             const favoritedClass = isFavorited ? 'favorited' : '';
             const icon = L.divIcon({
                 className: 'svg-marker',
-                html: `<div class="svg-marker-container ${favoritedClass}">${displayContent}</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+                html: `<div class="svg-marker-container ${favoritedClass}" style="
+                    width: 28px; 
+                    height: 28px; 
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    font-size: 14px;
+                    font-weight: bold;
+                ">${displayContent}</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
