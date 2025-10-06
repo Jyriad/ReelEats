@@ -1529,6 +1529,15 @@ function selectRestaurant(id, name) {
     searchResultsEl.classList.add('hidden');
     searchInput.value = '';
     
+    // Auto-fill the restaurant name field with the selected restaurant's name
+    const restaurantNameInput = document.getElementById('restaurant-name');
+    if (restaurantNameInput) {
+        restaurantNameInput.value = name;
+        console.log('📝 Restaurant name field populated with:', name);
+    } else {
+        console.warn('⚠️ Restaurant name input field not found');
+    }
+    
     // Enable the submit button if found
     if (submitBtn) {
         submitBtn.disabled = false;
