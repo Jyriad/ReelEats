@@ -1859,6 +1859,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                     checkbox.value = cuisine.name;
                     checkbox.className = 'cuisine-checkbox mr-3 text-blue-600 focus:ring-blue-500';
                     
+                    // Add event listener for mobile cuisine checkbox
+                    checkbox.addEventListener('change', function() {
+                        console.log('Mobile cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
+                        
+                        // Update persistent state
+                        if (this.checked) {
+                            selectedCuisines.add(cuisine.name);
+                        } else {
+                            selectedCuisines.delete(cuisine.name);
+                        }
+                        
+                        // Save filter states
+                        saveFilterStates();
+                        updateSelectedCount();
+                    });
+                    
                     const label = document.createElement('label');
                     label.htmlFor = `mobile-cuisine-${cuisine.name}`;
                     label.className = 'flex items-center flex-1 cursor-pointer';
