@@ -1356,6 +1356,15 @@ function selectLocation(place, formType = 'create') {
     document.getElementById(addressField).textContent = place.formatted_address;
     document.getElementById(coordsField).textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     
+    // Auto-fill the restaurant name field with the selected location's name
+    const restaurantNameInput = document.getElementById('restaurant-name');
+    if (restaurantNameInput) {
+        restaurantNameInput.value = place.name;
+        console.log('📝 Restaurant name field populated from location:', place.name);
+    } else {
+        console.warn('⚠️ Restaurant name input field not found');
+    }
+    
     // Show selected location info
     const selectedLocationDiv = formType === 'edit' ? 'edit-selected-location' : 'selected-location';
     const resultsDiv = formType === 'edit' ? 'edit-location-results' : 'location-results';
