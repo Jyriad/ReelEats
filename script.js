@@ -1340,14 +1340,58 @@ document.addEventListener('DOMContentLoaded', async function() {
                     maxZoom: 20
                 }).addTo(map);
 
-                // Initialize the marker cluster group with icon-based clustering
+                // Initialize the marker cluster group with intelligent clustering
                 window.markerClusterGroup = L.markerClusterGroup({
-                    maxClusterRadius: 30, // Cluster markers when they're within 30 pixels (icon size is 28px)
+                    maxClusterRadius: function(zoom) {
+                        // Dynamic clustering based on zoom level
+                        // At lower zoom levels, cluster more aggressively
+                        // At higher zoom levels, allow more individual markers
+                        if (zoom <= 12) return 80;  // Very aggressive clustering at city level
+                        if (zoom <= 14) return 60;  // Moderate clustering at district level  
+                        if (zoom <= 16) return 40;  // Light clustering at neighborhood level
+                        if (zoom <= 18) return 25;  // Minimal clustering at street level
+                        return 15; // Very minimal clustering at building level
+                    },
                     disableClusteringAtZoom: 20, // Disable clustering only at maximum zoom level
                     spiderfyOnMaxZoom: true, // Show individual markers when zoomed in
                     showCoverageOnHover: false, // Don't show coverage area on hover
                     zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
-                    chunkedLoading: true // Load markers in chunks for better performance
+                    chunkedLoading: true, // Load markers in chunks for better performance
+                    // Custom cluster icon to better represent the area
+                    iconCreateFunction: function(cluster) {
+                        const childCount = cluster.getChildCount();
+                        let size = 40;
+                        
+                        // Scale cluster icon based on number of restaurants
+                        if (childCount < 10) {
+                            size = 40;
+                        } else if (childCount < 50) {
+                            size = 50;
+                        } else if (childCount < 100) {
+                            size = 60;
+                        } else {
+                            size = 70;
+                        }
+                        
+                        return L.divIcon({
+                            html: `<div class="custom-cluster-icon" style="
+                                width: ${size}px; 
+                                height: ${size}px; 
+                                line-height: ${size}px; 
+                                font-size: ${size * 0.4}px;
+                                background: #3b82f6;
+                                color: white;
+                                border: 3px solid white;
+                                border-radius: 50%;
+                                text-align: center;
+                                font-weight: bold;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                            ">${childCount}</div>`,
+                            className: 'custom-cluster-marker',
+                            iconSize: L.point(size, size),
+                            iconAnchor: L.point(size/2, size/2)
+                        });
+                    }
                 });
                 map.addLayer(window.markerClusterGroup);
                 markerClusterGroup = window.markerClusterGroup;
