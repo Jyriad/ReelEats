@@ -1357,11 +1357,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     showCoverageOnHover: false, // Don't show coverage area on hover
                     zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
                     chunkedLoading: true, // Load markers in chunks for better performance
-                    // Custom cluster icon with restaurant SVG and count badge - uniform 28px circle
+                    // Custom cluster icon with restaurant SVG and count badge - uniform 32px circle
                     iconCreateFunction: function(cluster) {
                         const childCount = cluster.getChildCount();
-                        const size = 28; // Fixed 28px diameter for all clusters
-                        const badgeSize = 16; // Fixed badge size
+                        const size = 32; // Increased to 32px diameter for all clusters
+                        const badgeSize = 18; // Increased badge size
                         const badgeOffset = 4; // Badge protrudes outside the circle
                         
                         return L.divIcon({
@@ -1377,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 justify-content: center;
                                 box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                             ">
-                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512.546 512.546" style="enable-background:new 0 0 512.546 512.546;" xml:space="preserve" width="20px" height="20px">
+                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512.546 512.546" style="enable-background:new 0 0 512.546 512.546;" xml:space="preserve" width="24px" height="24px">
                                     <g>
                                         <g>
                                             <circle style="fill:#FFFFFF;" cx="255.863" cy="256.108" r="217.467"/>
@@ -1425,9 +1425,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                                     display: flex;
                                     align-items: center;
                                     justify-content: center;
-                                    font-size: 10px;
+                                    font-size: 11px;
                                     font-weight: bold;
                                     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                                    z-index: 1000;
                                 ">${childCount}</div>
                             </div>`,
                             className: 'custom-cluster-marker',
@@ -3176,8 +3177,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const icon = L.divIcon({
                 className: 'svg-marker',
                 html: `<div class="svg-marker-container ${favoritedClass}" style="
-                    width: 28px; 
-                    height: 28px; 
+                    width: 32px; 
+                    height: 32px; 
                     background: white;
                     border: 2px solid #e5e7eb;
                     border-radius: 50%;
@@ -3185,11 +3186,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     align-items: center;
                     justify-content: center;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    font-size: 14px;
+                    font-size: 16px;
                     font-weight: bold;
                 ">${displayContent}</div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
