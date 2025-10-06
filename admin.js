@@ -1429,13 +1429,20 @@ async function handleRestaurantSearch(e) {
         if (restaurants.length === 0) {
             resultsContainer.innerHTML = '<div class="p-3 text-sm text-gray-500">No restaurants found for your selected filters. Try clearing your selection.</div>';
         } else {
-            resultsContainer.innerHTML = restaurants.map(restaurant => `
-                <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
-                     onclick="selectRestaurant(${restaurant.id}, '${restaurant.name.replace(/'/g, "\\'")}')">
-                    <div class="font-medium text-gray-900">${restaurant.name}</div>
-                    <div class="text-sm text-gray-600">${restaurant.cities?.name || 'Unknown City'}</div>
-                </div>
-            `).join('');
+            console.log('🔍 Generating search results for:', restaurants.length, 'restaurants');
+            resultsContainer.innerHTML = restaurants.map(restaurant => {
+                const escapedName = restaurant.name.replace(/'/g, "\\'");
+                const onclickCode = `selectRestaurant(${restaurant.id}, '${escapedName}')`;
+                console.log('🔍 Generated onclick for:', restaurant.name, '->', onclickCode);
+                
+                return `
+                    <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                         onclick="${onclickCode}">
+                        <div class="font-medium text-gray-900">${restaurant.name}</div>
+                        <div class="text-sm text-gray-600">${restaurant.cities?.name || 'Unknown City'}</div>
+                    </div>
+                `;
+            }).join('');
         }
         
         resultsContainer.classList.remove('hidden');
@@ -1449,15 +1456,49 @@ async function handleRestaurantSearch(e) {
 
 // Select restaurant from search results
 function selectRestaurant(id, name) {
-    document.getElementById('selected-restaurant-id').value = id;
-    document.getElementById('selected-restaurant-name').textContent = name;
-    document.getElementById('selected-restaurant').classList.remove('hidden');
-    document.getElementById('search-results').classList.add('hidden');
-    document.getElementById('restaurant-search').value = '';
+    console.log('🎯 selectRestaurant called with:', { id, name });
     
-    // Enable the submit button
-    document.querySelector('#add-tiktok-form button[type="submit"]').disabled = false;
+    const selectedIdInput = document.getElementById('selected-restaurant-id');
+    const selectedNameEl = document.getElementById('selected-restaurant-name');
+    const selectedRestaurantEl = document.getElementById('selected-restaurant');
+    const searchResultsEl = document.getElementById('search-results');
+    const searchInput = document.getElementById('restaurant-search');
+    const submitBtn = document.querySelector('#add-tiktok-form button[type="submit"]');
+    
+    console.log('🔍 Element check:', {
+        selectedIdInput: !!selectedIdInput,
+        selectedNameEl: !!selectedNameEl,
+        selectedRestaurantEl: !!selectedRestaurantEl,
+        searchResultsEl: !!searchResultsEl,
+        searchInput: !!searchInput,
+        submitBtn: !!submitBtn
+    });
+    
+    if (!selectedIdInput || !selectedNameEl || !selectedRestaurantEl || !searchResultsEl || !searchInput) {
+        console.error('❌ Required elements not found');
+        return;
+    }
+    
+    if (!submitBtn) {
+        console.warn('⚠️ Submit button not found, but continuing...');
+    }
+    
+    selectedIdInput.value = id;
+    selectedNameEl.textContent = name;
+    selectedRestaurantEl.classList.remove('hidden');
+    searchResultsEl.classList.add('hidden');
+    searchInput.value = '';
+    
+    // Enable the submit button if found
+    if (submitBtn) {
+        submitBtn.disabled = false;
+    }
+    
+    console.log('✅ Restaurant selected successfully');
 }
+
+// Make selectRestaurant globally accessible
+window.selectRestaurant = selectRestaurant;
 
 // Extract TikTok video ID from URL
 function extractTikTokVideoId(url) {
