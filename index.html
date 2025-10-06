@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
     <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://www.tiktok.com https://*.ttwstatic.com https://*.tiktok.com https://*.byteoversea.com;
@@ -37,9 +38,9 @@
                 }
             } catch (error) {
                 console.log('Could not load version number from config, using fallback');
-                // Fallback versions
-                document.getElementById('index-title').textContent = 'London Food Map Supabase v1.158';
-                document.getElementById('index-h1').textContent = 'Map v1.158 🗺️';
+                // Fallback versions - use a generic version since we can't load from config
+                document.getElementById('index-title').textContent = 'London Food Map Supabase';
+                document.getElementById('index-h1').textContent = 'Map 🗺️';
             }
         }
         
@@ -258,11 +259,25 @@
 
             <div id="video-modal">
                 <div class="modal-content-wrapper">
-                <div id="video-title" class="hidden"></div>
-                    <button class="close-video-btn">&times;</button>
+                    <!-- Video Header with Restaurant Info and Actions -->
+                    <div class="video-header">
+                        <div class="video-header-content">
+                            <h3 id="video-restaurant-name" class="video-restaurant-name"></h3>
+                            <div class="video-header-actions">
+                                <button id="video-collection-btn" class="video-action-btn" title="Add to Collection">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                                </button>
+                                <button id="video-favorite-btn" class="video-action-btn" title="Add to Favorites">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="close-video-btn">&times;</button>
+                    </div>
+                    
                     <div class="video-container"></div>
+                </div>
             </div>
-        </div>
     </main>
 
     <!-- Admin link (desktop only) -->
