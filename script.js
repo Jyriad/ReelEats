@@ -1357,36 +1357,92 @@ document.addEventListener('DOMContentLoaded', async function() {
                     showCoverageOnHover: false, // Don't show coverage area on hover
                     zoomToBoundsOnClick: true, // Zoom to show all markers in cluster when clicked
                     chunkedLoading: true, // Load markers in chunks for better performance
-                    // Custom cluster icon to better represent the area
+                    // Custom cluster icon with restaurant SVG and count badge
                     iconCreateFunction: function(cluster) {
                         const childCount = cluster.getChildCount();
-                        let size = 40;
+                        let size = 50;
                         
                         // Scale cluster icon based on number of restaurants
                         if (childCount < 10) {
-                            size = 40;
-                        } else if (childCount < 50) {
                             size = 50;
-                        } else if (childCount < 100) {
+                        } else if (childCount < 50) {
                             size = 60;
-                        } else {
+                        } else if (childCount < 100) {
                             size = 70;
+                        } else {
+                            size = 80;
                         }
+                        
+                        // Calculate badge size and position
+                        const badgeSize = Math.max(20, size * 0.35);
+                        const badgeOffset = size * 0.15;
                         
                         return L.divIcon({
                             html: `<div class="custom-cluster-icon" style="
                                 width: ${size}px; 
                                 height: ${size}px; 
-                                line-height: ${size}px; 
-                                font-size: ${size * 0.4}px;
-                                background: #3b82f6;
-                                color: white;
-                                border: 3px solid white;
+                                position: relative;
+                                background: white;
+                                border: 3px solid #e5e7eb;
                                 border-radius: 50%;
-                                text-align: center;
-                                font-weight: bold;
-                                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                            ">${childCount}</div>`,
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                            ">
+                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512.546 512.546" style="enable-background:new 0 0 512.546 512.546;" xml:space="preserve" width="${size * 0.7}px" height="${size * 0.7}px">
+                                    <g>
+                                        <g>
+                                            <circle style="fill:#FFFFFF;" cx="255.863" cy="256.108" r="217.467"/>
+                                            <circle style="fill:#C5D9EC;" cx="255.863" cy="256.108" r="142.5"/>
+                                            <path style="fill:#A8C6E2;" d="M271.994,382.477c-78.701,0-142.5-63.799-142.5-142.5c0-35.244,12.802-67.494,34-92.37&#10;&#9;&#9;&#9;c-30.672,26.138-50.13,65.044-50.13,108.5c0,78.701,63.799,142.5,142.5,142.5c43.456,0,82.362-19.458,108.5-50.13&#10;&#9;&#9;&#9;C339.487,369.676,307.238,382.477,271.994,382.477z"/>
+                                            <path style="fill:#E3EDF6;" d="M270.863,458.575c-65.918,0-124.981-29.333-164.861-75.653V181.161h-15v-26.188&#10;&#9;&#9;&#9;c23.688-15.639,32.043-41.633,30-69.467c-3.878,3.07-7.645,6.273-11.302,9.595c0.025-0.028,0.049-0.056,0.074-0.083&#10;&#9;&#9;&#9;c-25.911,23.527-46.049,53.245-58.105,86.143h-0.011C21.758,260.249,44.6,355.964,106,413.69c0,0,0.001,0,0.001,0.001l0,0&#10;&#9;&#9;&#9;c80.584,83.276,237.06,77.202,310.951-11.494C378.348,437.228,327.099,458.575,270.863,458.575z"/>
+                                            <path style="fill:#C5D9EC;" d="M8.502,83.853v15c0,19.592,12.524,36.251,30,42.43v62.379h30v-62.379&#10;&#9;&#9;&#9;c17.476-6.179,30-22.838,30-42.43v-15H8.502z"/>
+                                            <path style="fill:#A8C6E2;" d="M60.842,198.172v-62.379c-17.476-6.179-30-22.838-30-42.43v-9.511H8.502v15&#10;&#9;&#9;&#9;c0,19.592,12.524,36.251,30,42.43v62.379h30v-5.489H60.842z"/>
+                                            <path style="fill:#EB975D;" d="M53.502,505.046L53.502,505.046c-16.569,0-30-13.431-30-30V203.661h60v271.384&#10;&#9;&#9;&#9;C83.502,491.614,70.07,505.046,53.502,505.046z"/>
+                                            <path style="fill:#B25E1E;" d="M45.21,468.146V203.661H23.502v271.384c0,16.569,13.431,30,30,30h0&#10;&#9;&#9;&#9;c7.335,0,14.052-2.636,19.264-7.008C57.342,496.793,45.21,483.89,45.21,468.146z"/>
+                                            <path style="fill:#EB975D;" d="M474.044,505.046L474.044,505.046c-16.569,0-30-13.431-30-30v-181.32h60v181.32&#10;&#9;&#9;&#9;C504.044,491.614,490.613,505.046,474.044,505.046z"/>
+                                            <path style="fill:#B25E1E;" d="M465.753,468.146v-174.42h-21.709v181.32c0,16.569,13.431,30,30,30h0&#10;&#9;&#9;&#9;c7.335,0,14.052-2.636,19.264-7.008C477.884,496.793,465.753,483.89,465.753,468.146z"/>
+                                            <path style="fill:#C5D9EC;" d="M499.491,7.5L499.491,7.5L499.491,7.5c-35.39,33.415-55.447,79.937-55.447,128.609v90l30,22.647&#10;&#9;&#9;&#9;v44.968h30V7.5H499.491z"/>
+                                            <path style="fill:#A8C6E2;" d="M504.044,243.145l-37.532-28.333v-90c0-39.733,13.37-78.028,37.532-108.935V7.5h-4.553h0h0&#10;&#9;&#9;&#9;c-35.39,33.415-55.447,79.937-55.447,128.609v90l30,22.647v44.968h30V243.145z"/>
+                                            <g>
+                                                <path style="fill:none;stroke:#FFFFFF;stroke-width:15;stroke-miterlimit:10;" d="M189.044,165.566&#10;&#9;&#9;&#9;&#9;c-12.105,8.924-22.608,20.435-30.608,34.292"/>
+                                                <path style="fill:none;stroke:#FFFFFF;stroke-width:15;stroke-miterlimit:10;" d="M217.366,150.397&#10;&#9;&#9;&#9;&#9;c-4.767,1.733-9.423,3.789-13.932,6.158"/>
+                                            </g>
+                                        </g>
+                                        <g>
+                                            <line style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" x1="8.502" y1="83.853" x2="8.502" y2="0.108"/>
+                                            <line style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" x1="38.502" y1="83.853" x2="38.502" y2="0.108"/>
+                                            <line style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" x1="68.502" y1="83.853" x2="68.502" y2="0.108"/>
+                                            <line style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" x1="98.502" y1="83.853" x2="98.502" y2="0.108"/>
+                                            <path style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" d="M8.502,83.853v15&#10;&#9;&#9;&#9;c0,19.592,12.524,36.251,30,42.43v62.379h30v-62.379c17.476-6.179,30-22.838,30-42.43v-15H8.502z"/>
+                                            <path style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" d="M53.502,505.046L53.502,505.046&#10;&#9;&#9;&#9;c-16.569,0-30-13.431-30-30V203.661h60v271.384C83.502,491.614,70.07,505.046,53.502,505.046z"/>
+                                            <path style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" d="M499.491,7.5L499.491,7.5L499.491,7.5&#10;&#9;&#9;&#9;c-35.39,33.415-55.447,79.937-55.447,128.609v90l30,22.647v44.968h30V7.5H499.491z"/>
+                                            <path style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" d="M504.044,391.109v83.936&#10;&#9;&#9;&#9;c0,16.569-13.431,30-30,30h0c-16.569,0-30-13.431-30-30v-181.32h60v82.384"/>
+                                            <path style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" d="M444.047,146.981&#10;&#9;&#9;&#9;C406.387,82.178,336.213,38.608,255.863,38.608c-62.26,0-118.41,26.16-158.059,68.088"/>
+                                            <path style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" d="M84.205,389.689&#10;&#9;&#9;&#9;c39.8,51.072,101.893,83.919,171.658,83.919c80.35,0,150.524-43.57,188.184-108.374"/>
+                                            <path style="fill:none;stroke:#000000;stroke-width:15;stroke-miterlimit:10;" d="M120.614,211.109&#10;&#9;&#9;&#9;c-4.704,14.145-7.251,29.274-7.251,44.999c0,78.701,63.799,142.5,142.5,142.5s142.5-63.799,142.5-142.5s-63.799-142.5-142.5-142.5&#10;&#9;&#9;&#9;c-57.266,0-106.641,33.779-129.29,82.499"/>
+                                        </g>
+                                    </g>
+                                </svg>
+                                <div style="
+                                    position: absolute;
+                                    top: -${badgeOffset}px;
+                                    right: -${badgeOffset}px;
+                                    width: ${badgeSize}px;
+                                    height: ${badgeSize}px;
+                                    background: #dc2626;
+                                    color: white;
+                                    border: 2px solid white;
+                                    border-radius: 50%;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-size: ${badgeSize * 0.5}px;
+                                    font-weight: bold;
+                                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                                ">${childCount}</div>
+                            </div>`,
                             className: 'custom-cluster-marker',
                             iconSize: L.point(size, size),
                             iconAnchor: L.point(size/2, size/2)
