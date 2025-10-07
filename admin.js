@@ -1558,10 +1558,14 @@ function selectRestaurant(id, name) {
 // Make functions globally accessible
 window.selectRestaurant = selectRestaurant;
 window.selectLocation = selectLocation;
+window.editRestaurant = editRestaurant;
+window.closeEditModal = closeEditModal;
 
 console.log('🌐 Global functions registered:', {
     selectRestaurant: typeof window.selectRestaurant,
-    selectLocation: typeof window.selectLocation
+    selectLocation: typeof window.selectLocation,
+    editRestaurant: typeof window.editRestaurant,
+    closeEditModal: typeof window.closeEditModal
 });
 
 // Test function availability
