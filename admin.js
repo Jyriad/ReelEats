@@ -1260,7 +1260,11 @@ function displayLocationOptions(places, formType = 'create') {
     const resultsDiv = document.getElementById(formType === 'edit' ? 'edit-location-results' : 'location-results');
     const optionsDiv = document.getElementById(formType === 'edit' ? 'edit-location-options' : 'location-options');
     
-    optionsDiv.innerHTML = places.map((place, index) => {
+    // Clear any existing event listeners
+    optionsDiv.replaceWith(optionsDiv.cloneNode(true));
+    const newOptionsDiv = document.getElementById(formType === 'edit' ? 'edit-location-options' : 'location-options');
+    
+    newOptionsDiv.innerHTML = places.map((place, index) => {
         // Handle both new API format (direct values) and legacy API format (functions)
         const lat = typeof place.geometry.location.lat === 'function' 
             ? place.geometry.location.lat() 
@@ -1270,8 +1274,9 @@ function displayLocationOptions(places, formType = 'create') {
             : place.geometry.location.lng;
             
         return `
-            <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors" 
-                 onclick="selectLocation(${JSON.stringify(place).replace(/"/g, '&quot;')}, '${formType}')">
+            <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors location-option" 
+                 data-place='${JSON.stringify(place).replace(/'/g, "&#39;")}' 
+                 data-form-type="${formType}">
                 <div class="font-medium text-gray-900">${place.name}</div>
                 <div class="text-sm text-gray-600">${place.formatted_address}</div>
                 <div class="text-xs text-gray-500 mt-1">
@@ -1282,11 +1287,38 @@ function displayLocationOptions(places, formType = 'create') {
         `;
     }).join('');
     
+    // Add event delegation for location options
+    newOptionsDiv.addEventListener('click', (e) => {
+        const locationOption = e.target.closest('.location-option');
+        if (locationOption) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+                const placeData = JSON.parse(locationOption.dataset.place);
+                const formType = locationOption.dataset.formType;
+                
+                console.log('📍 Location option clicked:', { placeData, formType });
+                
+                // Call selectLocation function
+                if (typeof selectLocation === 'function') {
+                    selectLocation(placeData, formType);
+                } else {
+                    console.error('❌ selectLocation function not available');
+                }
+            } catch (error) {
+                console.error('❌ Error parsing place data:', error);
+            }
+        }
+    });
+    
     resultsDiv.classList.remove('hidden');
 }
 
 // Select a location from the options
 function selectLocation(place, formType = 'create') {
+    console.log('📍 selectLocation called with:', { place, formType });
+    
     const lat = typeof place.geometry.location.lat === 'function' 
         ? place.geometry.location.lat() 
         : place.geometry.location.lat;
@@ -1324,6 +1356,15 @@ function selectLocation(place, formType = 'create') {
     document.getElementById(addressField).textContent = place.formatted_address;
     document.getElementById(coordsField).textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     
+    // Auto-fill the restaurant name field with the selected location's name
+    const restaurantNameInput = document.getElementById('restaurant-name');
+    if (restaurantNameInput) {
+        restaurantNameInput.value = place.name;
+        console.log('📝 Restaurant name field populated from location:', place.name);
+    } else {
+        console.warn('⚠️ Restaurant name input field not found');
+    }
+    
     // Show selected location info
     const selectedLocationDiv = formType === 'edit' ? 'edit-selected-location' : 'selected-location';
     const resultsDiv = formType === 'edit' ? 'edit-location-results' : 'location-results';
@@ -1333,14 +1374,22 @@ function selectLocation(place, formType = 'create') {
     
     // Enable submit button (only for create form)
     if (formType === 'create') {
-        document.getElementById('submit-restaurant-btn').disabled = false;
+        const submitBtn = document.getElementById('submit-restaurant-btn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
     }
     
     // Update status
     const statusEl = document.getElementById(formType === 'edit' ? 'edit-location-status' : 'location-status');
-    statusEl.textContent = 'Location selected ✓';
-    statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+    if (statusEl) {
+        statusEl.textContent = 'Location selected ✓';
+        statusEl.className = 'px-3 py-2 text-sm text-green-600 bg-green-50 border border-green-300 rounded-md';
+    }
+    
+    console.log('✅ Location selected successfully');
 }
+
 
 // Handle add TikTok form submission
 async function handleAddTikTok(e) {
@@ -1429,13 +1478,20 @@ async function handleRestaurantSearch(e) {
         if (restaurants.length === 0) {
             resultsContainer.innerHTML = '<div class="p-3 text-sm text-gray-500">No restaurants found for your selected filters. Try clearing your selection.</div>';
         } else {
-            resultsContainer.innerHTML = restaurants.map(restaurant => `
-                <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
-                     onclick="selectRestaurant(${restaurant.id}, '${restaurant.name.replace(/'/g, "\\'")}')">
-                    <div class="font-medium text-gray-900">${restaurant.name}</div>
-                    <div class="text-sm text-gray-600">${restaurant.cities?.name || 'Unknown City'}</div>
-                </div>
-            `).join('');
+            console.log('🔍 Generating search results for:', restaurants.length, 'restaurants');
+            resultsContainer.innerHTML = restaurants.map(restaurant => {
+                const escapedName = restaurant.name.replace(/'/g, "\\'");
+                const onclickCode = `selectRestaurant(${restaurant.id}, '${escapedName}')`;
+                console.log('🔍 Generated onclick for:', restaurant.name, '->', onclickCode);
+                
+                return `
+                    <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                         onclick="${onclickCode}">
+                        <div class="font-medium text-gray-900">${restaurant.name}</div>
+                        <div class="text-sm text-gray-600">${restaurant.cities?.name || 'Unknown City'}</div>
+                    </div>
+                `;
+            }).join('');
         }
         
         resultsContainer.classList.remove('hidden');
@@ -1449,15 +1505,78 @@ async function handleRestaurantSearch(e) {
 
 // Select restaurant from search results
 function selectRestaurant(id, name) {
-    document.getElementById('selected-restaurant-id').value = id;
-    document.getElementById('selected-restaurant-name').textContent = name;
-    document.getElementById('selected-restaurant').classList.remove('hidden');
-    document.getElementById('search-results').classList.add('hidden');
-    document.getElementById('restaurant-search').value = '';
+    console.log('🎯 selectRestaurant called with:', { id, name });
     
-    // Enable the submit button
-    document.querySelector('#add-tiktok-form button[type="submit"]').disabled = false;
+    const selectedIdInput = document.getElementById('selected-restaurant-id');
+    const selectedNameEl = document.getElementById('selected-restaurant-name');
+    const selectedRestaurantEl = document.getElementById('selected-restaurant');
+    const searchResultsEl = document.getElementById('search-results');
+    const searchInput = document.getElementById('restaurant-search');
+    const submitBtn = document.querySelector('#add-tiktok-form button[type="submit"]');
+    
+    console.log('🔍 Element check:', {
+        selectedIdInput: !!selectedIdInput,
+        selectedNameEl: !!selectedNameEl,
+        selectedRestaurantEl: !!selectedRestaurantEl,
+        searchResultsEl: !!searchResultsEl,
+        searchInput: !!searchInput,
+        submitBtn: !!submitBtn
+    });
+    
+    if (!selectedIdInput || !selectedNameEl || !selectedRestaurantEl || !searchResultsEl || !searchInput) {
+        console.error('❌ Required elements not found');
+        return;
+    }
+    
+    if (!submitBtn) {
+        console.warn('⚠️ Submit button not found, but continuing...');
+    }
+    
+    selectedIdInput.value = id;
+    selectedNameEl.textContent = name;
+    selectedRestaurantEl.classList.remove('hidden');
+    searchResultsEl.classList.add('hidden');
+    searchInput.value = '';
+    
+    // Auto-fill the restaurant name field with the selected restaurant's name
+    const restaurantNameInput = document.getElementById('restaurant-name');
+    if (restaurantNameInput) {
+        restaurantNameInput.value = name;
+        console.log('📝 Restaurant name field populated with:', name);
+    } else {
+        console.warn('⚠️ Restaurant name input field not found');
+    }
+    
+    // Enable the submit button if found
+    if (submitBtn) {
+        submitBtn.disabled = false;
+    }
+    
+    console.log('✅ Restaurant selected successfully');
 }
+
+// Make functions globally accessible
+window.selectRestaurant = selectRestaurant;
+window.selectLocation = selectLocation;
+window.editRestaurant = editRestaurant;
+window.closeEditModal = closeEditModal;
+
+console.log('🌐 Global functions registered:', {
+    selectRestaurant: typeof window.selectRestaurant,
+    selectLocation: typeof window.selectLocation,
+    editRestaurant: typeof window.editRestaurant,
+    closeEditModal: typeof window.closeEditModal
+});
+
+// Test function availability
+setTimeout(() => {
+    console.log('🧪 Testing function availability after 1 second:', {
+        windowSelectLocation: typeof window.selectLocation,
+        windowSelectRestaurant: typeof window.selectRestaurant,
+        globalSelectLocation: typeof selectLocation,
+        globalSelectRestaurant: typeof selectRestaurant
+    });
+}, 1000);
 
 // Extract TikTok video ID from URL
 function extractTikTokVideoId(url) {
@@ -2507,4 +2626,16 @@ function addVideoToRestaurant(restaurantId, restaurantName) {
             restaurantSearch.dispatchEvent(new Event('input'));
         }
     }
+}
+
+// Ensure functions are globally accessible (for onclick handlers)
+// This is a fallback to make sure the functions are available
+if (typeof window !== 'undefined') {
+    window.selectLocation = selectLocation;
+    window.selectRestaurant = selectRestaurant;
+    
+    console.log('🔧 Fallback: Global functions registered at end of file:', {
+        selectLocation: typeof window.selectLocation,
+        selectRestaurant: typeof window.selectRestaurant
+    });
 }
