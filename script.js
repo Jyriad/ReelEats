@@ -160,6 +160,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Filter state persistence
         let selectedCuisines = new Set();
         
+        // --- Router Function ---
+        async function initializeApp() {
+            // Get the URL path and extract city name
+            const path = window.location.pathname;
+            const city = path.split('/')[1]; // Get the first segment after the domain
+            
+            // Format city name for display (capitalize first letter)
+            const formattedCityName = city ? city.charAt(0).toUpperCase() + city.slice(1).toLowerCase() : '';
+            
+            // Update page title based on city
+            if (city) {
+                document.title = `ReelGrub - ${formattedCityName}`;
+                console.log(`🏙️ Loading restaurants for city: ${formattedCityName}`);
+            } else {
+                document.title = 'ReelGrub - Discover Your Next Spot';
+                console.log('🌍 Loading all restaurants (homepage)');
+            }
+            
+            // Load restaurants with optional city filtering
+            await loadRestaurantsForCity(city);
+        }
+        
         // Load watched videos from localStorage
         // Removed loadWatchedVideos() - now using session-only tracking
         
@@ -1594,19 +1616,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const t1 = performance.now();
             console.log(`Cities query and processing took: ${t1 - t0} ms`);
 
-            if (citySelect.options.length > 0) {
-                const initialCityId = citySelect.value;
-                // Show skeleton loaders while loading
-                displayRestaurants([], true);
-                await loadRestaurantsForCity(initialCityId);
-                
-                // Apply saved filters after restaurants are loaded
-                console.log('🔄 Applying saved filters after restaurant load...');
-                await applyAllFiltersAndDisplay();
-                
-                const selectedOption = citySelect.options[citySelect.selectedIndex];
-                map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
-            }
+            // Initialize the app with URL-based routing
+            await initializeApp();
             const t2 = performance.now();
             console.log(`Total initial load time: ${t2 - t0} ms`);
         }
@@ -1671,14 +1682,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
         
-        async function loadRestaurantsForCity(cityId) {
-            // --- FIX: Use a more robust two-query approach ---
+        async function loadRestaurantsForCity(city = null) {
+            // --- Load restaurants with optional city filtering ---
 
-            // 1. Fetch all restaurants for the selected city.
-            const { data: restaurants, error: restaurantsError } = await supabaseClient
+            let query = supabaseClient
                 .from('restaurants')
-                .select('*')
-                .eq('city_id', cityId);
+                .select('*');
+
+            // If a city is provided, filter by city name
+            if (city) {
+                query = query.ilike('city', city);
+            }
+
+            // 1. Fetch all restaurants (optionally filtered by city).
+            const { data: restaurants, error: restaurantsError } = await query;
 
             if (restaurantsError) {
                 console.error("Error fetching restaurants:", restaurantsError);
@@ -3980,7 +3997,10 @@ async function showVideoFor(restaurant) {
             const selectedOption = citySelect.options[citySelect.selectedIndex];
             // Show skeleton loaders while loading
             displayRestaurants([], true);
-            await loadRestaurantsForCity(selectedOption.value);
+            
+            // Get city name from the selected option text
+            const cityName = selectedOption.textContent.toLowerCase();
+            await loadRestaurantsForCity(cityName);
             
             // Pre-load collection mappings if collections are selected
             if (selectedCollections.size > 0) {

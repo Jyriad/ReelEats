@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/:city",
+      "destination": "/index.html"
+    }
+  ]
+}
