@@ -829,9 +829,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (user) {
                 // User is logged in - show logout button instead of login button
-                authBtn.classList.add('hidden');
-                collectionsBtn.classList.remove('hidden');
-                collectionFilterBtn.classList.remove('hidden');
+                if (authBtn) authBtn.classList.add('hidden');
+                if (collectionsBtn) collectionsBtn.classList.remove('hidden');
+                if (collectionFilterBtn) collectionFilterBtn.classList.remove('hidden');
                 
                 // Create or update logout button
                 let logoutButton = document.getElementById('logout-button');
@@ -876,8 +876,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
             } else {
                 // User is logged out - show login button
-                authBtn.classList.remove('hidden');
-                collectionsBtn.classList.add('hidden');
+                if (authBtn) authBtn.classList.remove('hidden');
+                if (collectionsBtn) collectionsBtn.classList.add('hidden');
                 // Keep collection filter button visible for all users
                 // collectionFilterBtn.classList.add('hidden');
                 
@@ -1374,9 +1374,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 const x = (index * offset) - (childCount - 1) * offset / 2;
                                 const y = (index * offset) - (childCount - 1) * offset / 2;
                                 
-                                // Get the marker's content (cuisine icon or number)
-                                const markerIcon = marker.options.icon;
-                                const iconContent = markerIcon.options.html.match(/>(.*?)<\/div>/)[1];
+                                // Get the marker's restaurant data to determine content
+                                const restaurant = marker.options.restaurant;
+                                const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
+                                const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
                                 
                                 bunchedIconsHtml += `
                                     <div style="
@@ -1396,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                         font-size: 13px;
                                         font-weight: bold;
                                         z-index: ${10 + index};
-                                    ">${iconContent}</div>
+                                    ">${displayContent}</div>
                                 `;
                             });
                             
@@ -2167,6 +2168,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const countElement = document.getElementById('selected-count');
             const subtitleElement = document.getElementById('filter-subtitle');
             
+            if (!countElement || !subtitleElement) return;
+            
             if (hasActiveFilters) {
                 // Show count
                 countElement.textContent = selectedCuisines.length;
@@ -2451,6 +2454,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const cancelBtn = document.getElementById('cancel-login');
             const errorDiv = document.getElementById('login-error');
             
+            // Skip setup if admin link doesn't exist (removed from HTML)
+            if (!adminLink) return;
+            
             // Open login modal when admin link is clicked
             adminLink.addEventListener('click', async function(e) {
                 e.preventDefault();
@@ -2626,6 +2632,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
+            const collectionsListEl = document.getElementById('collections-list');
+            if (!collectionsListEl) return;
+
             const { data, error } = await supabaseClient
                 .from('user_collections')
                 .select(`*, collection_restaurants(count)`)
@@ -2633,14 +2642,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                collectionsList.innerHTML = `<p class="text-red-500">Error loading collections.</p>`;
+                collectionsListEl.innerHTML = `<p class="text-red-500">Error loading collections.</p>`;
                 return;
             }
 
             if (data.length === 0) {
-                collectionsList.innerHTML = `<p class="text-gray-500 text-center">You haven't created any collections yet.</p>`;
+                collectionsListEl.innerHTML = `<p class="text-gray-500 text-center">You haven't created any collections yet.</p>`;
             } else {
-                collectionsList.innerHTML = data.map(collection => `
+                collectionsListEl.innerHTML = data.map(collection => `
                     <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
                         <div class="flex-1 cursor-pointer collection-item" data-collection-id="${collection.id}" data-collection-name="${collection.name}">
                             <p class="font-semibold">${collection.name}</p>
@@ -2654,7 +2663,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Handle deleting a collection
         let collectionToDelete = null;
-        collectionsList.addEventListener('click', async (e) => {
+        const collectionsListEl = document.getElementById('collections-list');
+        if (collectionsListEl) {
+            collectionsListEl.addEventListener('click', async (e) => {
             if (e.target.classList.contains('delete-collection-btn')) {
                 const collectionId = e.target.dataset.collectionId;
                 const collectionName = e.target.closest('.flex').querySelector('.font-semibold').textContent;
@@ -2694,7 +2705,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Show success message
                 showToast(`Filtering by collection: ${collectionName}`);
             }
-        });
+            });
+        }
 
         // Handle delete confirmation modal
         document.getElementById('cancel-delete-collection').addEventListener('click', () => {
@@ -3248,7 +3260,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
                 icon: icon,
-                title: restaurant.name
+                title: restaurant.name,
+                restaurant: restaurant // Add restaurant data for clustering
             });
             
             marker.on('click', () => {
