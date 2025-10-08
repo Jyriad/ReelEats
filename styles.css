@@ -1166,6 +1166,12 @@ body.homepage {
   height: auto;
   min-height: 100vh;
   overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html {
+  height: auto;
+  overflow-y: auto;
 }
 
 .header {
@@ -1197,10 +1203,11 @@ body.homepage {
 .search-button:hover { background-color: #2563eb; }
 
 .featured-cities { 
-  padding: 4rem 5%; 
+  padding: 4rem 5% 6rem 5%; 
   text-align: center; 
   background-color: #f9fafb; 
-  min-height: 60vh; /* Ensure enough space for city cards */
+  min-height: auto; 
+  padding-bottom: 6rem; /* Extra bottom padding to ensure scrolling shows everything */
 }
 .featured-cities h2 { font-size: 2rem; color: #111827; margin-bottom: 2rem; }
 .city-grid { 

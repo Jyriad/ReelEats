@@ -1630,6 +1630,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             await initializeApp();
             const t2 = performance.now();
             console.log(`Total initial load time: ${t2 - t0} ms`);
+            
+            // Check for #auth hash to open authentication modal
+            if (window.location.hash === '#auth') {
+                setTimeout(() => {
+                    openAuthModal();
+                }, 500); // Small delay to ensure everything is loaded
+            }
         }
 
         async function loadCities() {
