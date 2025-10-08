@@ -1167,6 +1167,7 @@ body.homepage {
   min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 html {
@@ -1182,6 +1183,7 @@ html {
   background-color: #f9fafb;
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 .logo { font-weight: 700; font-size: 1.5rem; color: #111827; }
 .nav-link { color: #6b7280; margin: 0 1rem; text-decoration: none; transition: color 0.2s; }
@@ -1194,13 +1196,45 @@ html {
   padding: 6rem 5%;
   background-color: #ffffff;
   color: #111827;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
-.hero h1 { font-size: 3rem; max-width: 600px; margin: 0 auto 2rem auto; color: #111827; }
-.search-container { display: flex; justify-content: center; }
+.hero h1 { font-size: 3rem; max-width: 600px; margin: 0 auto 2rem auto; color: #111827; font-weight: 700; }
+.search-container { display: flex; justify-content: center; position: relative; }
 .search-bar { font-size: 1rem; padding: 0.75rem 1rem; width: 400px; border: 1px solid #d1d5db; border-radius: 8px 0 0 8px; background-color: #ffffff; color: #111827; }
 .search-bar:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 .search-button { font-size: 1rem; padding: 0.75rem 1.5rem; border: none; background-color: #3b82f6; color: white; border-radius: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
 .search-button:hover { background-color: #2563eb; }
+
+/* Autocomplete dropdown */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.autocomplete-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.autocomplete-item:hover {
+  background-color: #f9fafb;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
 
 .featured-cities { 
   padding: 4rem 5% 6rem 5%; 

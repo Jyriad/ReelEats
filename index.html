@@ -50,8 +50,9 @@
     <section class="hero">
       <h1>Discover your next favorite restaurant, one reel at a time.</h1>
       <div class="search-container">
-        <input type="text" placeholder="Enter a city..." class="search-bar">
-        <button class="search-button">Search</button>
+        <input type="text" placeholder="Enter a city..." class="search-bar" id="city-search">
+        <button class="search-button" id="search-button">Search</button>
+        <div class="autocomplete-dropdown" id="autocomplete-dropdown" style="display: none;"></div>
       </div>
     </section>
 
@@ -74,5 +75,126 @@
     </section>
   </main>
 
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script async src="https://www.tiktok.com/embed.js"></script>
+    
+    <script>
+        // Homepage search functionality
+        document.addEventListener('DOMContentLoaded', async function() {
+            const searchInput = document.getElementById('city-search');
+            const searchButton = document.getElementById('search-button');
+            const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+            
+            let cities = [];
+            let filteredCities = [];
+            
+            // Initialize Supabase
+            const { createClient } = supabase;
+            const supabaseUrl = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
+            const supabaseClient = createClient(supabaseUrl, supabaseKey);
+            
+            // Load cities from cache or database
+            async function loadCities() {
+                const CACHE_KEY = 'reelEats_citiesCache';
+                const CACHE_DURATION = 1000 * 60 * 60 * 24; // 24 hours
+                
+                // Try to load from cache first
+                const cachedData = localStorage.getItem(CACHE_KEY);
+                if (cachedData) {
+                    const { cities: cachedCities, timestamp } = JSON.parse(cachedData);
+                    if (Date.now() - timestamp < CACHE_DURATION) {
+                        cities = cachedCities;
+                        return;
+                    }
+                }
+                
+                // Fetch from database
+                try {
+                    const { data: citiesData, error } = await supabaseClient.from('cities').select('id, name, lat, lon');
+                    if (error) {
+                        console.error('Error fetching cities:', error);
+                        return;
+                    }
+                    cities = citiesData;
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({ cities: citiesData, timestamp: Date.now() }));
+                } catch (error) {
+                    console.error('Error loading cities:', error);
+                }
+            }
+            
+            // Filter cities based on search input
+            function filterCities(query) {
+                if (!query || query.length < 2) {
+                    return [];
+                }
+                return cities.filter(city => 
+                    city.name.toLowerCase().startsWith(query.toLowerCase())
+                ).slice(0, 5); // Limit to 5 results
+            }
+            
+            // Display autocomplete dropdown
+            function showAutocomplete(results) {
+                if (results.length === 0) {
+                    autocompleteDropdown.style.display = 'none';
+                    return;
+                }
+                
+                autocompleteDropdown.innerHTML = '';
+                results.forEach(city => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = city.name;
+                    item.addEventListener('click', () => {
+                        searchInput.value = city.name;
+                        autocompleteDropdown.style.display = 'none';
+                        navigateToCity(city.name);
+                    });
+                    autocompleteDropdown.appendChild(item);
+                });
+                autocompleteDropdown.style.display = 'block';
+            }
+            
+            // Navigate to city page
+            function navigateToCity(cityName) {
+                const citySlug = cityName.toLowerCase().replace(/\s+/g, '-');
+                window.location.href = `/${citySlug}`;
+            }
+            
+            // Search input event listener
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                filteredCities = filterCities(query);
+                showAutocomplete(filteredCities);
+            });
+            
+            // Search button event listener
+            searchButton.addEventListener('click', function() {
+                const query = searchInput.value.trim();
+                if (query) {
+                    // Find exact match first
+                    const exactMatch = cities.find(city => 
+                        city.name.toLowerCase() === query.toLowerCase()
+                    );
+                    if (exactMatch) {
+                        navigateToCity(exactMatch.name);
+                    } else {
+                        // Navigate to explore page with search query
+                        window.location.href = `/explore?search=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                    autocompleteDropdown.style.display = 'none';
+                }
+            });
+            
+            // Load cities on page load
+            await loadCities();
+        });
+    </script>
 </body>
 </html>
