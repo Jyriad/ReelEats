@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://www.tiktok.com https://*.ttwstatic.com https://*.tiktok.com https://*.byteoversea.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://*.ttwstatic.com https://*.tiktok.com;
+    font-src 'self' data: https://unpkg.com https://*.tiktok.com;
+    img-src 'self' data: https://*.basemaps.cartocdn.com https://unpkg.com https://*.tiktok.com https://*.ttwstatic.com;
+    frame-src 'self' https://www.tiktok.com https://*.tiktok.com;
+    connect-src 'self' https://*.basemaps.cartocdn.com https://jsuxrpnfofkigdfpnuua.supabase.co https://*.tiktok.com https://*.byteoversea.com https://*.tiktokv.com https://unpkg.com https://*.ttwstatic.com;
+    media-src 'self' https://*.tiktok.com;
+">
+    <title id="explore-title">ReelGrub - Explore</title>
+    
+    <!-- Load version number immediately -->
+    <script type="module">
+        async function loadVersionNumber() {
+            try {
+                const { versionNumber } = await import('./config.js');
+                // Update title
+                const titleElement = document.getElementById('explore-title');
+                if (titleElement) {
+                    titleElement.textContent = `ReelGrub v${versionNumber} - Explore`;
+                }
+                // Update H1
+                const h1Element = document.getElementById('explore-h1');
+                if (h1Element) {
+                    h1Element.textContent = `Map v${versionNumber} 🗺️`;
+                }
+            } catch (error) {
+                console.log('Could not load version number:', error);
+                // Keep fallback titles
+            }
+        }
+        loadVersionNumber();
+    </script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-full flex flex-col">
+
+    <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-2 md:px-4 shadow flex-shrink-0 z-20">
+        <h1 id="explore-h1" class="text-lg md:text-2xl font-bold truncate">Map 🗺️</h1>
+        <div class="flex items-center gap-2">
+            <label for="city-select" class="sr-only">Select city</label>
+            <select id="city-select" class="bg-white text-gray-900 text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </select>
+            
+            <div id="auth-container" class="relative">
+                <button id="auth-btn" class="bg-gray-700 hover:bg-gray-800 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors">
+                    Sign In
+                </button>
+                <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+                    <span id="user-email" class="block px-4 py-2 text-sm text-gray-700 truncate"></span>
+                    <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                </div>
+            </div>
+            
+            <button id="collections-btn" class="bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors hidden" title="My Collections">
+                📚 My Collections
+            </button>
+            
+            <button id="location-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors" title="Find my location">
+                📍
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col md:flex-row min-h-0">
+        <div class="w-full h-2/3 md:w-2/3 md:h-full relative" id="map-container">
+            <div id="map"></div>
+        </div>
+        <aside class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-50 px-0 py-0 md:p-4 overflow-y-auto custom-scrollbar">
+            <div id="drawer-handle" class="md:hidden"></div>
+            
+            <!-- Filter Toggle Buttons Row -->
+            <div class="mb-0 md:mb-4 px-3 py-1 md:sticky md:top-0 md:z-10 md:bg-gray-50 md:pt-4 md:-mt-4 md:px-0">
+                <div class="flex gap-2 md:gap-2">
+                    <!-- Filter by Cuisine -->
+                    <div class="flex-1 min-w-0">
+                        <button id="filter-toggle-btn" class="w-full flex items-center justify-between px-3 py-2.5 md:px-4 md:py-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200 group touch-manipulation">
+                            <div class="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1 overflow-hidden">
+                                <div class="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors flex-shrink-0">
+                                    <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left min-w-0 flex-1 overflow-hidden">
+                                    <span class="text-sm md:text-sm font-medium text-gray-900 block truncate">Cuisine</span>
+                                    <div id="filter-subtitle" class="text-xs text-gray-500 truncate">All cuisines</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-1 ml-2 flex-shrink-0">
+                                <div id="selected-count" class="hidden px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">0</div>
+                                <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+            
+                    <!-- Filter by Collection -->
+                    <div class="flex-1 min-w-0">
+                        <button id="collection-filter-btn" class="w-full flex items-center justify-between px-3 py-2.5 md:px-4 md:py-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-purple-300 transition-all duration-200 group touch-manipulation">
+                            <div class="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1 overflow-hidden">
+                                <div class="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors flex-shrink-0">
+                                    <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left min-w-0 flex-1 overflow-hidden">
+                                    <span class="text-sm md:text-sm font-medium text-gray-900 block truncate">Collection</span>
+                                    <div id="collection-filter-subtitle" class="text-xs text-gray-500 truncate">All collections</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-1 ml-2 flex-shrink-0">
+                                <div id="collection-selected-count" class="hidden px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">0</div>
+                                <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="restaurant-list" class="px-3 md:px-0 md:pt-4"></div>
+        </aside>
+    </main>
+
+    <!-- Desktop Filter Popup -->
+    <div id="desktop-filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 class="text-2xl font-bold text-gray-900">Filter by Cuisine</h3>
+                <button id="close-desktop-filter-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <div id="cuisine-filter-container-desktop" class="space-y-6">
+                    <!-- Cuisine categories will be populated here -->
+                </div>
+            </div>
+            <div class="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+                <button id="clear-cuisine-filter-desktop" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors font-medium">
+                    Clear All
+                </button>
+                <div class="flex space-x-3">
+                    <button id="cancel-cuisine-filter-desktop" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="apply-cuisine-filter-desktop" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        Apply Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Filter Popup -->
+    <div id="filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden md:hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-6 pb-20 text-center sm:block sm:p-0">
+            <div class="inline-block align-bottom bg-white rounded-t-lg px-6 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Filter by Cuisine</h3>
+                    <button id="close-filter-modal" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm text-gray-600">Select cuisines to filter restaurants</span>
+                    <button id="clear-cuisine-filter-mobile" class="text-sm text-blue-600 hover:text-blue-800 underline">Clear All</button>
+                </div>
+                <div id="cuisine-filter-container-mobile" class="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-gray-50 mb-4">
+                    <!-- Cuisine checkboxes will be populated here -->
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-cuisine-filter-mobile" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="apply-cuisine-filter-mobile" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        Apply Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">Welcome to ReelGrub</h2>
+                <button id="close-auth-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="auth-feedback" class="hidden mb-4"></div>
+            <div id="auth-forms">
+                <!-- Login Form -->
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="login-email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="login-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Sign In</button>
+                </form>
+                
+                <!-- Signup Form -->
+                <form id="signup-form" class="space-y-4 hidden">
+                    <div>
+                        <label for="signup-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="signup-email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="signup-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Sign Up</button>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <button id="google-login-btn" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </button>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <a href="#" id="switch-auth-mode" class="text-indigo-600 hover:text-indigo-800 text-sm">Don't have an account? Sign up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collections Modal -->
+    <div id="collections-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">My Collections</h2>
+                <button id="close-collections-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="collections-list" class="max-h-64 overflow-y-auto mb-4">
+                <!-- Collections will be populated here -->
+            </div>
+            <form id="add-collection-form" class="flex gap-2">
+                <input type="text" id="collection-name" placeholder="New collection name" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Collection Confirmation Modal -->
+    <div id="delete-collection-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Delete Collection</h3>
+            <p class="text-gray-600 mb-6">Are you sure you want to delete the collection "<span id="collection-name-to-delete"></span>"? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete-collection" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+                <button id="confirm-delete-collection" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Create Collection Modal -->
+    <div id="quick-create-collection-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">Add to Collection</h2>
+                <button id="close-quick-create-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="quick-create-collection-form" class="space-y-4">
+                <div>
+                    <label for="quick-collection-name" class="block text-sm font-medium text-gray-700 mb-1">Collection Name</label>
+                    <input type="text" id="quick-collection-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-quick-create" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Create & Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Video Modal -->
+    <div id="video-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="bg-black rounded-lg shadow-xl max-w-4xl w-full h-[80vh] overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                <div class="video-header">
+                    <div class="video-header-content">
+                        <h3 class="video-restaurant-name">Restaurant Name</h3>
+                        <div class="video-header-actions">
+                            <button id="video-favorite-btn" class="video-action-btn" title="Add to Favorites">
+                                ⭐
+                            </button>
+                            <button id="video-collection-btn" class="video-action-btn" title="Add to Collection">
+                                📚
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button id="close-video-btn" class="text-gray-400 hover:text-gray-600 text-2xl">
+                    ×
+                </button>
+            </div>
+            <div class="flex-1 flex items-center justify-center p-4">
+                <div class="video-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop Collection Filter Modal -->
+    <div id="collection-filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 class="text-2xl font-bold text-gray-900">Filter by Collection</h3>
+                <button id="close-collection-filter-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <div id="collection-filter-container-desktop" class="space-y-6">
+                    <!-- Collection categories will be populated here -->
+                </div>
+            </div>
+            <div class="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+                <button id="clear-collection-filters-desktop" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors font-medium">
+                    Clear All
+                </button>
+                <div class="flex space-x-3">
+                    <button id="cancel-collection-filter-desktop" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="apply-collection-filter-desktop" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                        Apply Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Collection Filter Modal -->
+    <div id="collection-filter-modal-mobile" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden md:hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-6 pb-20 text-center sm:block sm:p-0">
+            <div class="inline-block align-bottom bg-white rounded-t-lg px-6 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Filter by Collection</h3>
+                    <button id="close-collection-filter-modal-mobile" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm text-gray-600">Select collections to filter restaurants</span>
+                    <button id="clear-collection-filters-mobile" class="text-sm text-purple-600 hover:text-purple-800 underline">Clear All</button>
+                </div>
+                <div id="collection-filter-container-mobile" class="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-gray-50 mb-4">
+                    <!-- Collection checkboxes will be populated here -->
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="apply-collection-filter-mobile" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
+                        Apply Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] hidden">
+        <div class="flex items-center">
+            <span id="toast-message"></span>
+            <button id="close-toast" class="ml-4 text-white hover:text-gray-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="text-gray-700">Loading...</span>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script async src="https://www.tiktok.com/embed.js"></script>
+    <script src="script.js?v=155"></script>
+</body>
+</html>

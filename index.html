@@ -9,12 +9,12 @@
     script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://www.tiktok.com https://*.ttwstatic.com https://*.tiktok.com https://*.byteoversea.com;
     style-src 'self' 'unsafe-inline' https://unpkg.com https://*.ttwstatic.com https://*.tiktok.com;
     font-src 'self' data: https://unpkg.com https://*.tiktok.com;
-    img-src 'self' data: https://*.basemaps.cartocdn.com https://unpkg.com https://*.tiktok.com https://*.ttwstatic.com;
+    img-src 'self' data: https://*.basemaps.cartocdn.com https://unpkg.com https://*.tiktok.com https://*.ttwstatic.com https://images.unsplash.com;
     frame-src 'self' https://www.tiktok.com https://*.tiktok.com;
     connect-src 'self' https://*.basemaps.cartocdn.com https://jsuxrpnfofkigdfpnuua.supabase.co https://*.tiktok.com https://*.byteoversea.com https://*.tiktokv.com https://unpkg.com https://*.ttwstatic.com;
     media-src 'self' https://*.tiktok.com;
 ">
-    <title id="index-title">London Food Map Supabase</title>
+    <title id="index-title">ReelGrub - Discover Your Next Spot</title>
     
     <!-- Load version number immediately -->
     <script type="module">
@@ -24,483 +24,57 @@
                 // Update title
                 const titleElement = document.getElementById('index-title');
                 if (titleElement) {
-                    titleElement.textContent = `London Food Map Supabase v${versionNumber}`;
-                }
-                // Update H1
-                const h1Element = document.getElementById('index-h1');
-                if (h1Element) {
-                    h1Element.textContent = `Map v${versionNumber} 🗺️`;
-                }
-                // Update script version
-                const scriptElement = document.querySelector('script[src*="script.js"]');
-                if (scriptElement) {
-                    scriptElement.src = `script.js?v=${versionNumber}`;
+                    titleElement.textContent = `ReelGrub v${versionNumber} - Discover Your Next Spot`;
                 }
             } catch (error) {
-                console.log('Could not load version number from config, using fallback');
-                // Fallback versions - use a generic version since we can't load from config
-                document.getElementById('index-title').textContent = 'London Food Map Supabase';
-                document.getElementById('index-h1').textContent = 'Map 🗺️';
+                console.log('Could not load version number:', error);
+                // Keep fallback title
             }
         }
-        
-        // Load version number immediately
         loadVersionNumber();
     </script>
-    
-    <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
-    <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
-    <link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossorigin>
-    <link rel="preconnect" href="https://d.basemaps.cartocdn.com" crossorigin>
-    <link rel="preconnect" href="https://www.tiktok.com" crossorigin>
-    <link rel="preconnect" href="https://jsuxrpnfofkigdfpnuua.supabase.co" crossorigin>
-    <link rel="dns-prefetch" href="//a.basemaps.cartocdn.com">
-    <link rel="dns-prefetch" href="//b.basemaps.cartocdn.com">
-    <link rel="dns-prefetch" href="//c.basemaps.cartocdn.com">
-    <link rel="dns-prefetch" href="//d.basemaps.cartocdn.com">
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.1/dist/MarkerCluster.Default.css" />
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link rel="stylesheet" href="styles.css">
-
-   
 </head>
-<body class="h-full flex flex-col">
+<body>
+  <header class="header">
+    <div class="logo">ReelGrub</div>
+    <nav>
+      <a href="/explore" class="nav-link">Explore</a>
+      <a href="#" class="nav-link">Log In</a>
+      <a href="#" class="nav-button">Sign Up</a>
+    </nav>
+  </header>
 
-    <header class="h-[60px] bg-gray-50 text-gray-900 flex items-center justify-between px-2 md:px-4 shadow flex-shrink-0 z-20">
-        <h1 id="index-h1" class="text-lg md:text-2xl font-bold truncate">Map 🗺️</h1>
-        <div class="flex items-center gap-2">
-            <label for="city-select" class="sr-only">Select city</label>
-            <select id="city-select" class="bg-white text-gray-900 text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </select>
-            
-            <div id="auth-container" class="relative">
-                <button id="auth-btn" class="bg-gray-700 hover:bg-gray-800 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors">
-                    Sign In
-                </button>
-                <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
-                    <span id="user-email" class="block px-4 py-2 text-sm text-gray-700 truncate"></span>
-                    <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
-                </div>
-            </div>
-            
-            <button id="collections-btn" class="bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors hidden" title="My Collections">
-                📚 My Collections
-            </button>
-            
-            
-            <button id="location-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors" title="Find my location">
-                📍
-            </button>
-        </div>
-    </header>
+  <main>
+    <section class="hero">
+      <h1>Discover your next favorite restaurant, one reel at a time.</h1>
+      <div class="search-container">
+        <input type="text" placeholder="Enter a city..." class="search-bar">
+        <button class="search-button">Search</button>
+      </div>
+    </section>
 
-    <main class="flex-grow flex flex-col md:flex-row min-h-0">
-        <div class="w-full h-2/3 md:w-2/3 md:h-full relative" id="map-container">
-            <div id="map"></div>
-        </div>
-        <aside class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-50 px-0 py-0 md:p-4 overflow-y-auto custom-scrollbar">
-            <div id="drawer-handle" class="md:hidden"></div>
-            
-            <!-- Filter Toggle Buttons Row -->
-            <div class="mb-0 md:mb-4 px-3 py-1 md:sticky md:top-0 md:z-10 md:bg-gray-50 md:pt-4 md:-mt-4 md:px-0">
-                <div class="flex gap-2 md:gap-2">
-                    <!-- Filter by Cuisine -->
-                    <div class="flex-1 min-w-0">
-                        <button id="filter-toggle-btn" class="w-full flex items-center justify-between px-3 py-2.5 md:px-4 md:py-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200 group touch-manipulation">
-                            <div class="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1 overflow-hidden">
-                                <div class="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                                    <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                                    </svg>
-                                </div>
-                                <div class="text-left min-w-0 flex-1 overflow-hidden">
-                                    <span class="text-sm md:text-sm font-medium text-gray-900 block truncate">Cuisine</span>
-                                    <div id="filter-subtitle" class="text-xs text-gray-500 truncate">All cuisines</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-1 ml-2 flex-shrink-0">
-                                <div id="selected-count" class="hidden px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">0</div>
-                                <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </div>
-                        </button>
-                    </div>
-            
-                    <!-- Filter by Collection -->
-                    <div class="flex-1 min-w-0">
-                        <button id="collection-filter-btn" class="w-full flex items-center justify-between px-3 py-2.5 md:px-4 md:py-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-purple-300 transition-all duration-200 group touch-manipulation">
-                            <div class="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1 overflow-hidden">
-                                <div class="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors flex-shrink-0">
-                                    <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                    </svg>
-                                </div>
-                                <div class="text-left min-w-0 flex-1 overflow-hidden">
-                                    <span class="text-sm md:text-sm font-medium text-gray-900 block truncate">Collection</span>
-                                    <div id="collection-filter-subtitle" class="text-xs text-gray-500 truncate">All collections</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-1 ml-2 flex-shrink-0">
-                                <div id="collection-selected-count" class="hidden px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">0</div>
-                                <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div id="restaurant-list" class="px-3 md:px-0 md:pt-4"></div>
-        </aside>
-            <!-- Desktop Filter Popup -->
-            <div id="desktop-filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden items-center justify-center">
-                <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
-                    <div class="flex items-center justify-between p-6 border-b border-gray-200">
-                        <h3 class="text-2xl font-bold text-gray-900">Filter by Cuisine</h3>
-                        <button id="close-desktop-filter-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="p-6 overflow-y-auto max-h-[60vh]">
-                        <div id="cuisine-filter-container-desktop" class="space-y-6">
-                            <!-- Cuisine categories will be populated here -->
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-                        <button id="clear-cuisine-filter-desktop" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors font-medium">
-                            Clear All
-                        </button>
-                        <div class="flex space-x-3">
-                            <button id="cancel-desktop-filter" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                                Cancel
-                            </button>
-                            <button id="apply-desktop-filter" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                                Apply Filter
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <section class="featured-cities">
+      <h2>Featured Cities</h2>
+      <div class="city-grid">
+        <a href="/london" class="city-card">
+          <img src="https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=80&w=2070" alt="London">
+          <span>London</span>
+        </a>
+        <a href="/manchester" class="city-card">
+          <img src="https://images.unsplash.com/photo-1598380231975-1911a3c1c4d2?q=80&w=2070" alt="Manchester">
+          <span>Manchester</span>
+        </a>
+        <a href="/birmingham" class="city-card">
+          <img src="https://images.unsplash.com/photo-1596542095819-03f3933f93f1?q=80&w=2070" alt="Birmingham">
+          <span>Birmingham</span>
+        </a>
+      </div>
+    </section>
+  </main>
 
-            <!-- Mobile Filter Popup -->
-            <div id="filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden md:hidden">
-                <div class="flex items-end justify-center min-h-screen pt-4 px-6 pb-20 text-center sm:block sm:p-0">
-                    <div class="inline-block align-bottom bg-white rounded-t-lg px-6 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-medium text-gray-900">Filter by Cuisine</h3>
-                            <button id="close-filter-modal" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="text-sm text-gray-600">Select cuisines to filter restaurants</span>
-                            <button id="clear-cuisine-filter-mobile" class="text-sm text-blue-600 hover:text-blue-800 underline">Clear All</button>
-                        </div>
-                        <div id="cuisine-filter-container-mobile" class="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-gray-50 mb-4">
-                            <!-- Cuisine checkboxes will be populated here -->
-                        </div>
-                        <div class="flex justify-end space-x-3">
-                            <button id="apply-filter-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                                Apply Filter
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Admin Login Modal -->
-            <div id="admin-login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden items-center justify-center">
-                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
-                    <div class="text-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Admin Access</h2>
-                        <p class="text-gray-600">Please enter your credentials to access the admin panel</p>
-                    </div>
-                    
-                    <form id="admin-login-form" class="space-y-4">
-                        <div>
-                            <label for="admin-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input type="email" id="admin-email" required 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-                        
-                        <div>
-                            <label for="admin-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input type="password" id="admin-password" required 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-                        
-                        <div id="login-error" class="text-red-600 text-sm hidden"></div>
-                        
-                        <div class="flex space-x-3 pt-4">
-                            <button type="button" id="cancel-login" 
-                                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
-                                Cancel
-                            </button>
-                            <button type="submit" id="submit-login" 
-                                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                                Login
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div id="video-modal">
-                <div class="modal-content-wrapper">
-                    <!-- Video Header with Restaurant Info and Actions -->
-                    <div class="video-header">
-                        <div class="video-header-content">
-                            <h3 id="video-restaurant-name" class="video-restaurant-name"></h3>
-                            <div class="video-header-actions">
-                                <button id="video-collection-btn" class="video-action-btn" title="Add to Collection">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-                                </button>
-                                <button id="video-favorite-btn" class="video-action-btn" title="Add to Favorites">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <button class="close-video-btn">&times;</button>
-                    </div>
-                    
-                    <div class="video-container"></div>
-                </div>
-            </div>
-    </main>
-
-
-    <!-- Desktop Collection Filter Modal -->
-    <div id="collection-filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden items-center justify-center">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
-            <div class="flex items-center justify-between p-6 border-b border-gray-200">
-                <h3 class="text-2xl font-bold text-gray-900">Filter by Collection</h3>
-                <button id="close-collection-filter-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            <div class="p-6 overflow-y-auto max-h-[60vh]">
-                <div id="collection-filter-container-desktop" class="space-y-6">
-                    <!-- Collection categories will be populated here -->
-                </div>
-            </div>
-            <div class="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-                <button id="clear-collection-filters-desktop" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors font-medium">
-                    Clear All
-                </button>
-                <div class="flex space-x-3">
-                    <button id="cancel-collection-filter-desktop" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                        Cancel
-                    </button>
-                    <button id="apply-collection-filter-desktop" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                        Apply Filter
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mobile Collection Filter Modal -->
-    <div id="collection-filter-modal-mobile" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden md:hidden">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-6 pb-20 text-center sm:block sm:p-0">
-            <div class="inline-block align-bottom bg-white rounded-t-lg px-6 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Filter by Collection</h3>
-                    <button id="close-collection-filter-modal-mobile" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="flex items-center justify-between mb-4">
-                    <span class="text-sm text-gray-600">Select collections to filter restaurants</span>
-                    <button id="clear-collection-filters-mobile" class="text-sm text-purple-600 hover:text-purple-800 underline">Clear All</button>
-                </div>
-                <div id="collection-filter-container-mobile" class="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-gray-50 mb-4">
-                    <!-- Collection checkboxes will be populated here -->
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button id="apply-collection-filter-mobile" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
-                        Apply Filter
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Authentication Modal -->
-    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl p-6 md:p-8 max-w-sm w-full mx-4">
-            <div class="flex justify-between items-start mb-4">
-                <h3 id="auth-title" class="text-2xl font-bold text-gray-900">Login</h3>
-                <button id="close-auth-modal" class="text-gray-400 hover:text-gray-600 text-4xl leading-none">&times;</button>
-            </div>
-
-            <div class="space-y-3 mb-4">
-                 <button id="google-login-btn" type="button" class="w-full inline-flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 48 48"><path d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path></svg>
-                    Sign in with Google
-                </button>
-            </div>
-
-            <div class="relative my-4">
-                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div>
-                <div class="relative flex justify-center text-sm"><span class="bg-white px-2 text-gray-500">Or with email</span></div>
-            </div>
-
-            <div id="auth-feedback" class="text-sm text-red-500 mb-4 hidden"></div>
-
-            <form id="login-form" class="space-y-4">
-                <input type="email" id="login-email" placeholder="Email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="password" id="login-password" placeholder="Password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">Login</button>
-            </form>
-            <form id="signup-form" class="space-y-4 hidden">
-                <input type="email" id="signup-email" placeholder="Email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="password" id="signup-password" placeholder="Password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition-colors">Sign Up</button>
-            </form>
-
-            <p class="text-center text-sm mt-4">
-                <a href="#" id="switch-auth-mode" class="text-blue-600 hover:underline">Need an account? Sign Up</a>
-            </p>
-        </div>
-    </div>
-
-    <!-- Collections Modal -->
-    <div id="collections-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full m-4">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-xl font-bold text-gray-800">My Collections</h3>
-                <button id="close-collections-modal" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
-            </div>
-            <div id="collections-list" class="p-4 max-h-[60vh] overflow-y-auto">
-                <div class="text-center text-gray-500">Loading collections...</div>
-            </div>
-            <div class="p-4 border-t bg-gray-50">
-                <form id="add-collection-form" class="flex gap-2">
-                    <input type="text" id="new-collection-name" placeholder="New collection name..." required class="flex-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Create</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Collection Confirmation Modal -->
-    <div id="delete-collection-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full m-4">
-            <div class="p-6">
-                <div class="flex items-center mb-4">
-                    <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Delete Collection</h3>
-                        <p class="text-sm text-gray-500">This action cannot be undone</p>
-                    </div>
-                </div>
-                <p class="text-gray-700 mb-6">
-                    Are you sure you want to delete "<span id="collection-name-to-delete" class="font-semibold"></span>"? 
-                    All restaurants in this collection will be removed.
-                </p>
-                <div class="flex justify-end space-x-3">
-                    <button id="cancel-delete-collection" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                        Cancel
-                    </button>
-                    <button id="confirm-delete-collection" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-                        Delete Collection
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Create Collection Modal -->
-    <div id="quick-create-collection-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[10000] hidden items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full m-4">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-xl font-bold text-gray-800">Create Collection</h3>
-                <button id="close-quick-create-modal" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
-            </div>
-            <div class="p-6">
-                <p class="text-gray-600 mb-4">Create a new collection and add this restaurant to it.</p>
-                <form id="quick-create-collection-form" class="space-y-4">
-                    <div>
-                        <label for="quick-collection-name" class="block text-sm font-medium text-gray-700 mb-2">Collection Name</label>
-                        <input type="text" id="quick-collection-name" placeholder="e.g., My Favorites, Date Night Spots..." required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" id="cancel-quick-create" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                            Create & Add Restaurant
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast-notification" class="fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out hidden">
-        <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span id="toast-message">Success!</span>
-        </div>
-    </div>
-
-    <!-- Tutorial Modal -->
-    <div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[10001] hidden items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full text-center p-6 md:p-8 transform transition-all">
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Welcome to ReelEats! 🗺️</h2>
-            <p class="text-gray-600 mb-6">Discover the best food spots by watching short videos.</p>
-            
-            <div class="space-y-4 text-left">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg">1</div>
-                    <p class="ml-4 text-gray-700">Tap a marker on the map...</p>
-                </div>
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg">2</div>
-                    <p class="ml-4 text-gray-700">...or tap a card in the list to watch a video!</p>
-                </div>
-            </div>
-
-            <button id="close-tutorial-btn" class="mt-8 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">
-                Got it, let's explore!
-            </button>
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script async src="https://www.tiktok.com/embed.js"></script>
-    <script src="script.js?v=155"></script>
 </body>
 </html>
-
-
-
-
-
-
-
