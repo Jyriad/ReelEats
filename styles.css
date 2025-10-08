@@ -1166,28 +1166,34 @@ html, body {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 5%;
-  background-color: #1a1a1a;
-  color: white;
+  background-color: #f9fafb;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
 }
-.logo { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.5rem; }
-.nav-link { color: #A1A1AA; margin: 0 1rem; text-decoration: none; }
-.nav-button { background-color: #A3E635; color: #1a1a1a; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; }
+.logo { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.5rem; color: #111827; }
+.nav-link { color: #6b7280; margin: 0 1rem; text-decoration: none; transition: color 0.2s; }
+.nav-link:hover { color: #111827; }
+.nav-button { background-color: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background-color 0.2s; }
+.nav-button:hover { background-color: #2563eb; }
 
 .hero {
   text-align: center;
   padding: 6rem 5%;
-  background-color: #2a2a2a;
-  color: white;
+  background-color: #ffffff;
+  color: #111827;
 }
-.hero h1 { font-size: 3rem; max-width: 600px; margin: 0 auto 2rem auto; }
+.hero h1 { font-size: 3rem; max-width: 600px; margin: 0 auto 2rem auto; color: #111827; }
 .search-container { display: flex; justify-content: center; }
-.search-bar { font-size: 1rem; padding: 0.75rem 1rem; width: 400px; border: 1px solid #4a4a4a; border-radius: 8px 0 0 8px; background-color: #3a3a3a; color: white; }
-.search-button { font-size: 1rem; padding: 0.75rem 1.5rem; border: none; background-color: #A3E635; color: #1a1a1a; border-radius: 0 8px 8px 0; cursor: pointer; font-weight: 600; }
+.search-bar { font-size: 1rem; padding: 0.75rem 1rem; width: 400px; border: 1px solid #d1d5db; border-radius: 8px 0 0 8px; background-color: #ffffff; color: #111827; }
+.search-bar:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+.search-button { font-size: 1rem; padding: 0.75rem 1.5rem; border: none; background-color: #3b82f6; color: white; border-radius: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
+.search-button:hover { background-color: #2563eb; }
 
-.featured-cities { padding: 4rem 5%; text-align: center; background-color: #1a1a1a; }
-.featured-cities h2 { font-size: 2rem; color: white; margin-bottom: 2rem; }
+.featured-cities { padding: 4rem 5%; text-align: center; background-color: #f9fafb; }
+.featured-cities h2 { font-size: 2rem; color: #111827; margin-bottom: 2rem; }
 .city-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-.city-card { position: relative; border-radius: 12px; overflow: hidden; display: block; }
-.city-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+.city-card { position: relative; border-radius: 12px; overflow: hidden; display: block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.city-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+.city-card img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.3s ease; }
 .city-card:hover img { transform: scale(1.05); }
 .city-card span { position: absolute; bottom: 1rem; left: 1rem; font-size: 1.5rem; font-weight: 700; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); }
