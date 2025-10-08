@@ -1161,6 +1161,13 @@ html, body {
 }
 
 /* --- Homepage Styles --- */
+/* Fix body height and scrolling for homepage */
+body.homepage {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -1170,7 +1177,7 @@ html, body {
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
 }
-.logo { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.5rem; color: #111827; }
+.logo { font-weight: 700; font-size: 1.5rem; color: #111827; }
 .nav-link { color: #6b7280; margin: 0 1rem; text-decoration: none; transition: color 0.2s; }
 .nav-link:hover { color: #111827; }
 .nav-button { background-color: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background-color 0.2s; }
@@ -1189,11 +1196,30 @@ html, body {
 .search-button { font-size: 1rem; padding: 0.75rem 1.5rem; border: none; background-color: #3b82f6; color: white; border-radius: 0 8px 8px 0; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
 .search-button:hover { background-color: #2563eb; }
 
-.featured-cities { padding: 4rem 5%; text-align: center; background-color: #f9fafb; }
+.featured-cities { 
+  padding: 4rem 5%; 
+  text-align: center; 
+  background-color: #f9fafb; 
+  min-height: 60vh; /* Ensure enough space for city cards */
+}
 .featured-cities h2 { font-size: 2rem; color: #111827; margin-bottom: 2rem; }
-.city-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-.city-card { position: relative; border-radius: 12px; overflow: hidden; display: block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.city-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+  gap: 1.5rem; 
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.city-card { 
+  position: relative; 
+  border-radius: 12px; 
+  overflow: hidden; 
+  display: block; 
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+  transition: transform 0.3s ease, box-shadow 0.3s ease; 
+  height: 300px; /* Fixed height for consistency */
+}
 .city-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-.city-card img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.3s ease; }
+.city-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
 .city-card:hover img { transform: scale(1.05); }
 .city-card span { position: absolute; bottom: 1rem; left: 1rem; font-size: 1.5rem; font-weight: 700; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); }
