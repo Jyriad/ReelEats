@@ -1631,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const t2 = performance.now();
             console.log(`Total initial load time: ${t2 - t0} ms`);
             
-            // Check for #auth hash to open authentication modal
+            // Check for #auth hash to open authentication modal (only when hash is present)
             if (window.location.hash === '#auth') {
                 setTimeout(() => {
                     openAuthModal();
