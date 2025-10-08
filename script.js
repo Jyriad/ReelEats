@@ -801,6 +801,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         const authBtn = document.getElementById('auth-btn');
         const authModal = document.getElementById('auth-modal');
         const closeAuthModalBtn = document.getElementById('close-auth-modal');
+        
+        // Immediately hide auth modal to prevent flash during page load
+        if (authModal) {
+            authModal.classList.add('hidden');
+            authModal.classList.remove('flex');
+            authModal.style.display = 'none';
+        }
         const switchAuthModeLink = document.getElementById('switch-auth-mode');
         const authTitle = document.getElementById('auth-title');
         const authFeedback = document.getElementById('auth-feedback');
@@ -816,11 +823,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         function openAuthModal() {
             authModal.classList.remove('hidden');
             authModal.classList.add('flex');
+            authModal.style.display = 'flex';
         }
 
         function closeAuthModal() {
             authModal.classList.add('hidden');
             authModal.classList.remove('flex');
+            authModal.style.display = 'none';
             authFeedback.classList.add('hidden'); // Hide feedback on close
         }
 
@@ -1150,10 +1159,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             updateUserUI(user);
         });
         
-        // Ensure auth modal starts closed
+        // Ensure auth modal starts closed - multiple approaches for reliability
         if (authModal) {
             authModal.classList.add('hidden');
             authModal.classList.remove('flex');
+            authModal.style.display = 'none';
         }
 
         // Handle OAuth redirect on page load
