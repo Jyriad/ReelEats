@@ -2319,6 +2319,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const applyBtn = document.getElementById('apply-filter-btn');
             const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
             
+            // Check if elements exist before adding listeners
+            if (!filterModal || !closeBtn || !applyBtn || !clearBtn) return;
+            
             // Close modal
             closeBtn.addEventListener('click', closeMobileFilterModal);
             applyBtn.addEventListener('click', applyMobileFilter);
@@ -3129,7 +3132,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             restaurantList.innerHTML = '';
-            markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
+            
+            // Clear markers only if markerClusterGroup exists
+            if (markerClusterGroup) {
+                markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
+            }
             window.restaurantMarkers = []; // Also clear the local array
             restaurantMarkers = window.restaurantMarkers;
 
