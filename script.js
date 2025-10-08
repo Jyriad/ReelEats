@@ -1149,6 +1149,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             const user = session ? session.user : null;
             updateUserUI(user);
         });
+        
+        // Ensure auth modal starts closed
+        if (authModal) {
+            authModal.classList.add('hidden');
+            authModal.classList.remove('flex');
+        }
 
         // Handle OAuth redirect on page load
         handleOAuthRedirect();
@@ -1206,7 +1212,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Event listener for the close button
         if (closeTutorialBtn) {
-            closeTutorialBtn.addEventListener('click', completeTutorial);
+        closeTutorialBtn.addEventListener('click', completeTutorial);
         }
 
         // Also close the tutorial on any first click on the page
@@ -1632,7 +1638,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log(`Total initial load time: ${t2 - t0} ms`);
             
             // Check for #auth hash to open authentication modal (only when hash is present)
-            if (window.location.hash === '#auth') {
+            if (window.location.hash && window.location.hash === '#auth') {
+                console.log('Opening auth modal due to #auth hash');
                 setTimeout(() => {
                     openAuthModal();
                 }, 500); // Small delay to ensure everything is loaded
@@ -2742,7 +2749,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Show success message
                 showToast(`Filtering by collection: ${collectionName}`);
             }
-            });
+        });
         }
 
         // Handle delete confirmation modal
@@ -3140,7 +3147,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Clear markers only if markerClusterGroup exists
             if (markerClusterGroup) {
-                markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
+            markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
             }
             window.restaurantMarkers = []; // Also clear the local array
             restaurantMarkers = window.restaurantMarkers;
@@ -4018,7 +4025,7 @@ async function showVideoFor(restaurant) {
 
         // --- Event Listeners ---
         if (citySelect) {
-            citySelect.addEventListener('change', async function() {
+        citySelect.addEventListener('change', async function() {
             const selectedOption = citySelect.options[citySelect.selectedIndex];
             // Show skeleton loaders while loading
             displayRestaurants([], true);
@@ -4038,15 +4045,15 @@ async function showVideoFor(restaurant) {
             await applyAllFiltersAndDisplay();
             
             map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
-            });
+        });
         }
         
         // Video modal event listeners
         if (closeVideoBtn) {
-            closeVideoBtn.addEventListener('click', closeVideo);
+        closeVideoBtn.addEventListener('click', closeVideo);
         }
         if (videoModal) {
-            videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
         }
         
         // Video header button event listeners
