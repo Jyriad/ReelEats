@@ -1360,6 +1360,59 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Custom cluster icon with restaurant SVG and count badge - uniform 46px circle (20% larger again)
                     iconCreateFunction: function(cluster) {
                         const childCount = cluster.getChildCount();
+                        
+                        // If fewer than 4 locations, show individual icons bunched together
+                        if (childCount < 4) {
+                            const children = cluster.getAllChildMarkers();
+                            const iconSize = 26; // Same as individual markers (20% smaller)
+                            const containerSize = 40; // Container to hold bunched icons
+                            const offset = 8; // How much icons overlap
+                            
+                            // Create bunched individual icons
+                            let bunchedIconsHtml = '';
+                            children.forEach((marker, index) => {
+                                const x = (index * offset) - (childCount - 1) * offset / 2;
+                                const y = (index * offset) - (childCount - 1) * offset / 2;
+                                
+                                // Get the marker's content (cuisine icon or number)
+                                const markerIcon = marker.options.icon;
+                                const iconContent = markerIcon.options.html.match(/>(.*?)<\/div>/)[1];
+                                
+                                bunchedIconsHtml += `
+                                    <div style="
+                                        position: absolute;
+                                        left: ${containerSize/2 + x}px;
+                                        top: ${containerSize/2 + y}px;
+                                        transform: translate(-50%, -50%);
+                                        width: ${iconSize}px;
+                                        height: ${iconSize}px;
+                                        background: white;
+                                        border: 2px solid #e5e7eb;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                                        font-size: 13px;
+                                        font-weight: bold;
+                                        z-index: ${10 + index};
+                                    ">${iconContent}</div>
+                                `;
+                            });
+                            
+                            return L.divIcon({
+                                html: `<div style="
+                                    width: ${containerSize}px; 
+                                    height: ${containerSize}px; 
+                                    position: relative;
+                                ">${bunchedIconsHtml}</div>`,
+                                className: 'custom-bunched-marker',
+                                iconSize: L.point(containerSize, containerSize),
+                                iconAnchor: L.point(containerSize/2, containerSize/2)
+                            });
+                        }
+                        
+                        // For 4+ locations, show the traditional cluster icon
                         const size = 46; // 20% larger than 38px (38 * 1.2 = 45.6, rounded to 46)
                         const badgeSize = 26; // 20% larger than 22px (22 * 1.2 = 26.4, rounded to 26)
                         const badgeOffset = 6; // Increased offset for larger badge
@@ -3186,11 +3239,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     align-items: center;
                     justify-content: center;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    font-size: 16px;
+                    font-size: 13px;
                     font-weight: bold;
                 ">${displayContent}</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
