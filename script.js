@@ -135,9 +135,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!restaurantList) {
             throw new Error('Restaurant list element not found');
         }
-        if (!videoModal) {
-            throw new Error('Video modal element not found');
-        }
+        // Video modal is optional - don't throw error if not found
         
         // --- State Management ---
         // State management - Global scope for tests
@@ -4012,7 +4010,8 @@ async function showVideoFor(restaurant) {
         }
 
         // --- Event Listeners ---
-        citySelect.addEventListener('change', async function() {
+        if (citySelect) {
+            citySelect.addEventListener('change', async function() {
             const selectedOption = citySelect.options[citySelect.selectedIndex];
             // Show skeleton loaders while loading
             displayRestaurants([], true);
@@ -4032,7 +4031,8 @@ async function showVideoFor(restaurant) {
             await applyAllFiltersAndDisplay();
             
             map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
-        });
+            });
+        }
         
         // Video modal event listeners
         if (closeVideoBtn) {
