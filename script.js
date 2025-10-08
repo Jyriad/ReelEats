@@ -1691,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // If a city is provided, filter by city name
             if (city) {
-                query = query.eq('city', city.toLowerCase());
+                query = query.ilike('city', city);
             }
 
             // 1. Fetch all restaurants (optionally filtered by city).
