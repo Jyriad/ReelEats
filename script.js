@@ -742,6 +742,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         function updateCollectionFilterButtonAppearance() {
             const count = document.getElementById('collection-selected-count');
             const subtitle = document.getElementById('collection-filter-subtitle');
+            
+            // Check if elements exist before accessing them
+            if (!count || !subtitle) return;
+            
             const hasActiveFilters = selectedCollections.size > 0;
             
             if (hasActiveFilters) {
@@ -1158,6 +1162,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const TUTORIAL_COMPLETED_KEY = 'reelEats_tutorialCompleted';
 
         function showTutorial() {
+            // Check if tutorial elements exist
+            if (!tutorialModal) return;
+            
             // Check if the user has seen the tutorial before
             if (localStorage.getItem(TUTORIAL_COMPLETED_KEY)) {
                 return; // Don't show if already completed
@@ -1180,6 +1187,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function completeTutorial() {
+            // Check if tutorial elements exist
+            if (!tutorialModal) return;
+            
             // Hide the modal
             tutorialModal.classList.add('hidden');
             tutorialModal.classList.remove('flex');
@@ -1197,7 +1207,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Event listener for the close button
-        closeTutorialBtn.addEventListener('click', completeTutorial);
+        if (closeTutorialBtn) {
+            closeTutorialBtn.addEventListener('click', completeTutorial);
+        }
 
         // Also close the tutorial on any first click on the page
         document.body.addEventListener('click', completeTutorial, { once: true });
