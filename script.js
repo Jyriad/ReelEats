@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const videoModal = document.getElementById('video-modal');
         const videoContainer = videoModal ? videoModal.querySelector('.video-container') : null;
         const videoTitleEl = document.getElementById('video-title');
-        const closeVideoBtn = videoModal ? videoModal.querySelector('.close-video-btn') : null;
+        const closeVideoBtn = document.getElementById('close-video-btn');
         const citySelect = document.getElementById('city-select');
         
         // Check if essential elements exist
@@ -4033,8 +4033,14 @@ async function showVideoFor(restaurant) {
             
             map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
         });
-        closeVideoBtn.addEventListener('click', closeVideo);
-        videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        
+        // Video modal event listeners
+        if (closeVideoBtn) {
+            closeVideoBtn.addEventListener('click', closeVideo);
+        }
+        if (videoModal) {
+            videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        }
         
         // Video header button event listeners
         const videoFavoriteBtn = document.getElementById('video-favorite-btn');
