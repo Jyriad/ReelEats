@@ -361,10 +361,16 @@ html, body {
 #restaurant-list { 
     contain: content; 
     overflow-y: auto;
+    position: relative;
+    z-index: 1;
 }
 
-/* Desktop spacing between restaurant cards */
+/* Ensure sticky filter buttons stay above restaurant list */
 @media (min-width: 768px) {
+    .md\\:sticky {
+        z-index: 20 !important;
+    }
+    
     #restaurant-list > div:not(:first-child) {
         margin-top: 1rem; /* 16px spacing between cards on desktop */
     }
