@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/:city",
-      "destination": "/index.html"
-    }
+    { "source": "/explore", "destination": "/explore.html" },
+    { "source": "/:city", "destination": "/explore.html" }
   ]
 }

@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const videoModal = document.getElementById('video-modal');
         const videoContainer = videoModal ? videoModal.querySelector('.video-container') : null;
         const videoTitleEl = document.getElementById('video-title');
-        const closeVideoBtn = videoModal ? videoModal.querySelector('.close-video-btn') : null;
+        const closeVideoBtn = document.getElementById('close-video-btn');
         const citySelect = document.getElementById('city-select');
         
         // Check if essential elements exist
@@ -135,9 +135,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!restaurantList) {
             throw new Error('Restaurant list element not found');
         }
-        if (!videoModal) {
-            throw new Error('Video modal element not found');
-        }
+        // Video modal is optional - don't throw error if not found
         
         // --- State Management ---
         // State management - Global scope for tests
@@ -742,6 +740,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         function updateCollectionFilterButtonAppearance() {
             const count = document.getElementById('collection-selected-count');
             const subtitle = document.getElementById('collection-filter-subtitle');
+            
+            // Check if elements exist before accessing them
+            if (!count || !subtitle) return;
+            
             const hasActiveFilters = selectedCollections.size > 0;
             
             if (hasActiveFilters) {
@@ -799,6 +801,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         const authBtn = document.getElementById('auth-btn');
         const authModal = document.getElementById('auth-modal');
         const closeAuthModalBtn = document.getElementById('close-auth-modal');
+        
+        // Immediately hide auth modal to prevent flash during page load
+        if (authModal) {
+            authModal.classList.add('hidden');
+            authModal.classList.remove('flex');
+            authModal.style.display = 'none';
+        }
         const switchAuthModeLink = document.getElementById('switch-auth-mode');
         const authTitle = document.getElementById('auth-title');
         const authFeedback = document.getElementById('auth-feedback');
@@ -814,11 +823,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         function openAuthModal() {
             authModal.classList.remove('hidden');
             authModal.classList.add('flex');
+            authModal.style.display = 'flex';
         }
 
         function closeAuthModal() {
             authModal.classList.add('hidden');
             authModal.classList.remove('flex');
+            authModal.style.display = 'none';
             authFeedback.classList.add('hidden'); // Hide feedback on close
         }
 
@@ -1147,6 +1158,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const user = session ? session.user : null;
             updateUserUI(user);
         });
+        
+        // Ensure auth modal starts closed - multiple approaches for reliability
+        if (authModal) {
+            authModal.classList.add('hidden');
+            authModal.classList.remove('flex');
+            authModal.style.display = 'none';
+        }
 
         // Handle OAuth redirect on page load
         handleOAuthRedirect();
@@ -1158,6 +1176,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const TUTORIAL_COMPLETED_KEY = 'reelEats_tutorialCompleted';
 
         function showTutorial() {
+            // Check if tutorial elements exist
+            if (!tutorialModal) return;
+            
             // Check if the user has seen the tutorial before
             if (localStorage.getItem(TUTORIAL_COMPLETED_KEY)) {
                 return; // Don't show if already completed
@@ -1180,6 +1201,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function completeTutorial() {
+            // Check if tutorial elements exist
+            if (!tutorialModal) return;
+            
             // Hide the modal
             tutorialModal.classList.add('hidden');
             tutorialModal.classList.remove('flex');
@@ -1197,7 +1221,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Event listener for the close button
+        if (closeTutorialBtn) {
         closeTutorialBtn.addEventListener('click', completeTutorial);
+        }
 
         // Also close the tutorial on any first click on the page
         document.body.addEventListener('click', completeTutorial, { once: true });
@@ -1620,6 +1646,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             await initializeApp();
             const t2 = performance.now();
             console.log(`Total initial load time: ${t2 - t0} ms`);
+            
+            // Check for #auth hash to open authentication modal (only when hash is present)
+            if (window.location.hash && window.location.hash === '#auth') {
+                console.log('Opening auth modal due to #auth hash');
+                setTimeout(() => {
+                    openAuthModal();
+                }, 500); // Small delay to ensure everything is loaded
+            }
         }
 
         async function loadCities() {
@@ -2307,6 +2341,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const applyBtn = document.getElementById('apply-filter-btn');
             const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
             
+            // Check if elements exist before adding listeners
+            if (!filterModal || !closeBtn || !applyBtn || !clearBtn) return;
+            
             // Close modal
             closeBtn.addEventListener('click', closeMobileFilterModal);
             applyBtn.addEventListener('click', applyMobileFilter);
@@ -2722,7 +2759,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Show success message
                 showToast(`Filtering by collection: ${collectionName}`);
             }
-            });
+        });
         }
 
         // Handle delete confirmation modal
@@ -3117,7 +3154,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             restaurantList.innerHTML = '';
+            
+            // Clear markers only if markerClusterGroup exists
+            if (markerClusterGroup) {
             markerClusterGroup.clearLayers(); // Clear the cluster group instead of individual markers
+            }
             window.restaurantMarkers = []; // Also clear the local array
             restaurantMarkers = window.restaurantMarkers;
 
@@ -3993,6 +4034,7 @@ async function showVideoFor(restaurant) {
         }
 
         // --- Event Listeners ---
+        if (citySelect) {
         citySelect.addEventListener('change', async function() {
             const selectedOption = citySelect.options[citySelect.selectedIndex];
             // Show skeleton loaders while loading
@@ -4014,8 +4056,15 @@ async function showVideoFor(restaurant) {
             
             map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
         });
+        }
+        
+        // Video modal event listeners
+        if (closeVideoBtn) {
         closeVideoBtn.addEventListener('click', closeVideo);
+        }
+        if (videoModal) {
         videoModal.addEventListener('click', (e) => e.target === videoModal && closeVideo());
+        }
         
         // Video header button event listeners
         const videoFavoriteBtn = document.getElementById('video-favorite-btn');
