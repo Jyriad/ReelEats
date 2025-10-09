@@ -74,6 +74,7 @@ html, body {
     align-items: center;
     justify-content: center;
     overflow: hidden; /* prevent scrollbars on modal */
+    padding: 1rem;
 }
 /* Hide modal scrollbar in all browsers */
 #video-modal { -ms-overflow-style: none; scrollbar-width: none; }
@@ -185,8 +186,26 @@ html, body {
     border: 2px solid #4a5568;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     display: flex;
+    -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
     align-items: center;
     justify-content: center;
+}
+
+/* Hide scrollbar on video container */
+.video-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbars on video container iframe */
+.video-container iframe {
+    overflow: hidden !important;
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+
+.video-container iframe::-webkit-scrollbar {
+    display: none !important;
 }
 
 /* Simplified video loading styles */
@@ -1245,7 +1264,7 @@ html {
   border-top: 1px solid #f3f4f6;
 }
 
-/* Fix authentication modal positioning */
+/* Fix authentication modal positioning - more specific to avoid conflicts */
 #auth-modal {
   position: fixed !important;
   top: 0 !important;
@@ -1254,10 +1273,13 @@ html {
   bottom: 0 !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
   z-index: 10000 !important;
-  display: none !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 1rem !important;
+}
+
+#auth-modal:not(.flex) {
+  display: none !important;
 }
 
 #auth-modal.flex {
