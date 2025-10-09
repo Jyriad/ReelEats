@@ -95,7 +95,7 @@ html, body {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 12px 12px 0 0;
-    padding: 16px 20px;
+    padding: 8px 16px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -161,6 +161,11 @@ html, body {
     background: rgba(245, 158, 11, 0.1);
 }
 
+.video-action-btn#video-favorite-btn.favorited svg {
+    fill: #f59e0b;
+    stroke: #f59e0b;
+}
+
 /* Collection button specific styles to match restaurant cards */
 .video-action-btn#video-collection-btn:hover {
     color: #6366f1; /* Purple color on hover */
@@ -170,6 +175,12 @@ html, body {
 
 .video-action-btn#video-collection-btn.collected {
     color: #6366f1; /* Purple color when collected */
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.video-action-btn#video-collection-btn.collected svg {
+    fill: #6366f1;
+    stroke: #6366f1;
 }
 
 .video-action-btn svg {
