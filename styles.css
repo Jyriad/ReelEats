@@ -100,39 +100,50 @@ html, body {
     top: -20px; /* This moves the video player up by 20px */
 }
 
-/* Video Header Styles */
-.video-header {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 12px 12px 0 0;
-    padding: 8px 16px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    margin-bottom: 0;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    width: 100%;
+/* Video Header Container */
+.video-header-container {
     position: relative;
+    z-index: 10;
 }
 
-.video-header-content {
+/* Video Header Styles */
+.video-header {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border-radius: 16px 16px 0 0;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    margin-bottom: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    position: relative;
+    min-height: 60px;
+}
+
+.video-header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.video-header-right {
     display: flex;
     align-items: center;
     gap: 12px;
-    flex: 1;
-    min-width: 0; /* Allow text to truncate */
 }
 
 .video-restaurant-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1f2937;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 250px;
+    font-family: 'TikTok Sans', sans-serif;
 }
 
 .video-header-actions {
@@ -142,8 +153,8 @@ html, body {
 
 .video-action-btn {
     background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
     padding: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -151,14 +162,15 @@ html, body {
     align-items: center;
     justify-content: center;
     color: #9ca3af; /* Same default gray as restaurant card buttons */
-    width: 2rem;
-    height: 2rem;
+    width: 36px;
+    height: 36px;
 }
 
 .video-action-btn:hover {
     background: rgba(255, 255, 255, 1);
     border-color: rgba(0, 0, 0, 0.2);
-    transform: scale(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Favorite button specific styles to match restaurant cards */
@@ -197,6 +209,70 @@ html, body {
     width: 16px;
     height: 16px;
     fill: currentColor;
+}
+
+.video-close-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    width: 36px;
+    height: 36px;
+}
+
+.video-close-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.video-close-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+}
+
+/* Mobile responsive styles for video header */
+@media (max-width: 768px) {
+    .video-header {
+        padding: 12px 16px;
+        border-radius: 12px 12px 0 0;
+        min-height: 50px;
+    }
+    
+    .video-restaurant-name {
+        font-size: 18px;
+        max-width: 200px;
+    }
+    
+    .video-header-right {
+        gap: 8px;
+    }
+    
+    .video-action-btn, .video-close-btn {
+        width: 32px;
+        height: 32px;
+        padding: 6px;
+    }
+    
+    .video-action-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .video-close-btn svg {
+        width: 18px;
+        height: 18px;
+    }
 }
 .video-container {
     width: 330px;

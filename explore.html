@@ -335,27 +335,31 @@
     <!-- Video Modal -->
     <div id="video-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[10000] hidden flex items-center justify-center p-4">
         <div class="bg-transparent w-auto h-auto overflow-hidden">
-            <div class="flex justify-center items-center p-2 relative">
+            <div class="video-header-container">
                 <div class="video-header">
-                    <div class="video-header-content">
+                    <div class="video-header-left">
                         <h3 class="video-restaurant-name">Restaurant Name</h3>
+                    </div>
+                    <div class="video-header-right">
                         <div class="video-header-actions">
                             <button id="video-favorite-btn" class="video-action-btn" title="Add to Favorites">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
                                 </svg>
                             </button>
                             <button id="video-collection-btn" class="video-action-btn" title="Add to Collection">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
                                 </svg>
                             </button>
                         </div>
+                        <button id="close-video-btn" class="video-close-btn" title="Close">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <button id="close-video-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl">
-                    ×
-                </button>
             </div>
             <div class="flex-1 flex items-center justify-center p-1">
                 <div class="video-container"></div>
