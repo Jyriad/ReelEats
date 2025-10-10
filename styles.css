@@ -154,7 +154,7 @@ html, body {
 .video-action-btn {
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.12);
-    border-radius: 8px;
+    border-radius: 50%;
     padding: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -214,7 +214,7 @@ html, body {
 .video-close-btn {
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.12);
-    border-radius: 8px;
+    border-radius: 50%;
     padding: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -262,6 +262,7 @@ html, body {
         width: 32px;
         height: 32px;
         padding: 6px;
+        border-radius: 50%;
     }
     
     .video-action-btn svg {
