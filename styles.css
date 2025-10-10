@@ -118,9 +118,11 @@ html, body {
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     margin-bottom: 0;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    width: 100%;
+    width: 330px;
+    max-width: 330px;
     position: relative;
     min-height: 60px;
+    box-sizing: border-box;
 }
 
 .video-header-left {
@@ -142,8 +144,9 @@ html, body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 250px;
+    max-width: 200px;
     font-family: 'TikTok Sans', sans-serif;
+    flex-shrink: 1;
 }
 
 .video-header-actions {
@@ -247,11 +250,13 @@ html, body {
         padding: 12px 16px;
         border-radius: 12px 12px 0 0;
         min-height: 50px;
+        width: calc(min(80vh, 585px) * 330 / 585);
+        max-width: calc(min(80vh, 585px) * 330 / 585);
     }
     
     .video-restaurant-name {
         font-size: 18px;
-        max-width: 200px;
+        max-width: 150px;
     }
     
     .video-header-right {
