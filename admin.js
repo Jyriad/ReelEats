@@ -2334,6 +2334,12 @@ async function editRestaurant(restaurantId) {
         document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             console.log('🍽️ Edit form submitted, calling saveRestaurantChanges...');
+            
+            // Debug: Log current form values
+            const citySelect = document.getElementById('edit-restaurant-city');
+            const cityId = citySelect ? citySelect.value : 'not found';
+            console.log('🍽️ Current city selection:', cityId);
+            
             await saveRestaurantChanges(restaurantId);
         });
         
@@ -2356,12 +2362,21 @@ async function saveRestaurantChanges(restaurantId) {
             google_maps_url: document.getElementById('edit-google-maps-url').value || null
         };
 
-        const { error } = await supabaseClient
+        console.log('🍽️ Updating restaurant with ID:', restaurantId);
+        console.log('🍽️ Form data being sent:', formData);
+
+        const { data, error } = await supabaseClient
             .from('restaurants')
             .update(formData)
-            .eq('id', restaurantId);
+            .eq('id', restaurantId)
+            .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('🍽️ Database update error:', error);
+            throw error;
+        }
+
+        console.log('🍽️ Database update successful:', data);
 
         // Update cuisine relationships
         const selectedCuisines = getSelectedEditCuisines();
@@ -2588,9 +2603,18 @@ async function deleteRestaurant(restaurantId, restaurantName) {
 
 // Close edit modal
 function closeEditModal() {
-    const modal = document.querySelector('.fixed.inset-0');
+    const modal = document.querySelector('.fixed.inset-0.bg-gray-600');
     if (modal) {
         modal.remove();
+    } else {
+        // Fallback: look for any modal with the edit form
+        const editForm = document.getElementById('edit-restaurant-form');
+        if (editForm) {
+            const modal = editForm.closest('.fixed.inset-0');
+            if (modal) {
+                modal.remove();
+            }
+        }
     }
 }
 
