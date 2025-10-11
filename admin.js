@@ -2338,7 +2338,8 @@ async function editRestaurant(restaurantId) {
             // Debug: Log current form values
             const citySelect = document.getElementById('edit-restaurant-city');
             const cityId = citySelect ? citySelect.value : 'not found';
-            console.log('🍽️ Current city selection:', cityId);
+            const cityName = citySelect && citySelect.selectedIndex >= 0 ? citySelect.options[citySelect.selectedIndex].text : 'not found';
+            console.log('🍽️ Current city selection - ID:', cityId, 'Name:', cityName);
             
             await saveRestaurantChanges(restaurantId);
         });
@@ -2352,17 +2353,24 @@ async function editRestaurant(restaurantId) {
 // Save restaurant changes
 async function saveRestaurantChanges(restaurantId) {
     try {
+        const cityId = parseInt(document.getElementById('edit-restaurant-city').value);
+        const citySelect = document.getElementById('edit-restaurant-city');
+        const selectedCityName = citySelect.options[citySelect.selectedIndex].text;
+        
         const formData = {
             name: document.getElementById('edit-restaurant-name').value,
             description: document.getElementById('edit-restaurant-description').value,
             lat: parseFloat(document.getElementById('edit-restaurant-lat').value),
             lon: parseFloat(document.getElementById('edit-restaurant-lon').value),
-            city_id: parseInt(document.getElementById('edit-restaurant-city').value),
+            city_id: cityId,
+            city: selectedCityName,
             google_place_id: document.getElementById('edit-google-place-id').value || null,
             google_maps_url: document.getElementById('edit-google-maps-url').value || null
         };
 
         console.log('🍽️ Updating restaurant with ID:', restaurantId);
+        console.log('🍽️ City ID:', cityId);
+        console.log('🍽️ City Name:', selectedCityName);
         console.log('🍽️ Form data being sent:', formData);
 
         const { data, error } = await supabaseClient
