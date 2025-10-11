@@ -7,6 +7,16 @@ html {
     color-scheme: light only;
 }
 
+body {
+    font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+/* Heading styles with TikTok Sans font */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    font-weight: 700;
+}
+
 /* All your existing styles go here */
 html, body { 
     margin: 0; 
@@ -74,6 +84,7 @@ html, body {
     align-items: center;
     justify-content: center;
     overflow: hidden; /* prevent scrollbars on modal */
+    padding: 1rem;
 }
 /* Hide modal scrollbar in all browsers */
 #video-modal { -ms-overflow-style: none; scrollbar-width: none; }
@@ -89,48 +100,63 @@ html, body {
     top: -20px; /* This moves the video player up by 20px */
 }
 
+/* Video Header Container */
+.video-header-container {
+    position: relative;
+    z-index: 10;
+}
+
 /* Video Header Styles */
 .video-header {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 12px 12px 0 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border-radius: 16px 16px 0 0;
     padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     margin-bottom: 0;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 330px;
+    max-width: 330px;
+    position: relative;
+    min-height: 60px;
+    box-sizing: border-box;
 }
 
-.video-header-content {
+.video-header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.video-header-right {
     display: flex;
     align-items: center;
     gap: 12px;
-    flex: 1;
-    min-width: 0; /* Allow text to truncate */
 }
 
 .video-restaurant-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1f2937;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 220px;
+    font-family: 'TikTok Sans', sans-serif;
+    flex-shrink: 1;
 }
 
 .video-header-actions {
     display: flex;
     gap: 8px;
-    margin-left: auto;
 }
 
 .video-action-btn {
     background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.12);
     border-radius: 50%;
     padding: 8px;
     cursor: pointer;
@@ -139,14 +165,15 @@ html, body {
     align-items: center;
     justify-content: center;
     color: #9ca3af; /* Same default gray as restaurant card buttons */
-    width: 2rem;
-    height: 2rem;
+    width: 36px;
+    height: 36px;
 }
 
 .video-action-btn:hover {
     background: rgba(255, 255, 255, 1);
     border-color: rgba(0, 0, 0, 0.2);
-    transform: scale(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Favorite button specific styles to match restaurant cards */
@@ -159,6 +186,11 @@ html, body {
     background: rgba(245, 158, 11, 0.1);
 }
 
+.video-action-btn#video-favorite-btn.favorited svg {
+    fill: #f59e0b;
+    stroke: #f59e0b;
+}
+
 /* Collection button specific styles to match restaurant cards */
 .video-action-btn#video-collection-btn:hover {
     color: #6366f1; /* Purple color on hover */
@@ -168,12 +200,85 @@ html, body {
 
 .video-action-btn#video-collection-btn.collected {
     color: #6366f1; /* Purple color when collected */
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.video-action-btn#video-collection-btn.collected svg {
+    fill: #6366f1;
+    stroke: #6366f1;
 }
 
 .video-action-btn svg {
     width: 16px;
     height: 16px;
     fill: currentColor;
+}
+
+.video-close-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 50%;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    width: 36px;
+    height: 36px;
+}
+
+.video-close-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.video-close-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+}
+
+/* Mobile responsive styles for video header */
+@media (max-width: 768px) {
+    .video-header {
+        padding: 12px 16px;
+        border-radius: 12px 12px 0 0;
+        min-height: 50px;
+        width: calc(min(80vh, 585px) * 330 / 585);
+        max-width: calc(min(80vh, 585px) * 330 / 585);
+    }
+    
+    .video-restaurant-name {
+        font-size: 15px;
+        max-width: 170px;
+    }
+    
+    .video-header-right {
+        gap: 8px;
+    }
+    
+    .video-action-btn, .video-close-btn {
+        width: 32px;
+        height: 32px;
+        padding: 6px;
+        border-radius: 50%;
+    }
+    
+    .video-action-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .video-close-btn svg {
+        width: 18px;
+        height: 18px;
+    }
 }
 .video-container {
     width: 330px;
@@ -185,8 +290,26 @@ html, body {
     border: 2px solid #4a5568;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     display: flex;
+    -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
     align-items: center;
     justify-content: center;
+}
+
+/* Hide scrollbar on video container */
+.video-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbars on video container iframe */
+.video-container iframe {
+    overflow: hidden !important;
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+
+.video-container iframe::-webkit-scrollbar {
+    display: none !important;
 }
 
 /* Simplified video loading styles */
@@ -360,7 +483,6 @@ html, body {
 /* Isolate list rendering for perf */
 #restaurant-list { 
     contain: content; 
-    overflow-y: auto;
     position: relative;
     z-index: 1;
 }
@@ -557,10 +679,8 @@ html, body {
     /* Show directions button only on mobile */
     .directions-button { display: flex !important; }
     /* Drawer content now has proper spacing from handle */
-    /* Make restaurant list a proper scrollable container */
+    /* Restaurant list now inherits from parent flex container */
     #restaurant-list {
-        flex: 1;
-        overflow-y: auto;
         padding: 0.25rem 1rem;
         min-height: 0;
         /* Hide scrollbar on mobile */
@@ -1167,7 +1287,7 @@ body.homepage {
   min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
 html {
@@ -1183,7 +1303,7 @@ html {
   background-color: #f9fafb;
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 .logo { font-weight: 700; font-size: 1.5rem; color: #111827; }
 .nav-link { color: #6b7280; margin: 0 1rem; text-decoration: none; transition: color 0.2s; }
@@ -1196,7 +1316,7 @@ html {
   padding: 6rem 5%;
   background-color: #ffffff;
   color: #111827;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 .hero h1 { font-size: 3rem; max-width: 600px; margin: 0 auto 2rem auto; color: #111827; font-weight: 700; }
 .search-container { display: flex; justify-content: center; position: relative; flex-direction: column; align-items: center; }
@@ -1245,7 +1365,7 @@ html {
   border-top: 1px solid #f3f4f6;
 }
 
-/* Fix authentication modal positioning */
+/* Fix authentication modal positioning - more specific to avoid conflicts */
 #auth-modal {
   position: fixed !important;
   top: 0 !important;
@@ -1254,10 +1374,13 @@ html {
   bottom: 0 !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
   z-index: 10000 !important;
-  display: none !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 1rem !important;
+}
+
+#auth-modal:not(.flex) {
+  display: none !important;
 }
 
 #auth-modal.flex {
