@@ -1715,7 +1715,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const { cities, timestamp } = JSON.parse(cachedData);
                 if (Date.now() - timestamp < CACHE_DURATION) {
                     console.log("Loading cities from cache.");
-                    populateCitySelect(cities);
+                    // populateCitySelect removed - cities are now handled in initializeApp
                     // Fetch in background to check for updates, but don't block
                     fetchAndCacheCities(); 
                     return;
