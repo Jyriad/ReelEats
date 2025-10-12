@@ -274,12 +274,28 @@ function showNotAuthenticatedState() {
             const showLoginBtn = document.getElementById('show-login-btn');
             const showSignupBtn = document.getElementById('show-signup-btn');
             
+            console.log('Looking for auth buttons...');
+            console.log('showLoginBtn:', showLoginBtn);
+            console.log('showSignupBtn:', showSignupBtn);
+            
             if (showLoginBtn) {
-                showLoginBtn.addEventListener('click', () => openAuthModal('login'));
+                console.log('Adding click listener to login button');
+                showLoginBtn.addEventListener('click', () => {
+                    console.log('Login button clicked');
+                    openAuthModal('login');
+                });
+            } else {
+                console.error('Login button not found');
             }
             
             if (showSignupBtn) {
-                showSignupBtn.addEventListener('click', () => openAuthModal('signup'));
+                console.log('Adding click listener to signup button');
+                showSignupBtn.addEventListener('click', () => {
+                    console.log('Signup button clicked');
+                    openAuthModal('signup');
+                });
+            } else {
+                console.error('Signup button not found');
             }
         }, 100);
     }
