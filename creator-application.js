@@ -242,156 +242,35 @@ function showNotAuthenticatedState() {
                     </div>
                 </div>
 
-                <!-- Public Application Form -->
+                <!-- Authentication Required -->
                 <div class="bg-white rounded-lg shadow-lg p-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Apply Now</h2>
-                    <form id="public-creator-application-form" class="space-y-6">
-                        <div>
-                            <label for="public-tiktok-handle" class="block text-sm font-medium text-gray-700 mb-2">TikTok Handle</label>
-                            <div class="flex">
-                                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">@</span>
-                                <input type="text" id="public-tiktok-handle" name="tiktok_handle" required 
-                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                       placeholder="your_tiktok_handle">
-                            </div>
-                        </div>
-                        <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-                            Submit Application
-                        </button>
-                    </form>
-                    
-                    <!-- Success/Error Messages -->
-                    <div id="public-success-message" class="hidden mt-6 text-center">
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Ready to Apply?</h2>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Application Submitted!</h3>
-                        <p class="text-gray-600 mb-6">Thanks for applying! We'll review your application and get back to you soon.</p>
-                        <a href="/explore" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
-                            Continue Exploring
-                        </a>
-                    </div>
-                    
-                    <div id="public-error-message" class="hidden mt-6 text-center">
-                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Sign In Required</h3>
+                        <p class="text-gray-600 mb-6">Please sign in or create an account to submit your creator application.</p>
+                        <div class="space-x-4">
+                            <a href="/explore#auth" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                Sign In
+                            </a>
+                            <a href="/explore#auth" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                Sign Up
+                            </a>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Error</h3>
-                        <p id="public-error-text" class="text-gray-600 mb-6"></p>
-                        <button onclick="location.reload()" class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
-                            Try Again
-                        </button>
+                        <p class="text-sm text-gray-500 mt-4">
+                            Don't worry, signing up is quick and free!
+                        </p>
                     </div>
                 </div>
             </div>
         `;
-        
-        // Add event listener for the public form
-        const publicForm = document.getElementById('public-creator-application-form');
-        if (publicForm) {
-            publicForm.addEventListener('submit', handlePublicFormSubmission);
-        }
     }
 }
 
-// Handle public form submission (for non-authenticated users)
-async function handlePublicFormSubmission(e) {
-    e.preventDefault();
-    
-    const form = e.target;
-    const tiktokHandle = form.querySelector('#public-tiktok-handle').value.trim();
-    
-    if (!tiktokHandle) {
-        showPublicErrorMessage('Please enter your TikTok handle');
-        return;
-    }
-    
-    try {
-        // Generate magic word
-        const magicWord = generateMagicWord();
-        
-        // Submit to database (without user_id since user is not authenticated)
-        const { data, error } = await supabaseClient
-            .from('creator_applications')
-            .insert([
-                {
-                    tiktok_handle: tiktokHandle,
-                    magic_word: magicWord,
-                    status: 'pending',
-                    user_id: null // No user ID for non-authenticated users
-                }
-            ]);
-        
-        if (error) {
-            console.error('Error submitting public application:', error);
-            showPublicErrorMessage('Failed to submit application. Please try again.');
-            return;
-        }
-        
-        // Show success message with magic word
-        showPublicSuccessMessage(tiktokHandle, magicWord);
-        
-    } catch (error) {
-        console.error('Error submitting public application:', error);
-        showPublicErrorMessage('An unexpected error occurred. Please try again.');
-    }
-}
-
-// Show public success message with magic word
-function showPublicSuccessMessage(tiktokHandle, magicWord) {
-    const form = document.getElementById('public-creator-application-form');
-    const successMessage = document.getElementById('public-success-message');
-    const errorMessage = document.getElementById('public-error-message');
-    
-    if (form) form.style.display = 'none';
-    if (errorMessage) errorMessage.classList.add('hidden');
-    
-    if (successMessage) {
-        successMessage.innerHTML = `
-            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Application Submitted!</h3>
-            <p class="text-gray-600 mb-4">Thanks for applying! We'll review your application and get back to you soon.</p>
-            
-            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-                <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
-                <p class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mb-3">${magicWord}</p>
-                <p class="text-sm text-purple-700">
-                    <strong>Verification Instructions:</strong><br>
-                    To verify your account, please send a Direct Message from your TikTok account <strong>@${tiktokHandle}</strong> with your magic word: <strong>${magicWord}</strong>
-                </p>
-            </div>
-            
-            <a href="/explore" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
-                Continue Exploring
-            </a>
-        `;
-        successMessage.classList.remove('hidden');
-    }
-}
-
-// Show public error message
-function showPublicErrorMessage(message) {
-    const form = document.getElementById('public-creator-application-form');
-    const successMessage = document.getElementById('public-success-message');
-    const errorMessage = document.getElementById('public-error-message');
-    const errorText = document.getElementById('public-error-text');
-    
-    if (form) form.style.display = 'block';
-    if (successMessage) successMessage.classList.add('hidden');
-    
-    if (errorMessage && errorText) {
-        errorText.textContent = message;
-        errorMessage.classList.remove('hidden');
-    }
-}
 
 // Show application form
 function showApplicationForm() {
