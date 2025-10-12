@@ -1148,7 +1148,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const mobileAuthBtn = document.getElementById('mobile-auth-btn');
         const mobileSignupBtn = document.getElementById('mobile-signup-btn');
         const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
-        const locationBtnMobile = document.getElementById('location-btn-mobile');
 
         if (mobileMenuBtn && mobileMenuModal) {
             mobileMenuBtn.addEventListener('click', () => {
@@ -1218,12 +1217,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        // Add location button functionality for mobile
-        if (locationBtnMobile) {
-            locationBtnMobile.addEventListener('click', () => {
-                findUserLocationMobile();
-            });
-        }
         
         // Mobile-specific location function that doesn't reset the map view
         function findUserLocationMobile() {
@@ -4633,12 +4626,17 @@ async function showVideoFor(restaurant) {
         
         checkLocationAvailability();
         
-        // Location button event listener
+        // Location button event listener - handles both desktop and mobile
         const locationBtn = document.getElementById('location-btn');
         if (locationBtn) {
             locationBtn.addEventListener('click', () => {
                 console.log('Location button clicked');
-                addUserLocationMarker();
+                // Use mobile-specific function for mobile, desktop function for desktop
+                if (window.innerWidth <= 768) {
+                    findUserLocationMobile();
+                } else {
+                    addUserLocationMarker();
+                }
             });
         }
         
