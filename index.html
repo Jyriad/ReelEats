@@ -156,6 +156,8 @@
             const loginLink = document.getElementById('login-link');
             const signupLink = document.getElementById('signup-link');
             const authModal = document.getElementById('auth-modal');
+            
+            console.log('Homepage elements found - signupLink:', signupLink, 'authModal:', authModal);
             const closeAuthModal = document.getElementById('close-auth-modal');
             const loginForm = document.getElementById('login-form');
             const signupForm = document.getElementById('signup-form');
@@ -174,6 +176,7 @@
             // Check authentication status and update header
             async function updateHeaderForAuth() {
                 try {
+                    console.log('updateHeaderForAuth called, signupLink:', signupLink);
                     const { data: { session }, error } = await supabaseClient.auth.getSession();
                     
                     if (error) {
@@ -182,12 +185,17 @@
                     }
                     
                     console.log('Homepage auth check - session:', session);
+                    console.log('Sign-up link element:', signupLink);
+                    console.log('Sign-up link current display:', signupLink ? signupLink.style.display : 'element not found');
                     
                     if (session && session.user) {
                         // User is authenticated - hide sign-up button
                         if (signupLink) {
                             signupLink.style.display = 'none';
                             console.log('Sign-up button hidden for authenticated user:', session.user.email);
+                            console.log('Sign-up link display after hiding:', signupLink.style.display);
+                        } else {
+                            console.error('Sign-up link not found - cannot hide button');
                         }
                     } else {
                         // User not authenticated - show sign-up button
@@ -206,7 +214,7 @@
             
             // Listen for auth state changes
             supabaseClient.auth.onAuthStateChange((event, session) => {
-                console.log('Auth state changed on homepage:', event);
+                console.log('Auth state changed on homepage:', event, session?.user?.email);
                 updateHeaderForAuth();
             });
             
