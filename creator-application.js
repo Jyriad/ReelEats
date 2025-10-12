@@ -741,11 +741,22 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 // Authentication modal functions
 function openAuthModal(mode = 'login') {
-    if (!authModal) return;
+    console.log('openAuthModal called with mode:', mode);
+    console.log('authModal variable:', authModal);
+    
+    // Get modal element if not already set
+    const modalElement = authModal || document.getElementById('auth-modal');
+    console.log('modalElement:', modalElement);
+    
+    if (!modalElement) {
+        console.error('Auth modal element not found!');
+        return;
+    }
     
     // Hide feedback
-    if (authFeedback) {
-        authFeedback.classList.add('hidden');
+    const feedbackElement = authFeedback || document.getElementById('auth-feedback');
+    if (feedbackElement) {
+        feedbackElement.classList.add('hidden');
     }
     
     // Set initial mode
@@ -756,8 +767,10 @@ function openAuthModal(mode = 'login') {
     }
     
     // Show modal
-    authModal.classList.remove('hidden');
-    authModal.style.display = 'flex';
+    modalElement.classList.remove('hidden');
+    modalElement.classList.add('flex');
+    modalElement.style.display = 'flex';
+    console.log('Modal should now be visible');
 }
 
 function closeAuthModal() {
