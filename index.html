@@ -167,25 +167,37 @@
             let filteredCities = [];
             let isSignupMode = false;
             
-            // Initialize Supabase client
-            const supabaseClient = supabase.createClient('https://jsuxrpnfofkigdfpnuua.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8');
+            // Initialize Supabase client using config
+            const { createClient } = supabase;
+            const supabaseClient = createClient('https://jsuxrpnfofkigdfpnuua.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8');
             
             // Check authentication status and update header
             async function updateHeaderForAuth() {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                
-                if (session && session.user) {
-                    // User is authenticated - hide sign-up button
-                    if (signupLink) {
-                        signupLink.style.display = 'none';
+                try {
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
+                    
+                    if (error) {
+                        console.error('Error getting session on homepage:', error);
+                        return;
                     }
-                    console.log('User authenticated on homepage:', session.user.email);
-                } else {
-                    // User not authenticated - show sign-up button
-                    if (signupLink) {
-                        signupLink.style.display = 'inline-block';
+                    
+                    console.log('Homepage auth check - session:', session);
+                    
+                    if (session && session.user) {
+                        // User is authenticated - hide sign-up button
+                        if (signupLink) {
+                            signupLink.style.display = 'none';
+                            console.log('Sign-up button hidden for authenticated user:', session.user.email);
+                        }
+                    } else {
+                        // User not authenticated - show sign-up button
+                        if (signupLink) {
+                            signupLink.style.display = 'inline-block';
+                            console.log('Sign-up button shown for non-authenticated user');
+                        }
                     }
-                    console.log('User not authenticated on homepage');
+                } catch (error) {
+                    console.error('Error in updateHeaderForAuth:', error);
                 }
             }
             

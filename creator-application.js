@@ -122,6 +122,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     authTitle = document.getElementById('auth-title');
     authFeedback = document.getElementById('auth-feedback');
     
+    // Ensure auth modal is hidden on page load
+    if (authModal) {
+        authModal.classList.add('hidden');
+        authModal.style.display = 'none';
+        console.log('Auth modal hidden on page load');
+    }
+    
     // Get mobile menu elements
     mobileMenuBtn = document.getElementById('mobile-menu-btn');
     mobileMenuModal = document.getElementById('mobile-menu-modal');
