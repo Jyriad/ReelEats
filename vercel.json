@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/explore", "destination": "/explore.html" },
+    { "source": "/creators", "destination": "/creator-application.html" },
     { "source": "/:city", "destination": "/explore.html" }
   ]
 }
