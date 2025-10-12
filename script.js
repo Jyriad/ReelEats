@@ -908,11 +908,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         async function updateUserUI(user) {
             const collectionsBtn = document.getElementById('collections-btn');
             const collectionFilterBtn = document.getElementById('collection-filter-btn');
+            const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
             
             if (user) {
                 // User is logged in - show logout button instead of login button
                 if (authBtn) authBtn.classList.add('hidden');
                 if (collectionsBtn) collectionsBtn.classList.remove('hidden');
+                if (mobileCollectionsBtn) mobileCollectionsBtn.classList.remove('hidden');
                 if (collectionFilterBtn) collectionFilterBtn.classList.remove('hidden');
                 
                 // Create or update logout button
@@ -960,6 +962,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // User is logged out - show login button
                 if (authBtn) authBtn.classList.remove('hidden');
                 if (collectionsBtn) collectionsBtn.classList.add('hidden');
+                if (mobileCollectionsBtn) mobileCollectionsBtn.classList.add('hidden');
                 // Keep collection filter button visible for all users
                 // collectionFilterBtn.classList.add('hidden');
                 
@@ -1124,6 +1127,80 @@ document.addEventListener('DOMContentLoaded', async function() {
         const signupBtn = document.getElementById('signup-btn');
         if (signupBtn) {
             signupBtn.addEventListener('click', openAuthModal);
+        }
+
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenuModal = document.getElementById('mobile-menu-modal');
+        const closeMobileMenu = document.getElementById('close-mobile-menu');
+        const mobileAuthBtn = document.getElementById('mobile-auth-btn');
+        const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+        const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
+        const locationBtnMobile = document.getElementById('location-btn-mobile');
+
+        if (mobileMenuBtn && mobileMenuModal) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenuModal.classList.remove('hidden');
+                mobileMenuModal.style.display = 'block';
+            });
+        }
+
+        if (closeMobileMenu && mobileMenuModal) {
+            closeMobileMenu.addEventListener('click', () => {
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        if (mobileMenuModal) {
+            mobileMenuModal.addEventListener('click', (e) => {
+                if (e.target === mobileMenuModal) {
+                    mobileMenuModal.classList.add('hidden');
+                    mobileMenuModal.style.display = 'none';
+                }
+            });
+        }
+
+        if (mobileAuthBtn) {
+            mobileAuthBtn.addEventListener('click', () => {
+                openAuthModal();
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        if (mobileSignupBtn) {
+            mobileSignupBtn.addEventListener('click', () => {
+                openAuthModal();
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        // Update collections button visibility for mobile
+        function updateMobileCollectionsButton() {
+            if (mobileCollectionsBtn) {
+                if (authContainer && authContainer.querySelector('.hidden')) {
+                    mobileCollectionsBtn.classList.remove('hidden');
+                } else {
+                    mobileCollectionsBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        if (mobileCollectionsBtn) {
+            mobileCollectionsBtn.addEventListener('click', () => {
+                showCollectionManagement();
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        // Add location button functionality for mobile
+        if (locationBtnMobile) {
+            locationBtnMobile.addEventListener('click', () => {
+                findUserLocation();
+            });
         }
         
         closeAuthModalBtn.addEventListener('click', closeAuthModal);
@@ -2311,8 +2388,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         function setupDesktopFilterModal() {
             const filterModal = document.getElementById('desktop-filter-modal');
             const closeBtn = document.getElementById('close-desktop-filter-modal');
-            const applyBtn = document.getElementById('apply-desktop-filter');
-            const cancelBtn = document.getElementById('cancel-desktop-filter');
+            const applyBtn = document.getElementById('apply-cuisine-filter-desktop');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-desktop');
             const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
             
             console.log('Setting up desktop filter modal...');
@@ -2368,14 +2445,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         function setupMobileFilterModal() {
             const filterModal = document.getElementById('filter-modal');
             const closeBtn = document.getElementById('close-filter-modal');
-            const applyBtn = document.getElementById('apply-filter-btn');
+            const applyBtn = document.getElementById('apply-cuisine-filter-mobile');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-mobile');
             const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
             
             // Check if elements exist before adding listeners
-            if (!filterModal || !closeBtn || !applyBtn || !clearBtn) return;
+            if (!filterModal || !closeBtn || !applyBtn || !cancelBtn || !clearBtn) return;
             
             // Close modal
             closeBtn.addEventListener('click', closeMobileFilterModal);
+            cancelBtn.addEventListener('click', closeMobileFilterModal);
             applyBtn.addEventListener('click', applyMobileFilter);
             clearBtn.addEventListener('click', clearMobileFilter);
             
@@ -2415,7 +2494,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const filterModal = document.getElementById('desktop-filter-modal');
             if (filterModal) {
                 filterModal.classList.add('hidden');
-                filterModal.classList.remove('md:flex');
+                filterModal.classList.remove('flex');
                 console.log('Modal closed successfully');
             } else {
                 console.error('Desktop filter modal not found!');
@@ -2473,8 +2552,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Close mobile filter modal
         function closeMobileFilterModal() {
+            console.log('Closing mobile filter modal...');
             const filterModal = document.getElementById('filter-modal');
-            filterModal.classList.add('hidden');
+            if (filterModal) {
+                filterModal.classList.add('hidden');
+                filterModal.classList.remove('flex');
+            }
         }
         
         // Apply mobile filter

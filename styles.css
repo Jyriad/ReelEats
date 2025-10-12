@@ -1580,6 +1580,40 @@ html {
     background-color: #f0f0f0; 
 }
 
+/* --- Mobile Floating Location Button --- */
+#location-btn-mobile {
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+#location-btn-mobile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+#location-btn-mobile:active {
+    transform: translateY(0);
+}
+
+/* --- Mobile Menu Modal --- */
+#mobile-menu-modal {
+    backdrop-filter: blur(5px);
+}
+
+#mobile-menu-modal .fixed {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
 /* --- Media Query for Responsiveness --- */
 @media (max-width: 768px) {
     .modal-content {

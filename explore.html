@@ -67,7 +67,7 @@
 <body class="h-full flex flex-col">
 
     <header class="bg-gray-50 text-gray-900 shadow flex-shrink-0 z-20">
-        <!-- Top Row: Logo, City Selector, Auth Buttons -->
+        <!-- Main Header Row -->
         <div class="h-[60px] flex items-center justify-between px-2 md:px-4">
             <h1 id="explore-h1" class="text-lg md:text-2xl font-bold truncate">Map 🗺️</h1>
             
@@ -81,9 +81,18 @@
                     </svg>
                 </div>
                 
-                <!-- Auth Buttons -->
-                <div id="auth-container" class="relative">
-                    <button id="auth-btn" class="bg-gray-700 hover:bg-gray-800 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors">
+                <!-- City Selector - Mobile (inline) -->
+                <div id="city-switcher-mobile" class="md:hidden flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2 py-1 cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm">
+                    <span class="text-gray-600 text-xs">📍</span>
+                    <span id="current-city-mobile" class="font-semibold text-gray-800 text-sm truncate max-w-[80px]">Loading...</span>
+                    <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                
+                <!-- Desktop Auth Buttons -->
+                <div id="auth-container" class="hidden md:block relative">
+                    <button id="auth-btn" class="bg-gray-700 hover:bg-gray-800 text-white text-sm rounded px-3 py-2 transition-colors">
                         Sign In
                     </button>
                     <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
@@ -92,31 +101,63 @@
                     </div>
                 </div>
                 
-                <button id="signup-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors">
+                <button id="signup-btn" class="hidden md:block bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded px-3 py-2 transition-colors">
                     Sign Up
                 </button>
                 
-                <button id="collections-btn" class="bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors hidden" title="My Collections">
+                <button id="collections-btn" class="hidden md:block bg-purple-600 hover:bg-purple-700 text-white text-sm rounded px-3 py-2 transition-colors hidden" title="My Collections">
                     📚 My Collections
                 </button>
                 
-                <button id="location-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors" title="Find my location">
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden bg-gray-700 hover:bg-gray-800 text-white rounded px-2 py-1 transition-colors" title="Menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                
+                <!-- Desktop Location Button -->
+                <button id="location-btn" class="hidden md:block bg-blue-600 hover:bg-blue-700 text-white text-sm rounded px-3 py-2 transition-colors" title="Find my location">
                     📍
                 </button>
             </div>
         </div>
-        
-        <!-- Mobile City Selector Row -->
-        <div id="city-switcher-mobile" class="md:hidden bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors">
-            <div class="flex items-center gap-2">
-                <span class="text-gray-600">📍</span>
-                <span id="current-city-mobile" class="font-semibold text-gray-800">Loading...</span>
-            </div>
-            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-        </div>
     </header>
+
+    <!-- Floating Location Button for Mobile -->
+    <button id="location-btn-mobile" class="md:hidden fixed top-20 right-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg z-30 transition-all" title="Find my location">
+        📍
+    </button>
+
+    <!-- Mobile Menu Modal -->
+    <div id="mobile-menu-modal" class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="fixed right-0 top-0 h-full w-64 bg-white shadow-xl">
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Menu</h3>
+                    <button id="close-mobile-menu" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <button id="mobile-auth-btn" class="w-full bg-gray-700 hover:bg-gray-800 text-white rounded px-4 py-3 transition-colors text-left">
+                        Sign In
+                    </button>
+                    
+                    <button id="mobile-signup-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded px-4 py-3 transition-colors text-left">
+                        Sign Up
+                    </button>
+                    
+                    <button id="mobile-collections-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white rounded px-4 py-3 transition-colors text-left hidden" title="My Collections">
+                        📚 My Collections
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <main class="flex-grow flex flex-col md:flex-row min-h-0">
         <div class="w-full h-2/3 md:w-2/3 md:h-full relative" id="map-container">
