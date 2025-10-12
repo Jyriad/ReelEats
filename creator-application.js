@@ -229,16 +229,40 @@ function showExistingApplication(application) {
         const statusColor = application.status === 'approved' ? 'text-green-600' : 
                            application.status === 'rejected' ? 'text-red-600' : 'text-yellow-600';
         
+        // Only show magic word and verification instructions if status is not 'approved'
+        const showMagicWord = application.status !== 'approved';
+        
+        let magicWordSection = '';
+        let verificationSection = '';
+        let statusMessage = '';
+        
+        if (showMagicWord) {
+            magicWordSection = `
+                <strong>Your Magic Word:</strong><br>
+                <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-4">${application.magic_word}</span><br><br>
+            `;
+            
+            verificationSection = `
+                <strong>Verification Instructions:</strong><br>
+                To verify your account, please send a Direct Message from your TikTok account <strong>@${application.tiktok_handle}</strong> with your magic word: <strong>${application.magic_word}</strong><br><br>
+            `;
+        }
+        
+        // Status-specific messages
+        if (application.status === 'pending') {
+            statusMessage = 'We\'re currently reviewing your application and will get back to you soon!';
+        } else if (application.status === 'approved') {
+            statusMessage = 'Congratulations! Your application has been approved! You are now a verified creator.';
+        } else if (application.status === 'rejected') {
+            statusMessage = 'Your application was not approved at this time. You can reapply if you wish.';
+        }
+        
         successText.innerHTML = `
             <strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span><br><br>
             <strong>TikTok Handle:</strong> @${application.tiktok_handle}<br><br>
-            <strong>Your Magic Word:</strong><br>
-            <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-4">${application.magic_word}</span><br><br>
-            <strong>Verification Instructions:</strong><br>
-            To verify your account, please send a Direct Message from your TikTok account <strong>@${application.tiktok_handle}</strong> with your magic word: <strong>${application.magic_word}</strong><br><br>
-            ${application.status === 'pending' ? 'We\'re currently reviewing your application and will get back to you soon!' : 
-              application.status === 'approved' ? 'Congratulations! Your application has been approved!' :
-              'Your application was not approved at this time.'}
+            ${magicWordSection}
+            ${verificationSection}
+            ${statusMessage}
         `;
     }
     if (continueLink) continueLink.textContent = 'Continue Exploring';
