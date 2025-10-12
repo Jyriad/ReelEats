@@ -766,6 +766,19 @@ function openAuthModal(mode = 'login') {
         switchToLogin();
     }
     
+    // Ensure close button has event listener
+    const closeBtn = document.getElementById('close-auth-modal');
+    if (closeBtn) {
+        console.log('Setting up close button listener');
+        // Remove any existing listener and add a new one
+        closeBtn.onclick = () => {
+            console.log('Close button clicked');
+            closeAuthModal();
+        };
+    } else {
+        console.error('Close button not found');
+    }
+    
     // Show modal
     modalElement.classList.remove('hidden');
     modalElement.classList.add('flex');
@@ -775,13 +788,18 @@ function openAuthModal(mode = 'login') {
 
 function closeAuthModal() {
     console.log('closeAuthModal called');
-    if (!authModal) {
+    
+    // Get modal element if not already set
+    const modalElement = authModal || document.getElementById('auth-modal');
+    
+    if (!modalElement) {
         console.error('Auth modal not found in closeAuthModal');
         return;
     }
     
-    authModal.classList.add('hidden');
-    authModal.style.display = 'none';
+    modalElement.classList.add('hidden');
+    modalElement.classList.remove('flex');
+    modalElement.style.display = 'none';
     console.log('Auth modal hidden');
     
     // Hide feedback
