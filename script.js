@@ -1431,8 +1431,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Setup cuisine filter modal event listeners directly with a small delay
         setTimeout(() => {
+            console.log('🔧 Setting up cuisine filter modals...');
             setupCuisineFilterModals();
-        }, 100);
+        }, 500); // Increased delay to ensure everything is loaded
         
         // Load saved filter states (but don't apply yet - restaurants not loaded)
         loadFilterStates();
@@ -2580,7 +2581,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             filterModal.classList.remove('hidden');
-            filterModal.classList.add('md:flex');
+            filterModal.classList.add('flex');
+            
+            // Ensure event listeners are set up for this modal
+            setupDesktopModalListeners();
             
             // Check if the container has content
             const container = document.getElementById('cuisine-filter-container-desktop');
@@ -2590,6 +2594,54 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Sync desktop checkboxes with current state
             syncDesktopFilterWithCurrent();
+        }
+        
+        // Setup desktop modal event listeners
+        function setupDesktopModalListeners() {
+            const closeBtn = document.getElementById('close-desktop-filter-modal');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-desktop');
+            const applyBtn = document.getElementById('apply-cuisine-filter-desktop');
+            const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
+            
+            console.log('Setting up desktop modal listeners:', {
+                close: !!closeBtn,
+                cancel: !!cancelBtn,
+                apply: !!applyBtn,
+                clear: !!clearBtn
+            });
+            
+            // Add event listeners if they don't already exist
+            if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
+                closeBtn.addEventListener('click', () => {
+                    console.log('Desktop close button clicked');
+                    closeDesktopFilterModal();
+                });
+                closeBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (cancelBtn && !cancelBtn.hasAttribute('data-listener-added')) {
+                cancelBtn.addEventListener('click', () => {
+                    console.log('Desktop cancel button clicked');
+                    closeDesktopFilterModal();
+                });
+                cancelBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (applyBtn && !applyBtn.hasAttribute('data-listener-added')) {
+                applyBtn.addEventListener('click', () => {
+                    console.log('Desktop apply button clicked');
+                    applyDesktopFilter();
+                });
+                applyBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (clearBtn && !clearBtn.hasAttribute('data-listener-added')) {
+                clearBtn.addEventListener('click', () => {
+                    console.log('Desktop clear button clicked');
+                    clearDesktopFilter();
+                });
+                clearBtn.setAttribute('data-listener-added', 'true');
+            }
         }
         
         // Close desktop filter modal
@@ -2650,8 +2702,59 @@ document.addEventListener('DOMContentLoaded', async function() {
             const filterModal = document.getElementById('filter-modal');
             filterModal.classList.remove('hidden');
             
+            // Ensure event listeners are set up for this modal
+            setupMobileModalListeners();
+            
             // Sync mobile checkboxes with desktop state
             syncMobileFilterWithDesktop();
+        }
+        
+        // Setup mobile modal event listeners
+        function setupMobileModalListeners() {
+            const closeBtn = document.getElementById('close-filter-modal');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-mobile');
+            const applyBtn = document.getElementById('apply-cuisine-filter-mobile');
+            const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
+            
+            console.log('Setting up mobile modal listeners:', {
+                close: !!closeBtn,
+                cancel: !!cancelBtn,
+                apply: !!applyBtn,
+                clear: !!clearBtn
+            });
+            
+            // Add event listeners if they don't already exist
+            if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
+                closeBtn.addEventListener('click', () => {
+                    console.log('Mobile close button clicked');
+                    closeMobileFilterModal();
+                });
+                closeBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (cancelBtn && !cancelBtn.hasAttribute('data-listener-added')) {
+                cancelBtn.addEventListener('click', () => {
+                    console.log('Mobile cancel button clicked');
+                    closeMobileFilterModal();
+                });
+                cancelBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (applyBtn && !applyBtn.hasAttribute('data-listener-added')) {
+                applyBtn.addEventListener('click', () => {
+                    console.log('Mobile apply button clicked');
+                    applyMobileFilter();
+                });
+                applyBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (clearBtn && !clearBtn.hasAttribute('data-listener-added')) {
+                clearBtn.addEventListener('click', () => {
+                    console.log('Mobile clear button clicked');
+                    clearMobileFilter();
+                });
+                clearBtn.setAttribute('data-listener-added', 'true');
+            }
         }
         
         // Close mobile filter modal
