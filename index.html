@@ -210,7 +210,14 @@
             }
             
             // Run authentication check on page load
+            console.log('Homepage loaded, running authentication check...');
             updateHeaderForAuth();
+            
+            // Also run it after a small delay to ensure session is loaded
+            setTimeout(() => {
+                console.log('Running delayed homepage authentication check...');
+                updateHeaderForAuth();
+            }, 500);
             
             // Listen for auth state changes
             supabaseClient.auth.onAuthStateChange((event, session) => {

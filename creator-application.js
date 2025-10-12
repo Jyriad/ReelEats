@@ -135,8 +135,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeMobileMenu = document.getElementById('close-mobile-menu');
     mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
     
-    // Check authentication status
-    await checkAuthenticationStatus();
+    // Check authentication status with a small delay to ensure session is loaded
+    setTimeout(async () => {
+        console.log('Running delayed authentication check...');
+        await checkAuthenticationStatus();
+    }, 100);
     
     // Setup event listeners
     setupEventListeners();
@@ -148,7 +151,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Check if user is authenticated
 async function checkAuthenticationStatus() {
     try {
+        console.log('checkAuthenticationStatus called');
         const { data: { session }, error } = await supabaseClient.auth.getSession();
+        
+        console.log('Session data:', session);
+        console.log('Error:', error);
         
         if (error) {
             console.error('Error checking authentication:', error);
