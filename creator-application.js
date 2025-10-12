@@ -30,6 +30,74 @@ let mobileMenuModal;
 let closeMobileMenu;
 let mobileCollectionsBtn;
 
+// Check Application Status
+async function checkApplicationStatus() {
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (!session || !session.user) {
+            console.log('User not authenticated, cannot check application status');
+            return null;
+        }
+        
+        console.log('Checking application status for user:', session.user.id);
+        
+        // Query the creator_applications table for existing application
+        const { data, error } = await supabaseClient
+            .from('creator_applications')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                // No rows returned - no existing application
+                console.log('No existing application found');
+                return null;
+            } else {
+                console.error('Error checking application status:', error);
+                return null;
+            }
+        }
+        
+        console.log('Existing application found:', data);
+        return data;
+        
+    } catch (error) {
+        console.error('Error in checkApplicationStatus:', error);
+        return null;
+    }
+}
+
+// Magic Word Generator
+function generateMagicWord() {
+    const adjectives = [
+        'Blue', 'Red', 'Green', 'Purple', 'Golden', 'Silver', 'Bright', 'Dark', 'Happy', 'Cool',
+        'Fast', 'Slow', 'Big', 'Small', 'Hot', 'Cold', 'Sweet', 'Sour', 'Fresh', 'Clean'
+    ];
+    
+    const nouns = [
+        'Ocean', 'Mountain', 'River', 'Forest', 'Desert', 'Island', 'Bridge', 'Castle', 'Garden', 'Valley',
+        'Star', 'Moon', 'Sun', 'Cloud', 'Wind', 'Fire', 'Water', 'Earth', 'Sky', 'Dream'
+    ];
+    
+    const numbers = [
+        '47', '23', '89', '12', '56', '78', '34', '91', '65', '42',
+        '18', '73', '29', '84', '37', '52', '96', '14', '67', '81'
+    ];
+    
+    // Randomly select one word from each array
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const number = numbers[Math.floor(Math.random() * numbers.length)];
+    
+    // Combine into a memorable phrase
+    const magicWord = `${adjective}-${noun}-${number}`;
+    
+    console.log('Generated magic word:', magicWord);
+    return magicWord;
+}
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Creator application page loaded');
@@ -83,7 +151,16 @@ async function checkAuthenticationStatus() {
         
         if (session && session.user) {
             console.log('User is authenticated:', session.user.email);
-            showApplicationForm();
+            
+            // Check if user has an existing application
+            const existingApplication = await checkApplicationStatus();
+            
+            if (existingApplication) {
+                showExistingApplication(existingApplication);
+            } else {
+                showApplicationForm();
+            }
+            
             updateMobileCollectionsVisibility(true);
         } else {
             console.log('User is not authenticated');
@@ -111,6 +188,61 @@ function showApplicationForm() {
 // Show success message
 function showSuccessMessage() {
     hideAllMessages();
+    successMessage.classList.remove('hidden');
+}
+
+// Show magic word message
+function showMagicWordMessage(tiktokHandle, magicWord) {
+    hideAllMessages();
+    
+    // Update success message content
+    const successTitle = successMessage.querySelector('h3');
+    const successText = successMessage.querySelector('p');
+    const continueLink = successMessage.querySelector('a');
+    
+    if (successTitle) successTitle.textContent = 'Application Submitted!';
+    if (successText) {
+        successText.innerHTML = `
+            <strong>Your Magic Word:</strong><br>
+            <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-4">${magicWord}</span><br><br>
+            <strong>Verification Instructions:</strong><br>
+            To verify your account, please send a Direct Message from your TikTok account <strong>@${tiktokHandle}</strong> with your magic word: <strong>${magicWord}</strong><br><br>
+            We'll review your application and get back to you soon!
+        `;
+    }
+    if (continueLink) continueLink.textContent = 'Continue Exploring';
+    
+    successMessage.classList.remove('hidden');
+}
+
+// Show existing application
+function showExistingApplication(application) {
+    hideAllMessages();
+    
+    // Update success message content for existing application
+    const successTitle = successMessage.querySelector('h3');
+    const successText = successMessage.querySelector('p');
+    const continueLink = successMessage.querySelector('a');
+    
+    if (successTitle) successTitle.textContent = 'Application Status';
+    if (successText) {
+        const statusColor = application.status === 'approved' ? 'text-green-600' : 
+                           application.status === 'rejected' ? 'text-red-600' : 'text-yellow-600';
+        
+        successText.innerHTML = `
+            <strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span><br><br>
+            <strong>TikTok Handle:</strong> @${application.tiktok_handle}<br><br>
+            <strong>Your Magic Word:</strong><br>
+            <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-4">${application.magic_word}</span><br><br>
+            <strong>Verification Instructions:</strong><br>
+            To verify your account, please send a Direct Message from your TikTok account <strong>@${application.tiktok_handle}</strong> with your magic word: <strong>${application.magic_word}</strong><br><br>
+            ${application.status === 'pending' ? 'We\'re currently reviewing your application and will get back to you soon!' : 
+              application.status === 'approved' ? 'Congratulations! Your application has been approved!' :
+              'Your application was not approved at this time.'}
+        `;
+    }
+    if (continueLink) continueLink.textContent = 'Continue Exploring';
+    
     successMessage.classList.remove('hidden');
 }
 
@@ -268,6 +400,9 @@ async function handleFormSubmission(event) {
         
         console.log('User ID:', user.id);
         
+        // Generate magic word
+        const magicWord = generateMagicWord();
+        
         // Insert application into database
         const { data, error } = await supabaseClient
             .from('creator_applications')
@@ -275,6 +410,7 @@ async function handleFormSubmission(event) {
                 {
                     user_id: user.id,
                     tiktok_handle: cleanTikTokHandle,
+                    magic_word: magicWord,
                     status: 'pending',
                     created_at: new Date().toISOString()
                 }
@@ -294,7 +430,7 @@ async function handleFormSubmission(event) {
         }
         
         console.log('Application submitted successfully:', data);
-        showSuccessMessage();
+        showMagicWordMessage(cleanTikTokHandle, magicWord);
         
     } catch (error) {
         console.error('Unexpected error:', error);
@@ -303,12 +439,21 @@ async function handleFormSubmission(event) {
 }
 
 // Listen for authentication state changes
-supabaseClient.auth.onAuthStateChange((event, session) => {
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session?.user?.email);
     
     if (event === 'SIGNED_IN' && session?.user) {
         closeAuthModal();
-        showApplicationForm();
+        
+        // Check if user has an existing application
+        const existingApplication = await checkApplicationStatus();
+        
+        if (existingApplication) {
+            showExistingApplication(existingApplication);
+        } else {
+            showApplicationForm();
+        }
+        
         updateMobileCollectionsVisibility(true);
         // Stay on creators page - don't redirect
     } else if (event === 'SIGNED_OUT') {
