@@ -167,11 +167,38 @@
             let filteredCities = [];
             let isSignupMode = false;
             
-            // Initialize Supabase
-            const { createClient } = supabase;
-            const supabaseUrl = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
-            const supabaseClient = createClient(supabaseUrl, supabaseKey);
+            // Initialize Supabase client
+            const supabaseClient = supabase.createClient('https://jsuxrpnfofkigdfpnuua.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8');
+            
+            // Check authentication status and update header
+            async function updateHeaderForAuth() {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                
+                if (session && session.user) {
+                    // User is authenticated - hide sign-up button
+                    if (signupLink) {
+                        signupLink.style.display = 'none';
+                    }
+                    console.log('User authenticated on homepage:', session.user.email);
+                } else {
+                    // User not authenticated - show sign-up button
+                    if (signupLink) {
+                        signupLink.style.display = 'inline-block';
+                    }
+                    console.log('User not authenticated on homepage');
+                }
+            }
+            
+            // Run authentication check on page load
+            updateHeaderForAuth();
+            
+            // Listen for auth state changes
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                console.log('Auth state changed on homepage:', event);
+                updateHeaderForAuth();
+            });
+            
+            // Supabase client already initialized above
             
             // Load cities from cache or database
             async function loadCities() {
