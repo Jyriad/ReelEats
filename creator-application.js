@@ -237,7 +237,7 @@ function showExistingApplication(application) {
             successIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
         }
         if (successIconSvg) {
-            successIconSvg.className = 'w-8 h-8 text-green-600';
+            successIconSvg.setAttribute('class', 'w-8 h-8 text-green-600');
             successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
         }
     } else if (application.status === 'rejected') {
@@ -246,7 +246,7 @@ function showExistingApplication(application) {
             successIcon.className = 'w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4';
         }
         if (successIconSvg) {
-            successIconSvg.className = 'w-8 h-8 text-red-600';
+            successIconSvg.setAttribute('class', 'w-8 h-8 text-red-600');
             successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
         }
     } else {
@@ -255,7 +255,7 @@ function showExistingApplication(application) {
             successIcon.className = 'w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4';
         }
         if (successIconSvg) {
-            successIconSvg.className = 'w-8 h-8 text-yellow-600';
+            successIconSvg.setAttribute('class', 'w-8 h-8 text-yellow-600');
             successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
         }
     }
@@ -362,7 +362,7 @@ function showApprovedMessage(application) {
         successIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
     }
     if (successIconSvg) {
-        successIconSvg.className = 'w-8 h-8 text-green-600';
+        successIconSvg.setAttribute('class', 'w-8 h-8 text-green-600');
         successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
     }
     
