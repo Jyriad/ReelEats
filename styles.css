@@ -1580,6 +1580,20 @@ html {
     background-color: #f0f0f0; 
 }
 
+/* --- My Collections Button Layout Fix --- */
+#collections-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    gap: 0.375rem !important; /* 1.5 in Tailwind */
+    white-space: nowrap !important;
+}
+
+#collections-btn svg {
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+}
+
 /* --- Mobile Location Button Styling --- */
 @media (max-width: 768px) {
     #location-btn {
