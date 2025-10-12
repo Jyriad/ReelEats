@@ -2743,6 +2743,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Clear desktop filter
         function clearDesktopFilter() {
+            // Clear persistent state
+            selectedCuisines.clear();
+            saveFilterStates();
+            
             const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container-desktop .cuisine-checkbox');
             desktopCheckboxes.forEach(checkbox => {
                 checkbox.checked = false;
@@ -2752,6 +2756,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
             updateSelectedCount();
+            updateFilterButtonAppearance();
+            
+            // Apply the cleared filter
+            applyAllFiltersAndDisplay();
         }
         
         // Sync desktop filter with current state
