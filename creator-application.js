@@ -193,35 +193,203 @@ async function checkAuthenticationStatus() {
     }
 }
 
-// Show simple not authenticated state - no modals, just redirect
+// Show public application form for non-authenticated users
 function showNotAuthenticatedState() {
-    console.log('User not authenticated - redirecting to homepage');
+    console.log('User not authenticated - showing public application form');
     hideAllMessages();
     
-    // Show a simple message and redirect to homepage
+    // Show a simple application form
     const mainContent = document.querySelector('main');
     if (mainContent) {
         mainContent.innerHTML = `
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                        </svg>
+                <div class="text-center mb-12">
+                    <h1 class="text-4xl font-bold text-gray-900 mb-4">Join the ReelGrub Creator Program</h1>
+                    <p class="text-xl text-gray-600">Share your favorite food spots with the world and help others discover amazing restaurants through TikTok videos.</p>
+                </div>
+
+                <!-- Why Join Section -->
+                <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Why Join as a Creator?</h2>
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Grow Your Audience</h3>
+                            <p class="text-gray-600">Reach food lovers who are actively looking for restaurant recommendations.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Engage Your Followers</h3>
+                            <p class="text-gray-600">Share your favorite places with your followers and help them discover amazing restaurants through your recommendations.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Show Your Reach</h3>
+                            <p class="text-gray-600">Map all the fun locations you have eaten at and showcase your culinary adventures to build your food influencer presence.</p>
+                        </div>
                     </div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
-                    <p class="text-gray-600 mb-6">Please sign in to access the creator application.</p>
-                    <div class="space-x-4">
-                        <a href="/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
-                            Go to Homepage
+                </div>
+
+                <!-- Public Application Form -->
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Apply Now</h2>
+                    <form id="public-creator-application-form" class="space-y-6">
+                        <div>
+                            <label for="public-tiktok-handle" class="block text-sm font-medium text-gray-700 mb-2">TikTok Handle</label>
+                            <div class="flex">
+                                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">@</span>
+                                <input type="text" id="public-tiktok-handle" name="tiktok_handle" required 
+                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                       placeholder="your_tiktok_handle">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+                            Submit Application
+                        </button>
+                    </form>
+                    
+                    <!-- Success/Error Messages -->
+                    <div id="public-success-message" class="hidden mt-6 text-center">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Application Submitted!</h3>
+                        <p class="text-gray-600 mb-6">Thanks for applying! We'll review your application and get back to you soon.</p>
+                        <a href="/explore" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            Continue Exploring
                         </a>
-                        <a href="/explore" class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
-                            Explore Restaurants
-                        </a>
+                    </div>
+                    
+                    <div id="public-error-message" class="hidden mt-6 text-center">
+                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Error</h3>
+                        <p id="public-error-text" class="text-gray-600 mb-6"></p>
+                        <button onclick="location.reload()" class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            Try Again
+                        </button>
                     </div>
                 </div>
             </div>
         `;
+        
+        // Add event listener for the public form
+        const publicForm = document.getElementById('public-creator-application-form');
+        if (publicForm) {
+            publicForm.addEventListener('submit', handlePublicFormSubmission);
+        }
+    }
+}
+
+// Handle public form submission (for non-authenticated users)
+async function handlePublicFormSubmission(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const tiktokHandle = form.querySelector('#public-tiktok-handle').value.trim();
+    
+    if (!tiktokHandle) {
+        showPublicErrorMessage('Please enter your TikTok handle');
+        return;
+    }
+    
+    try {
+        // Generate magic word
+        const magicWord = generateMagicWord();
+        
+        // Submit to database (without user_id since user is not authenticated)
+        const { data, error } = await supabaseClient
+            .from('creator_applications')
+            .insert([
+                {
+                    tiktok_handle: tiktokHandle,
+                    magic_word: magicWord,
+                    status: 'pending',
+                    user_id: null // No user ID for non-authenticated users
+                }
+            ]);
+        
+        if (error) {
+            console.error('Error submitting public application:', error);
+            showPublicErrorMessage('Failed to submit application. Please try again.');
+            return;
+        }
+        
+        // Show success message with magic word
+        showPublicSuccessMessage(tiktokHandle, magicWord);
+        
+    } catch (error) {
+        console.error('Error submitting public application:', error);
+        showPublicErrorMessage('An unexpected error occurred. Please try again.');
+    }
+}
+
+// Show public success message with magic word
+function showPublicSuccessMessage(tiktokHandle, magicWord) {
+    const form = document.getElementById('public-creator-application-form');
+    const successMessage = document.getElementById('public-success-message');
+    const errorMessage = document.getElementById('public-error-message');
+    
+    if (form) form.style.display = 'none';
+    if (errorMessage) errorMessage.classList.add('hidden');
+    
+    if (successMessage) {
+        successMessage.innerHTML = `
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Application Submitted!</h3>
+            <p class="text-gray-600 mb-4">Thanks for applying! We'll review your application and get back to you soon.</p>
+            
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+                <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
+                <p class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mb-3">${magicWord}</p>
+                <p class="text-sm text-purple-700">
+                    <strong>Verification Instructions:</strong><br>
+                    To verify your account, please send a Direct Message from your TikTok account <strong>@${tiktokHandle}</strong> with your magic word: <strong>${magicWord}</strong>
+                </p>
+            </div>
+            
+            <a href="/explore" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+                Continue Exploring
+            </a>
+        `;
+        successMessage.classList.remove('hidden');
+    }
+}
+
+// Show public error message
+function showPublicErrorMessage(message) {
+    const form = document.getElementById('public-creator-application-form');
+    const successMessage = document.getElementById('public-success-message');
+    const errorMessage = document.getElementById('public-error-message');
+    const errorText = document.getElementById('public-error-text');
+    
+    if (form) form.style.display = 'block';
+    if (successMessage) successMessage.classList.add('hidden');
+    
+    if (errorMessage && errorText) {
+        errorText.textContent = message;
+        errorMessage.classList.remove('hidden');
     }
 }
 
