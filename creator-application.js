@@ -219,12 +219,55 @@ function showMagicWordMessage(tiktokHandle, magicWord) {
 function showExistingApplication(application) {
     hideAllMessages();
     
-    // Update success message content for existing application
+    // Get elements
+    const successIcon = successMessage.querySelector('.w-16.h-16');
+    const successIconSvg = successMessage.querySelector('.w-8.h-8');
     const successTitle = successMessage.querySelector('h3');
     const successText = successMessage.querySelector('p');
     const continueLink = successMessage.querySelector('a');
     
-    if (successTitle) successTitle.textContent = 'Application Status';
+    // Update icon and colors based on status
+    if (application.status === 'approved') {
+        // Approved: Green checkmark
+        if (successIcon) {
+            successIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
+        }
+        if (successIconSvg) {
+            successIconSvg.className = 'w-8 h-8 text-green-600';
+            successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+        }
+    } else if (application.status === 'rejected') {
+        // Rejected: Red X
+        if (successIcon) {
+            successIcon.className = 'w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4';
+        }
+        if (successIconSvg) {
+            successIconSvg.className = 'w-8 h-8 text-red-600';
+            successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+        }
+    } else {
+        // Pending: Yellow clock
+        if (successIcon) {
+            successIcon.className = 'w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4';
+        }
+        if (successIconSvg) {
+            successIconSvg.className = 'w-8 h-8 text-yellow-600';
+            successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+        }
+    }
+    
+    // Update title
+    if (successTitle) {
+        if (application.status === 'approved') {
+            successTitle.textContent = 'Application Approved!';
+        } else if (application.status === 'rejected') {
+            successTitle.textContent = 'Application Status';
+        } else {
+            successTitle.textContent = 'Application Under Review';
+        }
+    }
+    
+    // Update content
     if (successText) {
         const statusColor = application.status === 'approved' ? 'text-green-600' : 
                            application.status === 'rejected' ? 'text-red-600' : 'text-yellow-600';
@@ -238,34 +281,63 @@ function showExistingApplication(application) {
         
         if (showMagicWord) {
             magicWordSection = `
-                <strong>Your Magic Word:</strong><br>
-                <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-4">${application.magic_word}</span><br><br>
-            `;
-            
-            verificationSection = `
-                <strong>Verification Instructions:</strong><br>
-                To verify your account, please send a Direct Message from your TikTok account <strong>@${application.tiktok_handle}</strong> with your magic word: <strong>${application.magic_word}</strong><br><br>
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                    <strong class="text-purple-800">Your Magic Word:</strong><br>
+                    <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-3">${application.magic_word}</span><br>
+                    <div class="text-sm text-purple-700 mt-3">
+                        <strong>Verification Instructions:</strong><br>
+                        To verify your account, please send a Direct Message from your TikTok account <strong>@${application.tiktok_handle}</strong> with your magic word: <strong>${application.magic_word}</strong>
+                    </div>
+                </div>
             `;
         }
         
         // Status-specific messages
         if (application.status === 'pending') {
-            statusMessage = 'We\'re currently reviewing your application and will get back to you soon!';
+            statusMessage = `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-blue-800 mb-2"><strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span></p>
+                    <p class="text-blue-800 mb-2"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
+                    <p class="text-blue-700">We're currently reviewing your application and will get back to you soon!</p>
+                </div>
+            `;
         } else if (application.status === 'approved') {
-            statusMessage = 'Congratulations! Your application has been approved! You are now a verified creator.';
+            statusMessage = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <p class="text-green-800 mb-3"><strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span></p>
+                    <p class="text-green-800 mb-3"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
+                    <p class="text-green-700 text-lg mb-4">🎉 Congratulations! Your application has been approved!</p>
+                    <p class="text-green-600">You are now a verified creator and can start sharing your restaurant recommendations with the ReelGrub community.</p>
+                </div>
+            `;
         } else if (application.status === 'rejected') {
-            statusMessage = 'Your application was not approved at this time. You can reapply if you wish.';
+            statusMessage = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-red-800 mb-2"><strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span></p>
+                    <p class="text-red-800 mb-2"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
+                    <p class="text-red-700">Your application was not approved at this time. You can reapply if you wish.</p>
+                </div>
+            `;
         }
         
         successText.innerHTML = `
-            <strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span><br><br>
-            <strong>TikTok Handle:</strong> @${application.tiktok_handle}<br><br>
             ${magicWordSection}
-            ${verificationSection}
             ${statusMessage}
         `;
     }
-    if (continueLink) continueLink.textContent = 'Continue Exploring';
+    
+    // Update continue button
+    if (continueLink) {
+        if (application.status === 'approved') {
+            continueLink.textContent = 'Start Creating';
+            continueLink.href = '/explore';
+            continueLink.className = 'inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors';
+        } else {
+            continueLink.textContent = 'Continue Exploring';
+            continueLink.href = '/explore';
+            continueLink.className = 'inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors';
+        }
+    }
     
     successMessage.classList.remove('hidden');
 }
