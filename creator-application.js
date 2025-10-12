@@ -156,7 +156,11 @@ async function checkAuthenticationStatus() {
             const existingApplication = await checkApplicationStatus();
             
             if (existingApplication) {
-                showExistingApplication(existingApplication);
+                if (existingApplication.status === 'approved') {
+                    showApprovedMessage(existingApplication);
+                } else {
+                    showExistingApplication(existingApplication);
+                }
             } else {
                 showApplicationForm();
             }
@@ -337,6 +341,49 @@ function showExistingApplication(application) {
             continueLink.href = '/explore';
             continueLink.className = 'inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors';
         }
+    }
+    
+    successMessage.classList.remove('hidden');
+}
+
+// Show simple approved message for approved creators
+function showApprovedMessage(application) {
+    hideAllMessages();
+    
+    // Get elements
+    const successIcon = successMessage.querySelector('.w-16.h-16');
+    const successIconSvg = successMessage.querySelector('.w-8.h-8');
+    const successTitle = successMessage.querySelector('h3');
+    const successText = successMessage.querySelector('p');
+    const continueLink = successMessage.querySelector('a');
+    
+    // Set approved styling
+    if (successIcon) {
+        successIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
+    }
+    if (successIconSvg) {
+        successIconSvg.className = 'w-8 h-8 text-green-600';
+        successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+    }
+    
+    if (successTitle) {
+        successTitle.textContent = 'Creator Status: Approved';
+    }
+    
+    if (successText) {
+        successText.innerHTML = `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                <p class="text-green-800 mb-3"><strong>Congratulations!</strong></p>
+                <p class="text-green-700 text-lg mb-4">🎉 Your request to join as a creator has been approved!</p>
+                <p class="text-green-600">You are now a verified creator and can start sharing your restaurant recommendations with the ReelGrub community.</p>
+            </div>
+        `;
+    }
+    
+    if (continueLink) {
+        continueLink.textContent = 'Start Creating';
+        continueLink.href = '/explore';
+        continueLink.className = 'inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors';
     }
     
     successMessage.classList.remove('hidden');
@@ -539,20 +586,30 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session?.user?.email);
     
     if (event === 'SIGNED_IN' && session?.user) {
+        console.log('User signed in, closing auth modal and checking application status...');
         closeAuthModal();
         
         // Check if user has an existing application
         const existingApplication = await checkApplicationStatus();
+        console.log('Existing application found:', existingApplication);
         
         if (existingApplication) {
-            showExistingApplication(existingApplication);
+            if (existingApplication.status === 'approved') {
+                console.log('User has approved application, showing approved message');
+                showApprovedMessage(existingApplication);
+            } else {
+                console.log('User has non-approved application, showing existing application');
+                showExistingApplication(existingApplication);
+            }
         } else {
+            console.log('No existing application, showing application form');
             showApplicationForm();
         }
         
         updateMobileCollectionsVisibility(true);
         // Stay on creators page - don't redirect
     } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out, showing login required');
         showLoginRequired();
         updateMobileCollectionsVisibility(false);
     }
@@ -683,6 +740,8 @@ async function handleSignup(event) {
 
 async function handleGoogleSignin() {
     try {
+        console.log('Starting Google signin process...');
+        
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -696,7 +755,7 @@ async function handleGoogleSignin() {
             return;
         }
         
-        console.log('Google signin initiated');
+        console.log('Google signin initiated successfully, redirecting...');
         
     } catch (error) {
         console.error('Google signin error:', error);
