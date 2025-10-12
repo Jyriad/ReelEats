@@ -1584,7 +1584,14 @@ html {
 #location-btn-mobile {
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #location-btn-mobile:hover {
@@ -1594,6 +1601,11 @@ html {
 
 #location-btn-mobile:active {
     transform: translateY(0);
+}
+
+#location-btn-mobile svg {
+    width: 20px;
+    height: 20px;
 }
 
 /* --- Mobile Menu Modal --- */

@@ -1201,7 +1201,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         if (mobileCollectionsBtn) {
-            mobileCollectionsBtn.addEventListener('click', () => {
+            mobileCollectionsBtn.addEventListener('click', async () => {
+                // Check if user is authenticated
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    console.log('User not authenticated, opening auth modal');
+                    mobileMenuModal.classList.add('hidden');
+                    mobileMenuModal.style.display = 'none';
+                    openAuthModal();
+                    return;
+                }
+                
                 showCollectionManagement();
                 mobileMenuModal.classList.add('hidden');
                 mobileMenuModal.style.display = 'none';
@@ -1211,8 +1221,78 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Add location button functionality for mobile
         if (locationBtnMobile) {
             locationBtnMobile.addEventListener('click', () => {
-                findUserLocation();
+                findUserLocationMobile();
             });
+        }
+        
+        // Mobile-specific location function that doesn't reset the map view
+        function findUserLocationMobile() {
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser');
+                return;
+            }
+
+            console.log('Requesting user location for mobile...');
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 5 minutes
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                async function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    
+                    console.log('User location found for mobile:', userLat, userLon);
+                    
+                    // Store user location globally for distance calculations
+                    window.userLocation = { lat: userLat, lon: userLon };
+                    
+                    // Pan map to center on user location and keep it there
+                    map.setView([userLat, userLon], 14, {
+                        animate: true,
+                        duration: 1.0
+                    });
+                    console.log('Map centered on user location and staying there');
+                    
+                    // Add user location marker with distinct styling
+                    const userIcon = L.divIcon({
+                        className: 'user-location-icon',
+                        html: '<div class="user-icon">📍</div>',
+                        iconSize: [35, 35],
+                        iconAnchor: [17, 17]
+                    });
+                    
+                    // Remove existing user location marker if it exists
+                    if (window.userLocationMarker) {
+                        map.removeLayer(window.userLocationMarker);
+                    }
+                    
+                    // Add new user location marker
+                    window.userLocationMarker = L.marker([userLat, userLon], { icon: userIcon }).addTo(map);
+                    
+                    // Don't call applyAllFiltersAndDisplay() - keep the map focused on user location
+                },
+                function(error) {
+                    console.error('Error getting user location:', error);
+                    let message = 'Unable to get your location';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Location access denied by user';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'Location information is unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Location request timed out';
+                            break;
+                    }
+                    console.log(message);
+                },
+                options
+            );
         }
         
         closeAuthModalBtn.addEventListener('click', closeAuthModal);
@@ -2976,7 +3056,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Open/Close Modal
-        collectionsBtn.addEventListener('click', () => {
+        collectionsBtn.addEventListener('click', async () => {
+            // Check if user is authenticated
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                console.log('User not authenticated, opening auth modal');
+                openAuthModal();
+                return;
+            }
+            
             collectionsModal.classList.remove('hidden');
             collectionsModal.classList.add('flex');
             loadCollectionsForModal();
