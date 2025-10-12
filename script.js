@@ -162,16 +162,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         async function initializeApp() {
             // Get the URL path and extract city name
             const path = window.location.pathname;
-            const city = path.split('/')[1]; // Get the first segment after the domain
+            const pathSegment = path.split('/')[1]; // Get the first segment after the domain
             
-            // Format city name for display (capitalize first letter)
-            const formattedCityName = city ? city.charAt(0).toUpperCase() + city.slice(1).toLowerCase() : 'Explore All';
+            // Handle special routes
+            let city = null;
+            let formattedCityName = 'Explore All';
             
-            // Update page title based on city
-            if (city) {
+            if (pathSegment === 'explore' || pathSegment === '') {
+                // This is the explore all page or homepage
+                city = null;
+                formattedCityName = 'Explore All';
+                document.title = 'ReelGrub - Discover Your Next Spot';
+                console.log('🌍 Loading all restaurants (explore all)');
+            } else if (pathSegment) {
+                // This is a specific city page
+                city = pathSegment;
+                formattedCityName = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                 document.title = `ReelGrub - ${formattedCityName}`;
                 console.log(`🏙️ Loading restaurants for city: ${formattedCityName}`);
             } else {
+                // Fallback for homepage
+                city = null;
+                formattedCityName = 'Explore All';
                 document.title = 'ReelGrub - Discover Your Next Spot';
                 console.log('🌍 Loading all restaurants (homepage)');
             }
@@ -1417,6 +1429,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         setupCuisineFilter();
         setupAdminLogin();
         
+        // Setup cuisine filter modal event listeners directly with a small delay
+        setTimeout(() => {
+            setupCuisineFilterModals();
+        }, 100);
+        
         // Load saved filter states (but don't apply yet - restaurants not loaded)
         loadFilterStates();
         syncCuisineCheckboxes();
@@ -1943,12 +1960,99 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Setup filter toggle button
             setupFilterToggle();
+        }
+        
+        // Setup cuisine filter modal event listeners directly
+        function setupCuisineFilterModals() {
+            console.log('🔧 Setting up cuisine filter modal event listeners...');
             
-            // Setup desktop filter modal
-            setupDesktopFilterModal();
+            // Desktop modal setup
+            const desktopCloseBtn = document.getElementById('close-desktop-filter-modal');
+            const desktopCancelBtn = document.getElementById('cancel-cuisine-filter-desktop');
+            const desktopApplyBtn = document.getElementById('apply-cuisine-filter-desktop');
+            const desktopModal = document.getElementById('desktop-filter-modal');
             
-            // Setup mobile filter modal
-            setupMobileFilterModal();
+            console.log('Desktop modal elements:', {
+                close: !!desktopCloseBtn,
+                cancel: !!desktopCancelBtn,
+                apply: !!desktopApplyBtn,
+                modal: !!desktopModal
+            });
+            
+            if (desktopCloseBtn) {
+                desktopCloseBtn.addEventListener('click', () => {
+                    console.log('Desktop close button clicked');
+                    closeDesktopFilterModal();
+                });
+            }
+            
+            if (desktopCancelBtn) {
+                desktopCancelBtn.addEventListener('click', () => {
+                    console.log('Desktop cancel button clicked');
+                    closeDesktopFilterModal();
+                });
+            }
+            
+            if (desktopApplyBtn) {
+                desktopApplyBtn.addEventListener('click', () => {
+                    console.log('Desktop apply button clicked');
+                    applyDesktopFilter();
+                });
+            }
+            
+            if (desktopModal) {
+                desktopModal.addEventListener('click', (e) => {
+                    if (e.target === desktopModal) {
+                        console.log('Desktop modal clicked outside');
+                        closeDesktopFilterModal();
+                    }
+                });
+            }
+            
+            // Mobile modal setup
+            const mobileCloseBtn = document.getElementById('close-filter-modal');
+            const mobileCancelBtn = document.getElementById('cancel-cuisine-filter-mobile');
+            const mobileApplyBtn = document.getElementById('apply-cuisine-filter-mobile');
+            const mobileModal = document.getElementById('filter-modal');
+            
+            console.log('Mobile modal elements:', {
+                close: !!mobileCloseBtn,
+                cancel: !!mobileCancelBtn,
+                apply: !!mobileApplyBtn,
+                modal: !!mobileModal
+            });
+            
+            if (mobileCloseBtn) {
+                mobileCloseBtn.addEventListener('click', () => {
+                    console.log('Mobile close button clicked');
+                    closeMobileFilterModal();
+                });
+            }
+            
+            if (mobileCancelBtn) {
+                mobileCancelBtn.addEventListener('click', () => {
+                    console.log('Mobile cancel button clicked');
+                    closeMobileFilterModal();
+                });
+            }
+            
+            if (mobileApplyBtn) {
+                mobileApplyBtn.addEventListener('click', () => {
+                    console.log('Mobile apply button clicked');
+                    applyMobileFilter();
+                });
+            }
+            
+            if (mobileModal) {
+                mobileModal.addEventListener('click', (e) => {
+                    if (e.target === mobileModal) {
+                        console.log('Mobile modal clicked outside');
+                        closeMobileFilterModal();
+                    }
+                });
+            }
+            
+            console.log('✅ Cuisine filter modal event listeners set up');
         }
         
         // Populate cuisine filter with all available cuisines
