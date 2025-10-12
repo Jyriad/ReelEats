@@ -1503,26 +1503,6 @@ html {
   }
 }
 
-/* --- City Switcher Header (Desktop) --- */
-.city-switcher-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1.5rem;
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #e0e0e0;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-.city-switcher-header:hover {
-    background-color: #e9e9e9;
-}
-#current-city-heading {
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin: 0;
-}
-
 /* --- City Switcher Modal --- */
 .modal-overlay {
     position: fixed;
@@ -1600,34 +1580,8 @@ html {
     background-color: #f0f0f0; 
 }
 
-/* --- Mobile Sticky Header --- */
-.city-switcher-mobile-header {
-    display: none; /* Hidden on desktop */
-    position: sticky;
-    top: 0;
-    width: 100%;
-    background-color: white;
-    padding: 1rem;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    z-index: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-.city-switcher-mobile-header:hover {
-    background-color: #f9f9f9;
-}
-
 /* --- Media Query for Responsiveness --- */
 @media (max-width: 768px) {
-    .city-switcher-header { 
-        display: none; /* Hide desktop switcher */
-    } 
-    .city-switcher-mobile-header { 
-        display: block; /* Show mobile header */
-    }
     .modal-content {
         width: 95%;
         margin: 1rem;

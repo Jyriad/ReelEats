@@ -1119,6 +1119,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // --- Auth Event Listeners ---
         authBtn.addEventListener('click', openAuthModal);
+        
+        // Add signup button event listener
+        const signupBtn = document.getElementById('signup-btn');
+        if (signupBtn) {
+            signupBtn.addEventListener('click', openAuthModal);
+        }
+        
         closeAuthModalBtn.addEventListener('click', closeAuthModal);
         authModal.addEventListener('click', (e) => {
             if (e.target === authModal) closeAuthModal();
@@ -3942,9 +3949,23 @@ async function showVideoFor(restaurant) {
 
             console.log('Setting up mobile drawer functionality');
 
-            // Set initial height on mobile
+            // Set initial height on mobile - check localStorage first
             if (window.innerWidth <= 768) {
-                aside.style.height = '33vh';
+                const savedHeight = localStorage.getItem('drawer-height');
+                let initialHeight;
+                
+                if (savedHeight) {
+                    // Use saved height if available
+                    initialHeight = `${savedHeight}px`;
+                    console.log('Restoring drawer height from localStorage:', savedHeight, 'px');
+                } else {
+                    // Use default height
+                    initialHeight = '33vh';
+                    console.log('Using default drawer height: 33vh');
+                }
+                
+                aside.style.setProperty('height', initialHeight, 'important');
+                document.documentElement.style.setProperty('--drawer-height', initialHeight);
             }
 
             // Unified event handler for both touch and mouse
@@ -3973,8 +3994,8 @@ async function showVideoFor(restaurant) {
                 
                 console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
                 
-                // Update both the style and the CSS variable
-                aside.style.height = `${newHeight}px`;
+                // Update both the style and the CSS variable with !important
+                aside.style.setProperty('height', `${newHeight}px`, 'important');
                 document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
                 e.preventDefault();
                 e.stopPropagation();
@@ -3989,9 +4010,14 @@ async function showVideoFor(restaurant) {
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';
                 
-                // Persist the final height
+                // Persist the final height with !important
                 const finalHeight = parseInt(getComputedStyle(aside).height);
+                console.log('Setting final height to:', finalHeight, 'px');
+                aside.style.setProperty('height', `${finalHeight}px`, 'important');
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
+                
+                // Store the height in localStorage for persistence
+                localStorage.setItem('drawer-height', finalHeight.toString());
                 
                 // Double tap detection
                 const currentTime = new Date().getTime();
@@ -4003,10 +4029,10 @@ async function showVideoFor(restaurant) {
                     const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
                     
                     if (currentHeight < expandedHeight / 2) {
-                        aside.style.height = `${expandedHeight}px`;
+                        aside.style.setProperty('height', `${expandedHeight}px`, 'important');
                         document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
                     } else {
-                        aside.style.height = `${collapsedHeight}px`;
+                        aside.style.setProperty('height', `${collapsedHeight}px`, 'important');
                         document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
                     }
                 }
@@ -4027,6 +4053,18 @@ async function showVideoFor(restaurant) {
             drawerHandle.addEventListener('touchstart', (e) => {
                 console.log('Touch start detected on handle');
             });
+
+            // Handle window resize to maintain drawer height
+            window.addEventListener('resize', () => {
+                if (window.innerWidth <= 768) {
+                    const savedHeight = localStorage.getItem('drawer-height');
+                    if (savedHeight) {
+                        console.log('Maintaining drawer height on resize:', savedHeight, 'px');
+                        aside.style.setProperty('height', `${savedHeight}px`, 'important');
+                        document.documentElement.style.setProperty('--drawer-height', `${savedHeight}px`);
+                    }
+                }
+            });
             drawerHandle.addEventListener('touchmove', (e) => {
                 console.log('Touch move detected on handle');
             });
@@ -4042,10 +4080,10 @@ async function showVideoFor(restaurant) {
                 const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
                 
                 if (currentHeight < expandedHeight / 2) {
-                    aside.style.height = `${expandedHeight}px`;
+                    aside.style.setProperty('height', `${expandedHeight}px`, 'important');
                     document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
                 } else {
-                    aside.style.height = `${collapsedHeight}px`;
+                    aside.style.setProperty('height', `${collapsedHeight}px`, 'important');
                     document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
                 }
             });
