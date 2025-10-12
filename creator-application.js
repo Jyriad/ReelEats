@@ -127,6 +127,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         authModal.classList.add('hidden');
         authModal.style.display = 'none';
         console.log('Auth modal hidden on page load');
+        console.log('Modal classes after hiding:', authModal.className);
+        console.log('Modal display style after hiding:', authModal.style.display);
+    } else {
+        console.error('Auth modal element not found');
     }
     
     // Get mobile menu elements
@@ -152,6 +156,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function checkAuthenticationStatus() {
     try {
         console.log('checkAuthenticationStatus called');
+        
+        // Check localStorage for session data
+        const storedSession = localStorage.getItem('sb-jsuxrpnfofkigdfpnuua-auth-token');
+        console.log('Stored session in localStorage:', storedSession);
+        
         const { data: { session }, error } = await supabaseClient.auth.getSession();
         
         console.log('Session data:', session);
@@ -193,13 +202,10 @@ async function checkAuthenticationStatus() {
 
 // Show login required message
 function showLoginRequired() {
+    console.log('showLoginRequired called - but not showing anything to prevent modal opening');
     hideAllMessages();
-    // Don't show the login required section with buttons that could trigger modal
-    // Instead, show a simple message or redirect to homepage
-    console.log('User needs to log in to access creators page');
-    
-    // Optionally redirect to homepage or show a different message
-    // For now, we'll just hide everything to prevent modal opening
+    // Completely prevent any UI from showing that could trigger modal
+    // Just hide everything and do nothing
 }
 
 // Show application form
@@ -608,6 +614,7 @@ async function handleFormSubmission(event) {
 // Listen for authentication state changes
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session?.user?.email);
+    console.log('Auth state change - session:', session);
     
     if (event === 'SIGNED_IN' && session?.user) {
         console.log('User signed in, closing auth modal and checking application status...');
