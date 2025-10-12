@@ -2334,6 +2334,13 @@ async function editRestaurant(restaurantId) {
         document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             console.log('🍽️ Edit form submitted, calling saveRestaurantChanges...');
+            
+            // Debug: Log current form values
+            const citySelect = document.getElementById('edit-restaurant-city');
+            const cityId = citySelect ? citySelect.value : 'not found';
+            const cityName = citySelect && citySelect.selectedIndex >= 0 ? citySelect.options[citySelect.selectedIndex].text : 'not found';
+            console.log('🍽️ Current city selection - ID:', cityId, 'Name:', cityName);
+            
             await saveRestaurantChanges(restaurantId);
         });
         
@@ -2346,22 +2353,38 @@ async function editRestaurant(restaurantId) {
 // Save restaurant changes
 async function saveRestaurantChanges(restaurantId) {
     try {
+        const cityId = parseInt(document.getElementById('edit-restaurant-city').value);
+        const citySelect = document.getElementById('edit-restaurant-city');
+        const selectedCityName = citySelect.options[citySelect.selectedIndex].text;
+        
         const formData = {
             name: document.getElementById('edit-restaurant-name').value,
             description: document.getElementById('edit-restaurant-description').value,
             lat: parseFloat(document.getElementById('edit-restaurant-lat').value),
             lon: parseFloat(document.getElementById('edit-restaurant-lon').value),
-            city_id: parseInt(document.getElementById('edit-restaurant-city').value),
+            city_id: cityId,
+            city: selectedCityName,
             google_place_id: document.getElementById('edit-google-place-id').value || null,
             google_maps_url: document.getElementById('edit-google-maps-url').value || null
         };
 
-        const { error } = await supabaseClient
+        console.log('🍽️ Updating restaurant with ID:', restaurantId);
+        console.log('🍽️ City ID:', cityId);
+        console.log('🍽️ City Name:', selectedCityName);
+        console.log('🍽️ Form data being sent:', formData);
+
+        const { data, error } = await supabaseClient
             .from('restaurants')
             .update(formData)
-            .eq('id', restaurantId);
+            .eq('id', restaurantId)
+            .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('🍽️ Database update error:', error);
+            throw error;
+        }
+
+        console.log('🍽️ Database update successful:', data);
 
         // Update cuisine relationships
         const selectedCuisines = getSelectedEditCuisines();
@@ -2588,9 +2611,18 @@ async function deleteRestaurant(restaurantId, restaurantName) {
 
 // Close edit modal
 function closeEditModal() {
-    const modal = document.querySelector('.fixed.inset-0');
+    const modal = document.querySelector('.fixed.inset-0.bg-gray-600');
     if (modal) {
         modal.remove();
+    } else {
+        // Fallback: look for any modal with the edit form
+        const editForm = document.getElementById('edit-restaurant-form');
+        if (editForm) {
+            const modal = editForm.closest('.fixed.inset-0');
+            if (modal) {
+                modal.remove();
+            }
+        }
     }
 }
 

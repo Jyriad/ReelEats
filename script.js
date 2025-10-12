@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const videoContainer = videoModal ? videoModal.querySelector('.video-container') : null;
         const videoTitleEl = document.getElementById('video-title');
         const closeVideoBtn = document.getElementById('close-video-btn');
-        const citySelect = document.getElementById('city-select');
+        // City select removed - now using city switcher modal
         
         // Check if essential elements exist
         if (!mapElement) {
@@ -162,22 +162,83 @@ document.addEventListener('DOMContentLoaded', async function() {
         async function initializeApp() {
             // Get the URL path and extract city name
             const path = window.location.pathname;
-            const city = path.split('/')[1]; // Get the first segment after the domain
+            const pathSegment = path.split('/')[1]; // Get the first segment after the domain
             
-            // Format city name for display (capitalize first letter)
-            const formattedCityName = city ? city.charAt(0).toUpperCase() + city.slice(1).toLowerCase() : '';
+            // Handle special routes
+            let city = null;
+            let formattedCityName = 'Explore All';
             
-            // Update page title based on city
-            if (city) {
+            if (pathSegment === 'explore' || pathSegment === '') {
+                // This is the explore all page or homepage
+                city = null;
+                formattedCityName = 'Explore All';
+                document.title = 'ReelGrub - Discover Your Next Spot';
+                console.log('🌍 Loading all restaurants (explore all)');
+            } else if (pathSegment) {
+                // This is a specific city page
+                city = pathSegment;
+                formattedCityName = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                 document.title = `ReelGrub - ${formattedCityName}`;
                 console.log(`🏙️ Loading restaurants for city: ${formattedCityName}`);
             } else {
+                // Fallback for homepage
+                city = null;
+                formattedCityName = 'Explore All';
                 document.title = 'ReelGrub - Discover Your Next Spot';
                 console.log('🌍 Loading all restaurants (homepage)');
             }
             
+            // Display the current city name in the new UI elements
+            const currentCityHeading = document.getElementById('current-city-heading');
+            const currentCityMobile = document.getElementById('current-city-mobile');
+            
+            if (currentCityHeading) {
+                currentCityHeading.textContent = formattedCityName;
+            }
+            if (currentCityMobile) {
+                currentCityMobile.textContent = formattedCityName;
+            }
+            
+            // Fetch ALL unique cities to populate the switcher modal
+            try {
+                const { data: allCities, error: citiesError } = await supabaseClient
+                    .from('cities')
+                    .select('name')
+                    .order('name', { ascending: true });
+
+                if (allCities) {
+                    populateCitySwitcher(allCities);
+                } else if (citiesError) {
+                    console.error('Error fetching cities:', citiesError);
+                }
+            } catch (error) {
+                console.error('Error fetching cities for switcher:', error);
+            }
+            
             // Load restaurants with optional city filtering
             await loadRestaurantsForCity(city);
+        }
+        
+        // Populate city switcher modal with all available cities
+        function populateCitySwitcher(cities) {
+            const cityList = document.getElementById('modal-city-list');
+            if (!cityList) return;
+            
+            cityList.innerHTML = ''; // Clear previous list
+            
+            // Add "Explore All" option at the top
+            const allLi = document.createElement('li');
+            allLi.textContent = 'Explore All';
+            allLi.dataset.city = '';
+            cityList.appendChild(allLi);
+            
+            // Add all cities
+            cities.forEach(cityObj => {
+                const li = document.createElement('li');
+                li.textContent = cityObj.name;
+                li.dataset.city = cityObj.name.toLowerCase();
+                cityList.appendChild(li);
+            });
         }
         
         // Load watched videos from localStorage
@@ -859,11 +920,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         async function updateUserUI(user) {
             const collectionsBtn = document.getElementById('collections-btn');
             const collectionFilterBtn = document.getElementById('collection-filter-btn');
+            const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
             
             if (user) {
                 // User is logged in - show logout button instead of login button
                 if (authBtn) authBtn.classList.add('hidden');
                 if (collectionsBtn) collectionsBtn.classList.remove('hidden');
+                if (mobileCollectionsBtn) mobileCollectionsBtn.classList.remove('hidden');
                 if (collectionFilterBtn) collectionFilterBtn.classList.remove('hidden');
                 
                 // Create or update logout button
@@ -911,6 +974,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // User is logged out - show login button
                 if (authBtn) authBtn.classList.remove('hidden');
                 if (collectionsBtn) collectionsBtn.classList.add('hidden');
+                if (mobileCollectionsBtn) mobileCollectionsBtn.classList.add('hidden');
                 // Keep collection filter button visible for all users
                 // collectionFilterBtn.classList.add('hidden');
                 
@@ -1070,6 +1134,160 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // --- Auth Event Listeners ---
         authBtn.addEventListener('click', openAuthModal);
+        
+        // Add signup button event listener
+        const signupBtn = document.getElementById('signup-btn');
+        if (signupBtn) {
+            signupBtn.addEventListener('click', openAuthModal);
+        }
+
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenuModal = document.getElementById('mobile-menu-modal');
+        const closeMobileMenu = document.getElementById('close-mobile-menu');
+        const mobileAuthBtn = document.getElementById('mobile-auth-btn');
+        const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+        const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
+
+        if (mobileMenuBtn && mobileMenuModal) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenuModal.classList.remove('hidden');
+                mobileMenuModal.style.display = 'block';
+            });
+        }
+
+        if (closeMobileMenu && mobileMenuModal) {
+            closeMobileMenu.addEventListener('click', () => {
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        if (mobileMenuModal) {
+            mobileMenuModal.addEventListener('click', (e) => {
+                if (e.target === mobileMenuModal) {
+                    mobileMenuModal.classList.add('hidden');
+                    mobileMenuModal.style.display = 'none';
+                }
+            });
+        }
+
+        if (mobileAuthBtn) {
+            mobileAuthBtn.addEventListener('click', () => {
+                openAuthModal();
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        if (mobileSignupBtn) {
+            mobileSignupBtn.addEventListener('click', () => {
+                openAuthModal();
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        // Update collections button visibility for mobile
+        function updateMobileCollectionsButton() {
+            if (mobileCollectionsBtn) {
+                if (authContainer && authContainer.querySelector('.hidden')) {
+                    mobileCollectionsBtn.classList.remove('hidden');
+                } else {
+                    mobileCollectionsBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        if (mobileCollectionsBtn) {
+            mobileCollectionsBtn.addEventListener('click', async () => {
+                // Check if user is authenticated
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    console.log('User not authenticated, opening auth modal');
+                    mobileMenuModal.classList.add('hidden');
+                    mobileMenuModal.style.display = 'none';
+                    openAuthModal();
+                    return;
+                }
+                
+                showCollectionManagement();
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            });
+        }
+
+        
+        // Mobile-specific location function that doesn't reset the map view
+        function findUserLocationMobile() {
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser');
+                return;
+            }
+
+            console.log('Requesting user location for mobile...');
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 5 minutes
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                async function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    
+                    console.log('User location found for mobile:', userLat, userLon);
+                    
+                    // Store user location globally for distance calculations
+                    window.userLocation = { lat: userLat, lon: userLon };
+                    
+                    // Pan map to center on user location and keep it there
+                    map.setView([userLat, userLon], 14, {
+                        animate: true,
+                        duration: 1.0
+                    });
+                    console.log('Map centered on user location and staying there');
+                    
+                    // Add user location marker with distinct styling
+                    const userIcon = L.divIcon({
+                        className: 'user-location-icon',
+                        html: '<div class="user-icon">📍</div>',
+                        iconSize: [35, 35],
+                        iconAnchor: [17, 17]
+                    });
+                    
+                    // Remove existing user location marker if it exists
+                    if (window.userLocationMarker) {
+                        map.removeLayer(window.userLocationMarker);
+                    }
+                    
+                    // Add new user location marker
+                    window.userLocationMarker = L.marker([userLat, userLon], { icon: userIcon }).addTo(map);
+                    
+                    // Don't call applyAllFiltersAndDisplay() - keep the map focused on user location
+                },
+                function(error) {
+                    console.error('Error getting user location:', error);
+                    let message = 'Unable to get your location';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Location access denied by user';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'Location information is unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Location request timed out';
+                            break;
+                    }
+                    console.log(message);
+                },
+                options
+            );
+        }
+        
         closeAuthModalBtn.addEventListener('click', closeAuthModal);
         authModal.addEventListener('click', (e) => {
             if (e.target === authModal) closeAuthModal();
@@ -1283,6 +1501,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         await loadCitiesAndInitialRestaurants();
         setupCuisineFilter();
         setupAdminLogin();
+        
+        // Setup cuisine filter modal event listeners directly with a small delay
+        setTimeout(() => {
+            console.log('🔧 Setting up cuisine filter modals...');
+            setupCuisineFilterModals();
+        }, 500); // Increased delay to ensure everything is loaded
         
         // Load saved filter states (but don't apply yet - restaurants not loaded)
         loadFilterStates();
@@ -1666,7 +1890,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const { cities, timestamp } = JSON.parse(cachedData);
                 if (Date.now() - timestamp < CACHE_DURATION) {
                     console.log("Loading cities from cache.");
-                    populateCitySelect(cities);
+                    // populateCitySelect removed - cities are now handled in initializeApp
                     // Fetch in background to check for updates, but don't block
                     fetchAndCacheCities(); 
                     return;
@@ -1684,37 +1908,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.error("Error fetching cities:", error);
                 return;
              }
-             localStorage.setItem('reelEats_citiesCache', JSON.stringify({ cities, timestamp: Date.now() }));
-             populateCitySelect(cities);
+            localStorage.setItem('reelEats_citiesCache', JSON.stringify({ cities, timestamp: Date.now() }));
+            // populateCitySelect removed - cities are now handled in initializeApp
         }
 
-        function populateCitySelect(cities) {
-            citySelect.innerHTML = '';
-            let londonCity = null;
-            
-            cities.forEach(city => {
-                const option = document.createElement('option');
-                option.value = city.id;
-                option.textContent = city.name;
-                option.dataset.lat = city.lat;
-                option.dataset.lon = city.lon;
-                citySelect.appendChild(option);
-                
-                // Find London city for default selection
-                if (city.name.toLowerCase().includes('london')) {
-                    londonCity = city;
-                }
-            });
-            
-            // Set London as default if found, otherwise use first city
-            if (londonCity) {
-                citySelect.value = londonCity.id;
-                console.log('London set as default city');
-            } else if (cities.length > 0) {
-                citySelect.value = cities[0].id;
-                console.log('First city set as default (London not found)');
-            }
-        }
+        // populateCitySelect function removed - now using populateCitySwitcher
         
         async function loadRestaurantsForCity(city = null) {
             // --- Load restaurants with optional city filtering ---
@@ -1836,12 +2034,99 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Setup filter toggle button
             setupFilterToggle();
+        }
+        
+        // Setup cuisine filter modal event listeners directly
+        function setupCuisineFilterModals() {
+            console.log('🔧 Setting up cuisine filter modal event listeners...');
             
-            // Setup desktop filter modal
-            setupDesktopFilterModal();
+            // Desktop modal setup
+            const desktopCloseBtn = document.getElementById('close-desktop-filter-modal');
+            const desktopCancelBtn = document.getElementById('cancel-cuisine-filter-desktop');
+            const desktopApplyBtn = document.getElementById('apply-cuisine-filter-desktop');
+            const desktopModal = document.getElementById('desktop-filter-modal');
             
-            // Setup mobile filter modal
-            setupMobileFilterModal();
+            console.log('Desktop modal elements:', {
+                close: !!desktopCloseBtn,
+                cancel: !!desktopCancelBtn,
+                apply: !!desktopApplyBtn,
+                modal: !!desktopModal
+            });
+            
+            if (desktopCloseBtn) {
+                desktopCloseBtn.addEventListener('click', () => {
+                    console.log('Desktop close button clicked');
+                    closeDesktopFilterModal();
+                });
+            }
+            
+            if (desktopCancelBtn) {
+                desktopCancelBtn.addEventListener('click', () => {
+                    console.log('Desktop cancel button clicked');
+                    closeDesktopFilterModal();
+                });
+            }
+            
+            if (desktopApplyBtn) {
+                desktopApplyBtn.addEventListener('click', () => {
+                    console.log('Desktop apply button clicked');
+                    applyDesktopFilter();
+                });
+            }
+            
+            if (desktopModal) {
+                desktopModal.addEventListener('click', (e) => {
+                    if (e.target === desktopModal) {
+                        console.log('Desktop modal clicked outside');
+                        closeDesktopFilterModal();
+                    }
+                });
+            }
+            
+            // Mobile modal setup
+            const mobileCloseBtn = document.getElementById('close-filter-modal');
+            const mobileCancelBtn = document.getElementById('cancel-cuisine-filter-mobile');
+            const mobileApplyBtn = document.getElementById('apply-cuisine-filter-mobile');
+            const mobileModal = document.getElementById('filter-modal');
+            
+            console.log('Mobile modal elements:', {
+                close: !!mobileCloseBtn,
+                cancel: !!mobileCancelBtn,
+                apply: !!mobileApplyBtn,
+                modal: !!mobileModal
+            });
+            
+            if (mobileCloseBtn) {
+                mobileCloseBtn.addEventListener('click', () => {
+                    console.log('Mobile close button clicked');
+                    closeMobileFilterModal();
+                });
+            }
+            
+            if (mobileCancelBtn) {
+                mobileCancelBtn.addEventListener('click', () => {
+                    console.log('Mobile cancel button clicked');
+                    closeMobileFilterModal();
+                });
+            }
+            
+            if (mobileApplyBtn) {
+                mobileApplyBtn.addEventListener('click', () => {
+                    console.log('Mobile apply button clicked');
+                    applyMobileFilter();
+                });
+            }
+            
+            if (mobileModal) {
+                mobileModal.addEventListener('click', (e) => {
+                    if (e.target === mobileModal) {
+                        console.log('Mobile modal clicked outside');
+                        closeMobileFilterModal();
+                    }
+                });
+            }
+            
+            console.log('✅ Cuisine filter modal event listeners set up');
         }
         
         // Populate cuisine filter with all available cuisines
@@ -2281,8 +2566,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         function setupDesktopFilterModal() {
             const filterModal = document.getElementById('desktop-filter-modal');
             const closeBtn = document.getElementById('close-desktop-filter-modal');
-            const applyBtn = document.getElementById('apply-desktop-filter');
-            const cancelBtn = document.getElementById('cancel-desktop-filter');
+            const applyBtn = document.getElementById('apply-cuisine-filter-desktop');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-desktop');
             const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
             
             console.log('Setting up desktop filter modal...');
@@ -2338,14 +2623,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         function setupMobileFilterModal() {
             const filterModal = document.getElementById('filter-modal');
             const closeBtn = document.getElementById('close-filter-modal');
-            const applyBtn = document.getElementById('apply-filter-btn');
+            const applyBtn = document.getElementById('apply-cuisine-filter-mobile');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-mobile');
             const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
             
             // Check if elements exist before adding listeners
-            if (!filterModal || !closeBtn || !applyBtn || !clearBtn) return;
+            if (!filterModal || !closeBtn || !applyBtn || !cancelBtn || !clearBtn) return;
             
             // Close modal
             closeBtn.addEventListener('click', closeMobileFilterModal);
+            cancelBtn.addEventListener('click', closeMobileFilterModal);
             applyBtn.addEventListener('click', applyMobileFilter);
             clearBtn.addEventListener('click', clearMobileFilter);
             
@@ -2367,7 +2654,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             filterModal.classList.remove('hidden');
-            filterModal.classList.add('md:flex');
+            filterModal.classList.add('flex');
+            
+            // Ensure event listeners are set up for this modal
+            setupDesktopModalListeners();
             
             // Check if the container has content
             const container = document.getElementById('cuisine-filter-container-desktop');
@@ -2379,13 +2669,61 @@ document.addEventListener('DOMContentLoaded', async function() {
             syncDesktopFilterWithCurrent();
         }
         
+        // Setup desktop modal event listeners
+        function setupDesktopModalListeners() {
+            const closeBtn = document.getElementById('close-desktop-filter-modal');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-desktop');
+            const applyBtn = document.getElementById('apply-cuisine-filter-desktop');
+            const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
+            
+            console.log('Setting up desktop modal listeners:', {
+                close: !!closeBtn,
+                cancel: !!cancelBtn,
+                apply: !!applyBtn,
+                clear: !!clearBtn
+            });
+            
+            // Add event listeners if they don't already exist
+            if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
+                closeBtn.addEventListener('click', () => {
+                    console.log('Desktop close button clicked');
+                    closeDesktopFilterModal();
+                });
+                closeBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (cancelBtn && !cancelBtn.hasAttribute('data-listener-added')) {
+                cancelBtn.addEventListener('click', () => {
+                    console.log('Desktop cancel button clicked');
+                    closeDesktopFilterModal();
+                });
+                cancelBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (applyBtn && !applyBtn.hasAttribute('data-listener-added')) {
+                applyBtn.addEventListener('click', () => {
+                    console.log('Desktop apply button clicked');
+                    applyDesktopFilter();
+                });
+                applyBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (clearBtn && !clearBtn.hasAttribute('data-listener-added')) {
+                clearBtn.addEventListener('click', () => {
+                    console.log('Desktop clear button clicked');
+                    clearDesktopFilter();
+                });
+                clearBtn.setAttribute('data-listener-added', 'true');
+            }
+        }
+        
         // Close desktop filter modal
         function closeDesktopFilterModal() {
             console.log('Closing desktop filter modal...');
             const filterModal = document.getElementById('desktop-filter-modal');
             if (filterModal) {
                 filterModal.classList.add('hidden');
-                filterModal.classList.remove('md:flex');
+                filterModal.classList.remove('flex');
                 console.log('Modal closed successfully');
             } else {
                 console.error('Desktop filter modal not found!');
@@ -2405,6 +2743,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Clear desktop filter
         function clearDesktopFilter() {
+            // Clear persistent state
+            selectedCuisines.clear();
+            saveFilterStates();
+            
             const desktopCheckboxes = document.querySelectorAll('#cuisine-filter-container-desktop .cuisine-checkbox');
             desktopCheckboxes.forEach(checkbox => {
                 checkbox.checked = false;
@@ -2414,6 +2756,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
             updateSelectedCount();
+            updateFilterButtonAppearance();
+            
+            // Apply the cleared filter
+            applyAllFiltersAndDisplay();
         }
         
         // Sync desktop filter with current state
@@ -2437,14 +2783,69 @@ document.addEventListener('DOMContentLoaded', async function() {
             const filterModal = document.getElementById('filter-modal');
             filterModal.classList.remove('hidden');
             
+            // Ensure event listeners are set up for this modal
+            setupMobileModalListeners();
+            
             // Sync mobile checkboxes with desktop state
             syncMobileFilterWithDesktop();
         }
         
+        // Setup mobile modal event listeners
+        function setupMobileModalListeners() {
+            const closeBtn = document.getElementById('close-filter-modal');
+            const cancelBtn = document.getElementById('cancel-cuisine-filter-mobile');
+            const applyBtn = document.getElementById('apply-cuisine-filter-mobile');
+            const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
+            
+            console.log('Setting up mobile modal listeners:', {
+                close: !!closeBtn,
+                cancel: !!cancelBtn,
+                apply: !!applyBtn,
+                clear: !!clearBtn
+            });
+            
+            // Add event listeners if they don't already exist
+            if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
+                closeBtn.addEventListener('click', () => {
+                    console.log('Mobile close button clicked');
+                    closeMobileFilterModal();
+                });
+                closeBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (cancelBtn && !cancelBtn.hasAttribute('data-listener-added')) {
+                cancelBtn.addEventListener('click', () => {
+                    console.log('Mobile cancel button clicked');
+                    closeMobileFilterModal();
+                });
+                cancelBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (applyBtn && !applyBtn.hasAttribute('data-listener-added')) {
+                applyBtn.addEventListener('click', () => {
+                    console.log('Mobile apply button clicked');
+                    applyMobileFilter();
+                });
+                applyBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (clearBtn && !clearBtn.hasAttribute('data-listener-added')) {
+                clearBtn.addEventListener('click', () => {
+                    console.log('Mobile clear button clicked');
+                    clearMobileFilter();
+                });
+                clearBtn.setAttribute('data-listener-added', 'true');
+            }
+        }
+        
         // Close mobile filter modal
         function closeMobileFilterModal() {
+            console.log('Closing mobile filter modal...');
             const filterModal = document.getElementById('filter-modal');
-            filterModal.classList.add('hidden');
+            if (filterModal) {
+                filterModal.classList.add('hidden');
+                filterModal.classList.remove('flex');
+            }
         }
         
         // Apply mobile filter
@@ -2656,7 +3057,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Open/Close Modal
-        collectionsBtn.addEventListener('click', () => {
+        collectionsBtn.addEventListener('click', async () => {
+            // Check if user is authenticated
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                console.log('User not authenticated, opening auth modal');
+                openAuthModal();
+                return;
+            }
+            
             collectionsModal.classList.remove('hidden');
             collectionsModal.classList.add('flex');
             loadCollectionsForModal();
@@ -3919,9 +4328,23 @@ async function showVideoFor(restaurant) {
 
             console.log('Setting up mobile drawer functionality');
 
-            // Set initial height on mobile
+            // Set initial height on mobile - check localStorage first
             if (window.innerWidth <= 768) {
-                aside.style.height = '33vh';
+                const savedHeight = localStorage.getItem('drawer-height');
+                let initialHeight;
+                
+                if (savedHeight) {
+                    // Use saved height if available
+                    initialHeight = `${savedHeight}px`;
+                    console.log('Restoring drawer height from localStorage:', savedHeight, 'px');
+                } else {
+                    // Use default height
+                    initialHeight = '33vh';
+                    console.log('Using default drawer height: 33vh');
+                }
+                
+                aside.style.setProperty('height', initialHeight, 'important');
+                document.documentElement.style.setProperty('--drawer-height', initialHeight);
             }
 
             // Unified event handler for both touch and mouse
@@ -3950,8 +4373,8 @@ async function showVideoFor(restaurant) {
                 
                 console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
                 
-                // Update both the style and the CSS variable
-                aside.style.height = `${newHeight}px`;
+                // Update both the style and the CSS variable with !important
+                aside.style.setProperty('height', `${newHeight}px`, 'important');
                 document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
                 e.preventDefault();
                 e.stopPropagation();
@@ -3966,9 +4389,14 @@ async function showVideoFor(restaurant) {
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';
                 
-                // Persist the final height
+                // Persist the final height with !important
                 const finalHeight = parseInt(getComputedStyle(aside).height);
+                console.log('Setting final height to:', finalHeight, 'px');
+                aside.style.setProperty('height', `${finalHeight}px`, 'important');
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
+                
+                // Store the height in localStorage for persistence
+                localStorage.setItem('drawer-height', finalHeight.toString());
                 
                 // Double tap detection
                 const currentTime = new Date().getTime();
@@ -3980,10 +4408,10 @@ async function showVideoFor(restaurant) {
                     const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
                     
                     if (currentHeight < expandedHeight / 2) {
-                        aside.style.height = `${expandedHeight}px`;
+                        aside.style.setProperty('height', `${expandedHeight}px`, 'important');
                         document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
                     } else {
-                        aside.style.height = `${collapsedHeight}px`;
+                        aside.style.setProperty('height', `${collapsedHeight}px`, 'important');
                         document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
                     }
                 }
@@ -4004,6 +4432,18 @@ async function showVideoFor(restaurant) {
             drawerHandle.addEventListener('touchstart', (e) => {
                 console.log('Touch start detected on handle');
             });
+
+            // Handle window resize to maintain drawer height
+            window.addEventListener('resize', () => {
+                if (window.innerWidth <= 768) {
+                    const savedHeight = localStorage.getItem('drawer-height');
+                    if (savedHeight) {
+                        console.log('Maintaining drawer height on resize:', savedHeight, 'px');
+                        aside.style.setProperty('height', `${savedHeight}px`, 'important');
+                        document.documentElement.style.setProperty('--drawer-height', `${savedHeight}px`);
+                    }
+                }
+            });
             drawerHandle.addEventListener('touchmove', (e) => {
                 console.log('Touch move detected on handle');
             });
@@ -4019,10 +4459,10 @@ async function showVideoFor(restaurant) {
                 const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
                 
                 if (currentHeight < expandedHeight / 2) {
-                    aside.style.height = `${expandedHeight}px`;
+                    aside.style.setProperty('height', `${expandedHeight}px`, 'important');
                     document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
                 } else {
-                    aside.style.height = `${collapsedHeight}px`;
+                    aside.style.setProperty('height', `${collapsedHeight}px`, 'important');
                     document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
                 }
             });
@@ -4034,28 +4474,93 @@ async function showVideoFor(restaurant) {
         }
 
         // --- Event Listeners ---
-        if (citySelect) {
-        citySelect.addEventListener('change', async function() {
-            const selectedOption = citySelect.options[citySelect.selectedIndex];
-            // Show skeleton loaders while loading
-            displayRestaurants([], true);
-            
-            // Get city name from the selected option text
-            const cityName = selectedOption.textContent.toLowerCase();
-            await loadRestaurantsForCity(cityName);
-            
-            // Pre-load collection mappings if collections are selected
-            if (selectedCollections.size > 0) {
-                console.log('🔄 Pre-loading collection mappings for city change:', Array.from(selectedCollections));
-                await loadRestaurantsForCollections(Array.from(selectedCollections));
+        
+        // City Switcher Event Listeners
+        const citySwitcherDesktop = document.getElementById('city-switcher-desktop');
+        const citySwitcherMobile = document.getElementById('city-switcher-mobile');
+        const cityModal = document.getElementById('city-modal');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const cityList = document.getElementById('modal-city-list');
+        const citySearchInput = document.getElementById('city-search-input');
+
+        const openModal = () => {
+            if (cityModal) {
+                cityModal.classList.add('show');
+                // Focus on search input when modal opens
+                if (citySearchInput) {
+                    setTimeout(() => citySearchInput.focus(), 100);
+                }
             }
-            
-            // Apply saved filters after loading new city's restaurants
-            console.log('🔄 Applying saved filters after city change...');
-            await applyAllFiltersAndDisplay();
-            
-            map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
-        });
+        };
+        
+        const closeModal = () => {
+            if (cityModal) {
+                cityModal.classList.remove('show');
+                // Clear search input when modal closes
+                if (citySearchInput) {
+                    citySearchInput.value = '';
+                    // Reset the city list to show all cities
+                    const items = cityList?.getElementsByTagName('li');
+                    if (items) {
+                        for (let i = 0; i < items.length; i++) {
+                            items[i].style.display = "";
+                        }
+                    }
+                }
+            }
+        };
+
+        if (citySwitcherDesktop) {
+            citySwitcherDesktop.addEventListener('click', openModal);
+        }
+        if (citySwitcherMobile) {
+            citySwitcherMobile.addEventListener('click', openModal);
+        }
+        if (closeModalButton) {
+            closeModalButton.addEventListener('click', closeModal);
+        }
+        if (cityModal) {
+            cityModal.addEventListener('click', (e) => {
+                // Close when clicking overlay
+                if (e.target === cityModal) {
+                    closeModal();
+                }
+            });
+        }
+
+        // City selection logic - navigate to new URL
+        if (cityList) {
+            cityList.addEventListener('click', (e) => {
+                if (e.target.tagName === 'LI') {
+                    const selectedCity = e.target.dataset.city;
+                    console.log('🏙️ Navigating to city:', selectedCity);
+                    
+                    // Navigate to the new city URL
+                    if (selectedCity === '') {
+                        window.location.href = '/explore';
+                    } else {
+                        window.location.href = `/${selectedCity}`;
+                    }
+                }
+            });
+        }
+
+        // Live search/filter for cities in the modal
+        if (citySearchInput) {
+            citySearchInput.addEventListener('keyup', () => {
+                const filter = citySearchInput.value.toLowerCase();
+                const items = cityList?.getElementsByTagName('li');
+                if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                        const txtValue = items[i].textContent || items[i].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            items[i].style.display = "";
+                        } else {
+                            items[i].style.display = "none";
+                        }
+                    }
+                }
+            });
         }
         
         // Video modal event listeners
@@ -4129,12 +4634,17 @@ async function showVideoFor(restaurant) {
         
         checkLocationAvailability();
         
-        // Location button event listener
+        // Location button event listener - handles both desktop and mobile
         const locationBtn = document.getElementById('location-btn');
         if (locationBtn) {
             locationBtn.addEventListener('click', () => {
                 console.log('Location button clicked');
-                addUserLocationMarker();
+                // Use mobile-specific function for mobile, desktop function for desktop
+                if (window.innerWidth <= 768) {
+                    findUserLocationMobile();
+                } else {
+                    addUserLocationMarker();
+                }
             });
         }
         
@@ -4565,18 +5075,7 @@ function testRestaurantList() {
     }
 }
 
-function testCitySelector() {
-    try {
-        const citySelect = document.getElementById('city-select');
-        if (citySelect) {
-            testPass('City Selector');
-        } else {
-            throw new Error('City selector missing');
-        }
-    } catch (error) {
-        testFail('City Selector', error.message);
-    }
-}
+// testCitySelector function removed - city selector replaced with city switcher modal
 
 // Main test runner
 async function runAllTests() {
@@ -4596,7 +5095,7 @@ async function runAllTests() {
     testAuthenticationUI();
     testVideoModal();
     testRestaurantList();
-    testCitySelector();
+    // testCitySelector removed - replaced with city switcher modal
     
     // Show summary
     testSummary();
