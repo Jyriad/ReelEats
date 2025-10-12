@@ -157,18 +157,11 @@ async function checkAuthenticationStatus() {
     try {
         console.log('checkAuthenticationStatus called');
         
-        // Check localStorage for session data
-        const storedSession = localStorage.getItem('sb-jsuxrpnfofkigdfpnuua-auth-token');
-        console.log('Stored session in localStorage:', storedSession);
-        
         const { data: { session }, error } = await supabaseClient.auth.getSession();
-        
-        console.log('Session data:', session);
-        console.log('Error:', error);
         
         if (error) {
             console.error('Error checking authentication:', error);
-            showLoginRequired();
+            showNotAuthenticatedState();
             return;
         }
         
@@ -191,21 +184,45 @@ async function checkAuthenticationStatus() {
             updateMobileCollectionsVisibility(true);
         } else {
             console.log('User is not authenticated');
-            showLoginRequired();
+            showNotAuthenticatedState();
             updateMobileCollectionsVisibility(false);
         }
     } catch (error) {
         console.error('Error checking authentication status:', error);
-        showLoginRequired();
+        showNotAuthenticatedState();
     }
 }
 
-// Show login required message
-function showLoginRequired() {
-    console.log('showLoginRequired called - but not showing anything to prevent modal opening');
+// Show simple not authenticated state - no modals, just redirect
+function showNotAuthenticatedState() {
+    console.log('User not authenticated - redirecting to homepage');
     hideAllMessages();
-    // Completely prevent any UI from showing that could trigger modal
-    // Just hide everything and do nothing
+    
+    // Show a simple message and redirect to homepage
+    const mainContent = document.querySelector('main');
+    if (mainContent) {
+        mainContent.innerHTML = `
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
+                    <p class="text-gray-600 mb-6">Please sign in to access the creator application.</p>
+                    <div class="space-x-4">
+                        <a href="/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            Go to Homepage
+                        </a>
+                        <a href="/explore" class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            Explore Restaurants
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 }
 
 // Show application form
