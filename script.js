@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const videoContainer = videoModal ? videoModal.querySelector('.video-container') : null;
         const videoTitleEl = document.getElementById('video-title');
         const closeVideoBtn = document.getElementById('close-video-btn');
-        const citySelect = document.getElementById('city-select');
+        // City select removed - now using city switcher modal
         
         // Check if essential elements exist
         if (!mapElement) {
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const city = path.split('/')[1]; // Get the first segment after the domain
             
             // Format city name for display (capitalize first letter)
-            const formattedCityName = city ? city.charAt(0).toUpperCase() + city.slice(1).toLowerCase() : '';
+            const formattedCityName = city ? city.charAt(0).toUpperCase() + city.slice(1).toLowerCase() : 'Explore All';
             
             // Update page title based on city
             if (city) {
@@ -176,8 +176,57 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.log('🌍 Loading all restaurants (homepage)');
             }
             
+            // Display the current city name in the new UI elements
+            const currentCityHeading = document.getElementById('current-city-heading');
+            const currentCityMobile = document.getElementById('current-city-mobile');
+            
+            if (currentCityHeading) {
+                currentCityHeading.textContent = formattedCityName;
+            }
+            if (currentCityMobile) {
+                currentCityMobile.textContent = formattedCityName;
+            }
+            
+            // Fetch ALL unique cities to populate the switcher modal
+            try {
+                const { data: allCities, error: citiesError } = await supabaseClient
+                    .from('cities')
+                    .select('name')
+                    .order('name', { ascending: true });
+
+                if (allCities) {
+                    populateCitySwitcher(allCities);
+                } else if (citiesError) {
+                    console.error('Error fetching cities:', citiesError);
+                }
+            } catch (error) {
+                console.error('Error fetching cities for switcher:', error);
+            }
+            
             // Load restaurants with optional city filtering
             await loadRestaurantsForCity(city);
+        }
+        
+        // Populate city switcher modal with all available cities
+        function populateCitySwitcher(cities) {
+            const cityList = document.getElementById('modal-city-list');
+            if (!cityList) return;
+            
+            cityList.innerHTML = ''; // Clear previous list
+            
+            // Add "Explore All" option at the top
+            const allLi = document.createElement('li');
+            allLi.textContent = 'Explore All';
+            allLi.dataset.city = '';
+            cityList.appendChild(allLi);
+            
+            // Add all cities
+            cities.forEach(cityObj => {
+                const li = document.createElement('li');
+                li.textContent = cityObj.name;
+                li.dataset.city = cityObj.name.toLowerCase();
+                cityList.appendChild(li);
+            });
         }
         
         // Load watched videos from localStorage
@@ -1684,37 +1733,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.error("Error fetching cities:", error);
                 return;
              }
-             localStorage.setItem('reelEats_citiesCache', JSON.stringify({ cities, timestamp: Date.now() }));
-             populateCitySelect(cities);
+            localStorage.setItem('reelEats_citiesCache', JSON.stringify({ cities, timestamp: Date.now() }));
+            // populateCitySelect removed - cities are now handled in initializeApp
         }
 
-        function populateCitySelect(cities) {
-            citySelect.innerHTML = '';
-            let londonCity = null;
-            
-            cities.forEach(city => {
-                const option = document.createElement('option');
-                option.value = city.id;
-                option.textContent = city.name;
-                option.dataset.lat = city.lat;
-                option.dataset.lon = city.lon;
-                citySelect.appendChild(option);
-                
-                // Find London city for default selection
-                if (city.name.toLowerCase().includes('london')) {
-                    londonCity = city;
-                }
-            });
-            
-            // Set London as default if found, otherwise use first city
-            if (londonCity) {
-                citySelect.value = londonCity.id;
-                console.log('London set as default city');
-            } else if (cities.length > 0) {
-                citySelect.value = cities[0].id;
-                console.log('First city set as default (London not found)');
-            }
-        }
+        // populateCitySelect function removed - now using populateCitySwitcher
         
         async function loadRestaurantsForCity(city = null) {
             // --- Load restaurants with optional city filtering ---
@@ -4034,28 +4057,93 @@ async function showVideoFor(restaurant) {
         }
 
         // --- Event Listeners ---
-        if (citySelect) {
-        citySelect.addEventListener('change', async function() {
-            const selectedOption = citySelect.options[citySelect.selectedIndex];
-            // Show skeleton loaders while loading
-            displayRestaurants([], true);
-            
-            // Get city name from the selected option text
-            const cityName = selectedOption.textContent.toLowerCase();
-            await loadRestaurantsForCity(cityName);
-            
-            // Pre-load collection mappings if collections are selected
-            if (selectedCollections.size > 0) {
-                console.log('🔄 Pre-loading collection mappings for city change:', Array.from(selectedCollections));
-                await loadRestaurantsForCollections(Array.from(selectedCollections));
+        
+        // City Switcher Event Listeners
+        const citySwitcherDesktop = document.getElementById('city-switcher-desktop');
+        const citySwitcherMobile = document.getElementById('city-switcher-mobile');
+        const cityModal = document.getElementById('city-modal');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const cityList = document.getElementById('modal-city-list');
+        const citySearchInput = document.getElementById('city-search-input');
+
+        const openModal = () => {
+            if (cityModal) {
+                cityModal.classList.add('show');
+                // Focus on search input when modal opens
+                if (citySearchInput) {
+                    setTimeout(() => citySearchInput.focus(), 100);
+                }
             }
-            
-            // Apply saved filters after loading new city's restaurants
-            console.log('🔄 Applying saved filters after city change...');
-            await applyAllFiltersAndDisplay();
-            
-            map.flyTo([selectedOption.dataset.lat, selectedOption.dataset.lon], 12);
-        });
+        };
+        
+        const closeModal = () => {
+            if (cityModal) {
+                cityModal.classList.remove('show');
+                // Clear search input when modal closes
+                if (citySearchInput) {
+                    citySearchInput.value = '';
+                    // Reset the city list to show all cities
+                    const items = cityList?.getElementsByTagName('li');
+                    if (items) {
+                        for (let i = 0; i < items.length; i++) {
+                            items[i].style.display = "";
+                        }
+                    }
+                }
+            }
+        };
+
+        if (citySwitcherDesktop) {
+            citySwitcherDesktop.addEventListener('click', openModal);
+        }
+        if (citySwitcherMobile) {
+            citySwitcherMobile.addEventListener('click', openModal);
+        }
+        if (closeModalButton) {
+            closeModalButton.addEventListener('click', closeModal);
+        }
+        if (cityModal) {
+            cityModal.addEventListener('click', (e) => {
+                // Close when clicking overlay
+                if (e.target === cityModal) {
+                    closeModal();
+                }
+            });
+        }
+
+        // City selection logic - navigate to new URL
+        if (cityList) {
+            cityList.addEventListener('click', (e) => {
+                if (e.target.tagName === 'LI') {
+                    const selectedCity = e.target.dataset.city;
+                    console.log('🏙️ Navigating to city:', selectedCity);
+                    
+                    // Navigate to the new city URL
+                    if (selectedCity === '') {
+                        window.location.href = '/explore';
+                    } else {
+                        window.location.href = `/${selectedCity}`;
+                    }
+                }
+            });
+        }
+
+        // Live search/filter for cities in the modal
+        if (citySearchInput) {
+            citySearchInput.addEventListener('keyup', () => {
+                const filter = citySearchInput.value.toLowerCase();
+                const items = cityList?.getElementsByTagName('li');
+                if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                        const txtValue = items[i].textContent || items[i].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            items[i].style.display = "";
+                        } else {
+                            items[i].style.display = "none";
+                        }
+                    }
+                }
+            });
         }
         
         // Video modal event listeners
@@ -4565,18 +4653,7 @@ function testRestaurantList() {
     }
 }
 
-function testCitySelector() {
-    try {
-        const citySelect = document.getElementById('city-select');
-        if (citySelect) {
-            testPass('City Selector');
-        } else {
-            throw new Error('City selector missing');
-        }
-    } catch (error) {
-        testFail('City Selector', error.message);
-    }
-}
+// testCitySelector function removed - city selector replaced with city switcher modal
 
 // Main test runner
 async function runAllTests() {
@@ -4596,7 +4673,7 @@ async function runAllTests() {
     testAuthenticationUI();
     testVideoModal();
     testRestaurantList();
-    testCitySelector();
+    // testCitySelector removed - replaced with city switcher modal
     
     // Show summary
     testSummary();
