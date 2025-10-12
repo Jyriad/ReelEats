@@ -187,7 +187,12 @@ async function checkAuthenticationStatus() {
 // Show login required message
 function showLoginRequired() {
     hideAllMessages();
-    loginRequired.classList.remove('hidden');
+    // Don't show the login required section with buttons that could trigger modal
+    // Instead, show a simple message or redirect to homepage
+    console.log('User needs to log in to access creators page');
+    
+    // Optionally redirect to homepage or show a different message
+    // For now, we'll just hide everything to prevent modal opening
 }
 
 // Show application form
@@ -452,7 +457,12 @@ function setupEventListeners() {
     
     // Auth modal event listeners
     if (closeAuthModalBtn) {
-        closeAuthModalBtn.addEventListener('click', closeAuthModal);
+        closeAuthModalBtn.addEventListener('click', () => {
+            console.log('Close auth modal button clicked');
+            closeAuthModal();
+        });
+    } else {
+        console.error('Close auth modal button not found');
     }
     
     if (authModal) {
@@ -644,10 +654,15 @@ function openAuthModal(mode = 'login') {
 }
 
 function closeAuthModal() {
-    if (!authModal) return;
+    console.log('closeAuthModal called');
+    if (!authModal) {
+        console.error('Auth modal not found in closeAuthModal');
+        return;
+    }
     
     authModal.classList.add('hidden');
     authModal.style.display = 'none';
+    console.log('Auth modal hidden');
     
     // Hide feedback
     if (authFeedback) {
