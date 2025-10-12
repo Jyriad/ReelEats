@@ -310,6 +310,7 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         closeAuthModal();
         showApplicationForm();
         updateMobileCollectionsVisibility(true);
+        // Stay on creators page - don't redirect
     } else if (event === 'SIGNED_OUT') {
         showLoginRequired();
         updateMobileCollectionsVisibility(false);
