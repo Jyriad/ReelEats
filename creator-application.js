@@ -254,12 +254,12 @@ function showNotAuthenticatedState() {
                         <h3 class="text-xl font-semibold text-gray-900 mb-2">Sign In Required</h3>
                         <p class="text-gray-600 mb-6">Please sign in or create an account to submit your creator application.</p>
                         <div class="space-x-4">
-                            <a href="/explore#auth" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <button id="show-login-btn" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
                                 Sign In
-                            </a>
-                            <a href="/explore#auth" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            </button>
+                            <button id="show-signup-btn" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
                                 Sign Up
-                            </a>
+                            </button>
                         </div>
                         <p class="text-sm text-gray-500 mt-4">
                             Don't worry, signing up is quick and free!
@@ -268,9 +268,22 @@ function showNotAuthenticatedState() {
                 </div>
             </div>
         `;
+        
+        // Add event listeners for the auth buttons
+        setTimeout(() => {
+            const showLoginBtn = document.getElementById('show-login-btn');
+            const showSignupBtn = document.getElementById('show-signup-btn');
+            
+            if (showLoginBtn) {
+                showLoginBtn.addEventListener('click', () => openAuthModal('login'));
+            }
+            
+            if (showSignupBtn) {
+                showSignupBtn.addEventListener('click', () => openAuthModal('signup'));
+            }
+        }, 100);
     }
 }
-
 
 // Show application form
 function showApplicationForm() {
