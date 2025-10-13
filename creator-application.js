@@ -499,15 +499,16 @@ function showExistingApplication(application) {
     const displayStatus = document.getElementById('display-status');
     const submittedDate = document.getElementById('submitted-date');
     const magicWord = document.getElementById('magic-word');
+    const magicWordInstruction = document.getElementById('magic-word-instruction');
     
     if (displayTiktokHandle) displayTiktokHandle.textContent = '@' + application.tiktok_handle;
     if (displayUsername) displayUsername.textContent = application.requested_username;
     if (displayStatus) displayStatus.textContent = application.status.charAt(0).toUpperCase() + application.status.slice(1);
     if (submittedDate) submittedDate.textContent = new Date(application.created_at).toLocaleDateString();
     if (magicWord) magicWord.textContent = application.magic_word;
+    if (magicWordInstruction) magicWordInstruction.textContent = application.magic_word;
     
-    // Generate QR codes
-    generateQRCode(application.magic_word);
+    // Generate TikTok QR code
     generateTikTokQRCode();
 }
 
@@ -825,15 +826,16 @@ function showMagicWordMessage(tiktokHandle, magicWord) {
     const displayStatus = document.getElementById('display-status');
     const submittedDate = document.getElementById('submitted-date');
     const magicWordElement = document.getElementById('magic-word');
+    const magicWordInstruction = document.getElementById('magic-word-instruction');
     
     if (displayTiktokHandle) displayTiktokHandle.textContent = '@' + tiktokHandle;
     if (displayUsername) displayUsername.textContent = document.getElementById('desired-username').value.trim();
     if (displayStatus) displayStatus.textContent = 'Pending';
     if (submittedDate) submittedDate.textContent = new Date().toLocaleDateString();
     if (magicWordElement) magicWordElement.textContent = magicWord;
+    if (magicWordInstruction) magicWordInstruction.textContent = magicWord;
     
-    // Generate QR codes
-    generateQRCode(magicWord);
+    // Generate TikTok QR code
     generateTikTokQRCode();
 }
 
