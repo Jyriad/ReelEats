@@ -923,12 +923,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
             const signupBtn = document.getElementById('signup-btn');
             const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+            const mobileAuthBtn = document.getElementById('mobile-auth-btn');
             
             if (user) {
                 // User is logged in - show logout button instead of login button, hide signup
                 if (authBtn) authBtn.classList.add('hidden');
                 if (signupBtn) signupBtn.classList.add('hidden');
                 if (mobileSignupBtn) mobileSignupBtn.classList.add('hidden');
+                if (mobileAuthBtn) mobileAuthBtn.classList.add('hidden');
                 if (collectionsBtn) collectionsBtn.classList.remove('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.remove('hidden');
                 if (collectionFilterBtn) collectionFilterBtn.classList.remove('hidden');
@@ -952,6 +954,33 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 logoutButton.classList.remove('hidden');
+                
+                // Create or update mobile logout button
+                let mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+                if (!mobileLogoutBtn && mobileAuthBtn && mobileAuthBtn.parentNode) {
+                    mobileLogoutBtn = document.createElement('button');
+                    mobileLogoutBtn.id = 'mobile-logout-btn';
+                    mobileLogoutBtn.className = 'w-full bg-red-600 hover:bg-red-700 text-white rounded px-4 py-3 transition-colors text-left';
+                    mobileLogoutBtn.innerHTML = 'Log-out';
+                    
+                    // Insert after mobile auth button
+                    mobileAuthBtn.parentNode.insertBefore(mobileLogoutBtn, mobileAuthBtn.nextSibling);
+                    
+                    // Add click event
+                    mobileLogoutBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const mobileMenuModal = document.getElementById('mobile-menu-modal');
+                        if (mobileMenuModal) {
+                            mobileMenuModal.classList.add('hidden');
+                            mobileMenuModal.style.display = 'none';
+                        }
+                        handleLogout();
+                    });
+                }
+                
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.classList.remove('hidden');
+                }
 
                 // Fetch user's favorites
                 const { data, error } = await supabaseClient
@@ -979,6 +1008,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (authBtn) authBtn.classList.remove('hidden');
                 if (signupBtn) signupBtn.classList.remove('hidden');
                 if (mobileSignupBtn) mobileSignupBtn.classList.remove('hidden');
+                if (mobileAuthBtn) mobileAuthBtn.classList.remove('hidden');
                 if (collectionsBtn) collectionsBtn.classList.add('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.add('hidden');
                 // Keep collection filter button visible for all users
@@ -988,6 +1018,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const logoutButton = document.getElementById('logout-button');
                 if (logoutButton) {
                     logoutButton.classList.add('hidden');
+                }
+                
+                // Hide mobile logout button if it exists
+                const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.classList.add('hidden');
                 }
                 
                 favoritedRestaurants.clear(); // Clear favorites on logout
