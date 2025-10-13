@@ -107,8 +107,6 @@ async function checkApplicationStatus() {
         
         // Define the elements we'll be showing/hiding
         const applicationForm = document.getElementById('application-form');
-        const applicationStatusContainer = document.getElementById('application-status-container');
-        const loginPrompt = document.getElementById('login-prompt-container');
         
         // Get the current user session
         const { data: { user } } = await supabaseClient.auth.getUser();
@@ -117,10 +115,7 @@ async function checkApplicationStatus() {
             console.log('User is logged in:', user.email);
             // --- USER IS LOGGED IN ---
             
-            // Hide the login prompt
-            if (loginPrompt) {
-                loginPrompt.style.display = 'none';
-            }
+            // User is logged in - no need to hide login prompt since we'll show appropriate content
             
             // Query for an existing application with timeout
             console.log('Creating database query promise...');
@@ -146,58 +141,25 @@ async function checkApplicationStatus() {
             if (application && !error) {
                 // --- Logged-in user HAS an application ---
                 console.log('User has existing application, status:', application.status);
-                if (applicationForm) {
-                    applicationForm.style.display = 'none';
-                }
-                if (applicationStatusContainer) {
-                    applicationStatusContainer.style.display = 'block';
-                    // Populate the status container with their info
-                    applicationStatusContainer.innerHTML = `
-                        <div class="bg-white rounded-lg shadow-md p-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Application Status</h3>
-                            <p class="text-gray-600 mb-2"><strong>Status:</strong> <span class="capitalize">${application.status}</span></p>
-                            <p class="text-gray-600 mb-2"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
-                            <p class="text-gray-600 mb-2"><strong>Requested Username:</strong> ${application.requested_username}</p>
-                            <p class="text-gray-600 mb-2"><strong>Submitted:</strong> ${new Date(application.created_at).toLocaleDateString()}</p>
-                            ${application.magic_word ? `<p class="text-gray-600 mb-4"><strong>Magic Word:</strong> ${application.magic_word}</p>` : ''}
-                            <p class="text-sm text-gray-500">We'll review your application and get back to you soon!</p>
-                        </div>
-                    `;
+                if (application.status === 'approved') {
+                    console.log('Showing approved message');
+                    showApprovedMessage(application);
+                } else {
+                    console.log('Showing existing application (magic word)');
+                    showExistingApplication(application);
                 }
                 return application;
             } else {
                 // --- Logged-in user does NOT have an application ---
                 console.log('User has no existing application, showing form');
-                if (applicationForm) {
-                    applicationForm.style.display = 'block';
-                }
-                if (applicationStatusContainer) {
-                    applicationStatusContainer.style.display = 'none';
-                }
+                showApplicationForm();
                 return null;
             }
             
         } else {
             console.log('User is not logged in');
             // --- USER IS NOT LOGGED IN ---
-            if (applicationForm) {
-                applicationForm.style.display = 'none';
-            }
-            if (applicationStatusContainer) {
-                applicationStatusContainer.style.display = 'none';
-            }
-            if (loginPrompt) {
-                loginPrompt.style.display = 'block';
-                loginPrompt.innerHTML = `
-                    <div class="bg-white rounded-lg shadow-md p-6 text-center">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Sign In Required</h3>
-                        <p class="text-gray-600 mb-4">Please sign up or log in to apply for the Creator Program.</p>
-                        <button id="login-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-                            Sign In
-                        </button>
-                    </div>
-                `;
-            }
+            showNotAuthenticatedState();
             return null;
         }
         
@@ -208,10 +170,9 @@ async function checkApplicationStatus() {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
             console.log('Error occurred, showing application form as fallback for user:', user.email);
-            const applicationForm = document.getElementById('application-form');
-            if (applicationForm) {
-                applicationForm.style.display = 'block';
-            }
+            showApplicationForm();
+        } else {
+            showNotAuthenticatedState();
         }
         return null;
     }
@@ -434,7 +395,7 @@ function showNotAuthenticatedState() {
 
                 <!-- Sign In Button -->
                 <div class="text-center">
-                    <button id="login-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
+                    <button id="signin-apply-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
                         Sign In to Apply
                     </button>
                 </div>
@@ -442,15 +403,15 @@ function showNotAuthenticatedState() {
         `;
         
         // Re-attach event listener to the new login button
-        const newLoginBtn = document.getElementById('login-btn');
+        const newLoginBtn = document.getElementById('signin-apply-btn');
         if (newLoginBtn) {
             newLoginBtn.addEventListener('click', (e) => {
-                console.log('Dynamic login button clicked');
+                console.log('Sign In to Apply button clicked');
                 e.preventDefault();
                 openAuthModal('login');
             });
         } else {
-            console.error('Dynamic login button not found after creation');
+            console.error('Sign In to Apply button not found after creation');
         }
     }
 }
@@ -777,8 +738,18 @@ async function handleFormSubmission(event) {
 
 // Show magic word message
 function showMagicWordMessage(tiktokHandle, magicWord) {
+    console.log('showMagicWordMessage called');
     hideAllMessages();
+    
+    // Hide the application form
+    if (applicationForm) {
+        applicationForm.classList.add('hidden');
+        console.log('Application form hidden');
+    }
+    
+    // Show the success message
     successMessage.classList.remove('hidden');
+    console.log('Success message shown');
     
     // Populate the success message
     const displayTiktokHandle = document.getElementById('display-tiktok-handle');
