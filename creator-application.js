@@ -516,8 +516,41 @@ function showExistingApplication(application) {
 function showApprovedMessage(application) {
     hideAllMessages();
     
-    // For now, show the existing application view with approved status
-    showExistingApplication(application);
+    // Show success message with approval details
+    successMessage.classList.remove('hidden');
+    
+    // Show benefits section for approved creators
+    showBenefitsSection();
+    
+    // Clear the success message content and show approval message
+    const successMessageContent = document.querySelector('#success-message .bg-white');
+    if (successMessageContent) {
+        successMessageContent.innerHTML = `
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold text-green-800 mb-4">🎉 Congratulations!</h2>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Your application to be a creator has been approved!</h3>
+                <p class="text-gray-600 mb-6">Welcome to the ReelGrub Creator Program. You can now start adding your favorite restaurants and creating amazing food content.</p>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-medium text-gray-800 mb-2">Your Creator Details:</h4>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
+                        <p><strong>Creator Username:</strong> ${application.requested_username}</p>
+                        <p><strong>Approved:</strong> ${new Date().toLocaleDateString()}</p>
+                    </div>
+                </div>
+                
+                <a href="/dashboard" class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
+                    Go to Creator Dashboard
+                </a>
+            </div>
+        `;
+    }
 }
 
 // Setup event listeners
