@@ -627,10 +627,17 @@ function setupEventListeners() {
     
     // Auto-fill desired username when TikTok handle changes
     if (tiktokHandleInput && desiredUsernameInput) {
+        let userHasEditedUsername = false;
+        
+        // Track if user has manually edited the username field
+        desiredUsernameInput.addEventListener('input', function() {
+            userHasEditedUsername = true;
+        });
+        
         tiktokHandleInput.addEventListener('keyup', function() {
             const tiktokHandle = this.value.trim().replace(/^@/, '');
-            if (tiktokHandle && !desiredUsernameInput.value.trim()) {
-                // Only auto-fill if the desired username field is empty
+            if (tiktokHandle && !userHasEditedUsername) {
+                // Only auto-fill if the user hasn't manually edited the username field
                 const urlFriendlyUsername = makeUrlFriendly(tiktokHandle);
                 desiredUsernameInput.value = urlFriendlyUsername;
                 updateUsernamePreview(urlFriendlyUsername);
