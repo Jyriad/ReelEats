@@ -921,10 +921,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const collectionsBtn = document.getElementById('collections-btn');
             const collectionFilterBtn = document.getElementById('collection-filter-btn');
             const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
+            const signupBtn = document.getElementById('signup-btn');
+            const mobileSignupBtn = document.getElementById('mobile-signup-btn');
             
             if (user) {
-                // User is logged in - show logout button instead of login button
+                // User is logged in - show logout button instead of login button, hide signup
                 if (authBtn) authBtn.classList.add('hidden');
+                if (signupBtn) signupBtn.classList.add('hidden');
+                if (mobileSignupBtn) mobileSignupBtn.classList.add('hidden');
                 if (collectionsBtn) collectionsBtn.classList.remove('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.remove('hidden');
                 if (collectionFilterBtn) collectionFilterBtn.classList.remove('hidden');
@@ -971,8 +975,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
             } else {
-                // User is logged out - show login button
+                // User is logged out - show login and signup buttons
                 if (authBtn) authBtn.classList.remove('hidden');
+                if (signupBtn) signupBtn.classList.remove('hidden');
+                if (mobileSignupBtn) mobileSignupBtn.classList.remove('hidden');
                 if (collectionsBtn) collectionsBtn.classList.add('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.add('hidden');
                 // Keep collection filter button visible for all users
@@ -1211,9 +1217,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return;
                 }
                 
-                showCollectionManagement();
+                // Close menu first
                 mobileMenuModal.classList.add('hidden');
                 mobileMenuModal.style.display = 'none';
+                
+                // Open collections modal
+                collectionsModal.classList.remove('hidden');
+                collectionsModal.classList.add('flex');
+                loadCollectionsForModal();
             });
         }
 
