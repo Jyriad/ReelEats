@@ -604,6 +604,15 @@ function hideAllMessages() {
     });
 }
 
+// Function to convert text to URL-friendly format
+function makeUrlFriendly(text) {
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')  // Replace non-alphanumeric chars with hyphens
+        .replace(/-+/g, '-')          // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, '');       // Remove leading/trailing hyphens
+}
+
 // Setup event listeners
 function setupEventListeners() {
     // Application form submission
@@ -611,21 +620,38 @@ function setupEventListeners() {
         applicationForm.addEventListener('submit', handleFormSubmission);
     }
     
-    // Live preview for desired username
+    // Auto-fill desired username from TikTok handle and live preview
+    const tiktokHandleInput = document.getElementById('tiktok-handle');
     const desiredUsernameInput = document.getElementById('desired-username');
     const usernamePreview = document.getElementById('username-preview');
     
+    // Auto-fill desired username when TikTok handle changes
+    if (tiktokHandleInput && desiredUsernameInput) {
+        tiktokHandleInput.addEventListener('keyup', function() {
+            const tiktokHandle = this.value.trim().replace(/^@/, '');
+            if (tiktokHandle && !desiredUsernameInput.value.trim()) {
+                // Only auto-fill if the desired username field is empty
+                const urlFriendlyUsername = makeUrlFriendly(tiktokHandle);
+                desiredUsernameInput.value = urlFriendlyUsername;
+                updateUsernamePreview(urlFriendlyUsername);
+            }
+        });
+    }
+    
+    // Live preview for desired username
     if (desiredUsernameInput && usernamePreview) {
         desiredUsernameInput.addEventListener('keyup', function() {
             const username = this.value.trim();
-            const urlFriendlyUsername = username
-                .toLowerCase()
-                .replace(/[^a-z0-9-]/g, '-')  // Replace non-alphanumeric chars with hyphens
-                .replace(/-+/g, '-')          // Replace multiple hyphens with single hyphen
-                .replace(/^-|-$/g, '');       // Remove leading/trailing hyphens
-            
-            usernamePreview.textContent = urlFriendlyUsername || 'your-username';
+            const urlFriendlyUsername = makeUrlFriendly(username);
+            updateUsernamePreview(urlFriendlyUsername);
         });
+    }
+    
+    // Helper function to update the preview
+    function updateUsernamePreview(username) {
+        if (usernamePreview) {
+            usernamePreview.textContent = username || 'your-username';
+        }
     }
     
     // Login button
@@ -746,11 +772,7 @@ async function handleFormSubmission(event) {
     }
     
     // Validate username format (no spaces, special characters)
-    const urlFriendlyUsername = desiredUsername
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+    const urlFriendlyUsername = makeUrlFriendly(desiredUsername);
     
     if (urlFriendlyUsername !== desiredUsername.toLowerCase() || urlFriendlyUsername.includes(' ')) {
         showErrorMessage('Username can only contain letters, numbers, and hyphens. No spaces or special characters allowed.');
