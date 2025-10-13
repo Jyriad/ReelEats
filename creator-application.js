@@ -213,16 +213,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
     
     // Check authentication status with a small delay to ensure session is loaded
-    // Note: Auth state change handler will handle the authentication check
     setTimeout(async () => {
         console.log('Running delayed authentication check...');
-        // Only run if no auth state change has occurred yet
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session && session.user) {
-            console.log('User already authenticated, auth state change should have handled this');
+            console.log('User already authenticated, showing application form');
+            showApplicationForm();
+            updateMobileCollectionsVisibility(true);
         } else {
-            console.log('No session found, running authentication check');
-            await checkAuthenticationStatus();
+            console.log('No session found, showing login required');
+            showNotAuthenticatedState();
+            updateMobileCollectionsVisibility(false);
         }
     }, 100);
     
@@ -962,41 +963,11 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
         console.log('User signed in, closing auth modal and checking application status...');
         closeAuthModal();
         
-        // Use the same logic as checkAuthenticationStatus
-        try {
-            console.log('Checking for existing application from auth state change...');
-            const existingApplication = await checkApplicationStatus();
-            console.log('Existing application found from auth state change:', existingApplication);
-            
-            if (existingApplication) {
-                if (existingApplication.status === 'approved') {
-                    console.log('User has approved application, showing approved message');
-                    showApprovedMessage(existingApplication);
-                } else {
-                    console.log('User has non-approved application, showing existing application');
-                    showExistingApplication(existingApplication);
-                }
-            } else {
-                console.log('No existing application, showing application form');
-                showApplicationForm();
-            }
-            
-            updateMobileCollectionsVisibility(true);
-        } catch (appCheckError) {
-            console.error('Error in auth state change application check:', appCheckError);
-            console.log('Error occurred, showing application form as fallback');
-            showApplicationForm();
-            updateMobileCollectionsVisibility(true);
-        }
-        
-        // Add a safety timeout - if nothing happens within 3 seconds, show the form
-        setTimeout(() => {
-            const applicationForm = document.getElementById('application-form');
-            if (applicationForm && applicationForm.classList.contains('hidden')) {
-                console.log('Safety timeout triggered - showing application form');
-                showApplicationForm();
-            }
-        }, 3000);
+        // For now, just show the application form for logged-in users
+        // TODO: Implement proper application status checking once database is working
+        console.log('User signed in, showing application form');
+        showApplicationForm();
+        updateMobileCollectionsVisibility(true);
         // Stay on creators page - don't redirect
     } else if (event === 'SIGNED_OUT') {
         console.log('User signed out, showing login required');
