@@ -604,11 +604,61 @@ function hideAllMessages() {
     });
 }
 
+// Function to convert text to URL-friendly format
+function makeUrlFriendly(text) {
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')  // Replace non-alphanumeric chars with hyphens
+        .replace(/-+/g, '-')          // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, '');       // Remove leading/trailing hyphens
+}
+
 // Setup event listeners
 function setupEventListeners() {
     // Application form submission
     if (applicationForm) {
         applicationForm.addEventListener('submit', handleFormSubmission);
+    }
+    
+    // Auto-fill desired username from TikTok handle and live preview
+    const tiktokHandleInput = document.getElementById('tiktok-handle');
+    const desiredUsernameInput = document.getElementById('desired-username');
+    const usernamePreview = document.getElementById('username-preview');
+    
+    // Auto-fill desired username when TikTok handle changes
+    if (tiktokHandleInput && desiredUsernameInput) {
+        let userHasEditedUsername = false;
+        
+        // Track if user has manually edited the username field
+        desiredUsernameInput.addEventListener('input', function() {
+            userHasEditedUsername = true;
+        });
+        
+        tiktokHandleInput.addEventListener('keyup', function() {
+            const tiktokHandle = this.value.trim().replace(/^@/, '');
+            if (tiktokHandle && !userHasEditedUsername) {
+                // Only auto-fill if the user hasn't manually edited the username field
+                const urlFriendlyUsername = makeUrlFriendly(tiktokHandle);
+                desiredUsernameInput.value = urlFriendlyUsername;
+                updateUsernamePreview(urlFriendlyUsername);
+            }
+        });
+    }
+    
+    // Live preview for desired username
+    if (desiredUsernameInput && usernamePreview) {
+        desiredUsernameInput.addEventListener('keyup', function() {
+            const username = this.value.trim();
+            const urlFriendlyUsername = makeUrlFriendly(username);
+            updateUsernamePreview(urlFriendlyUsername);
+        });
+    }
+    
+    // Helper function to update the preview
+    function updateUsernamePreview(username) {
+        if (usernamePreview) {
+            usernamePreview.textContent = username || 'your-username';
+        }
     }
     
     // Login button
@@ -693,14 +743,22 @@ async function handleFormSubmission(event) {
     event.preventDefault();
     
     const tiktokHandleInput = document.getElementById('tiktok-handle');
+    const desiredUsernameInput = document.getElementById('desired-username');
+    
     if (!tiktokHandleInput) {
         console.error('TikTok handle input not found');
         return;
     }
     
-    const tiktokHandle = tiktokHandleInput.value.trim();
+    if (!desiredUsernameInput) {
+        console.error('Desired username input not found');
+        return;
+    }
     
-    // Validate input
+    const tiktokHandle = tiktokHandleInput.value.trim();
+    const desiredUsername = desiredUsernameInput.value.trim();
+    
+    // Validate TikTok handle
     if (!tiktokHandle) {
         showErrorMessage('Please enter your TikTok handle.');
         return;
@@ -714,7 +772,26 @@ async function handleFormSubmission(event) {
         return;
     }
     
-    console.log('Submitting application for TikTok handle:', cleanTikTokHandle);
+    // Validate desired username
+    if (!desiredUsername) {
+        showErrorMessage('Please enter your desired username.');
+        return;
+    }
+    
+    // Validate username format (no spaces, special characters)
+    const urlFriendlyUsername = makeUrlFriendly(desiredUsername);
+    
+    if (urlFriendlyUsername !== desiredUsername.toLowerCase() || urlFriendlyUsername.includes(' ')) {
+        showErrorMessage('Username can only contain letters, numbers, and hyphens. No spaces or special characters allowed.');
+        return;
+    }
+    
+    if (urlFriendlyUsername.length < 3) {
+        showErrorMessage('Username must be at least 3 characters long.');
+        return;
+    }
+    
+    console.log('Submitting application for TikTok handle:', cleanTikTokHandle, 'and username:', urlFriendlyUsername);
     
     // Show loading state
     showLoadingState();
@@ -747,6 +824,7 @@ async function handleFormSubmission(event) {
                 {
                     user_id: user.id,
                     tiktok_handle: cleanTikTokHandle,
+                    requested_username: urlFriendlyUsername,
                     magic_word: magicWord,
                     status: 'pending',
                     created_at: new Date().toISOString()
