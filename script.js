@@ -4364,20 +4364,36 @@ async function showVideoFor(restaurant) {
                 drawerHandle.style.backgroundColor = '#e5e7eb';
             }
 
+            let rafId = null;
+            let lastDragHeight = null;
+            
             function drag(e) {
                 if (!isDragging) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
                 
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 const deltaY = startY - clientY; // Inverted because we want to drag up to expand
                 const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
                 
-                console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
+                // Only update if height changed significantly (reduces unnecessary updates)
+                if (Math.abs((lastDragHeight || newHeight) - newHeight) < 2) return;
                 
-                // Update both the style and the CSS variable with !important
-                aside.style.setProperty('height', `${newHeight}px`, 'important');
-                document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
-                e.preventDefault();
-                e.stopPropagation();
+                lastDragHeight = newHeight;
+                
+                // Cancel any pending animation frame
+                if (rafId) {
+                    cancelAnimationFrame(rafId);
+                }
+                
+                // Use requestAnimationFrame for smooth 60fps updates
+                rafId = requestAnimationFrame(() => {
+                    // Update both the style and the CSS variable with !important
+                    aside.style.setProperty('height', `${newHeight}px`, 'important');
+                    document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
+                    rafId = null;
+                });
             }
 
             function endDrag(e) {
@@ -4385,6 +4401,12 @@ async function showVideoFor(restaurant) {
                 
                 console.log('End drag event');
                 isDragging = false;
+                
+                // Cancel any pending animation frame
+                if (rafId) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
                 
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';

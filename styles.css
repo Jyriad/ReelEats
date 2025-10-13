@@ -1612,12 +1612,21 @@ html {
 }
 
 /* --- My Collections Button Layout Fix --- */
-#collections-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    flex-direction: row !important;
-    gap: 0.375rem !important; /* 1.5 in Tailwind */
-    white-space: nowrap !important;
+@media (min-width: 769px) {
+    #collections-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        flex-direction: row !important;
+        gap: 0.375rem !important; /* 1.5 in Tailwind */
+        white-space: nowrap !important;
+    }
+}
+
+/* Hide collections button on mobile */
+@media (max-width: 768px) {
+    #collections-btn {
+        display: none !important;
+    }
 }
 
 #collections-btn svg {
