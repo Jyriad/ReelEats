@@ -220,25 +220,92 @@ function generateQRCode(text) {
     if (qrContainer) {
         qrContainer.innerHTML = '';
         
-        // Simple QR code generation (you can replace this with a proper QR library)
+        // Create QR code for the magic word
+        const qr = qrcode(0, 'M');
+        qr.addData(text);
+        qr.make();
+        
+        // Create QR code element
         const qrDiv = document.createElement('div');
         qrDiv.style.cssText = `
             width: 200px;
             height: 200px;
-            border: 2px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
             margin: 0 auto;
-            font-family: monospace;
-            font-size: 12px;
-            text-align: center;
-            word-break: break-all;
+            background: white;
             padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid #333;
         `;
-        qrDiv.textContent = `QR Code for: ${text}`;
+        
+        // Generate QR code HTML
+        qrDiv.innerHTML = qr.createImgTag(4, 8);
+        
         qrContainer.appendChild(qrDiv);
+        
+        // Add label below QR code
+        const label = document.createElement('p');
+        label.textContent = `Magic Word: ${text}`;
+        label.style.cssText = `
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+        `;
+        qrContainer.appendChild(label);
+    }
+}
+
+// Generate QR code for TikTok account
+function generateTikTokQRCode() {
+    const tiktokQRContainer = document.getElementById('tiktok-qr-code');
+    if (tiktokQRContainer) {
+        tiktokQRContainer.innerHTML = '';
+        
+        // Create QR code for TikTok account
+        const tiktokUrl = 'https://www.tiktok.com/@reelgrub';
+        
+        // Use the QR code generator library
+        const qr = qrcode(0, 'M');
+        qr.addData(tiktokUrl);
+        qr.make();
+        
+        // Create QR code element
+        const qrDiv = document.createElement('div');
+        qrDiv.style.cssText = `
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        `;
+        
+        // Generate QR code HTML
+        qrDiv.innerHTML = qr.createImgTag(4, 8);
+        
+        // Add click handler to open TikTok
+        qrDiv.addEventListener('click', () => {
+            window.open(tiktokUrl, '_blank');
+        });
+        
+        qrDiv.style.cursor = 'pointer';
+        qrDiv.title = 'Click to open @reelgrub on TikTok';
+        
+        tiktokQRContainer.appendChild(qrDiv);
+        
+        // Add label below QR code
+        const label = document.createElement('p');
+        label.textContent = 'Follow @reelgrub on TikTok';
+        label.style.cssText = `
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        `;
+        tiktokQRContainer.appendChild(label);
     }
 }
 
@@ -439,8 +506,9 @@ function showExistingApplication(application) {
     if (submittedDate) submittedDate.textContent = new Date(application.created_at).toLocaleDateString();
     if (magicWord) magicWord.textContent = application.magic_word;
     
-    // Generate QR code
+    // Generate QR codes
     generateQRCode(application.magic_word);
+    generateTikTokQRCode();
 }
 
 // Show approved message
@@ -764,8 +832,9 @@ function showMagicWordMessage(tiktokHandle, magicWord) {
     if (submittedDate) submittedDate.textContent = new Date().toLocaleDateString();
     if (magicWordElement) magicWordElement.textContent = magicWord;
     
-    // Generate QR code
+    // Generate QR codes
     generateQRCode(magicWord);
+    generateTikTokQRCode();
 }
 
 // Handle login
