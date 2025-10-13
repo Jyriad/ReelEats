@@ -126,19 +126,20 @@ async function checkApplicationStatus() {
             return null;
         }
         
-    } catch (error) {
-        console.error('Error in checkApplicationStatus:', error);
-        // Fallback: show application form for logged-in users
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user) {
-            console.log('Error occurred, showing application form as fallback');
-            const applicationForm = document.getElementById('application-form');
-            if (applicationForm) {
-                applicationForm.style.display = 'block';
+        } catch (error) {
+            console.error('Error in checkApplicationStatus:', error);
+            console.log('Error details:', error.message, error.code);
+            // Fallback: show application form for logged-in users
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) {
+                console.log('Error occurred, showing application form as fallback for user:', user.email);
+                const applicationForm = document.getElementById('application-form');
+                if (applicationForm) {
+                    applicationForm.style.display = 'block';
+                }
             }
+            return null;
         }
-        return null;
-    }
 }
 
 // Magic Word Generator
@@ -217,21 +218,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Running delayed authentication check...');
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session && session.user) {
-            console.log('User already authenticated, checking application status');
+            console.log('User already authenticated:', session.user.email, 'ID:', session.user.id);
             try {
+                console.log('Calling checkApplicationStatus...');
                 const existingApplication = await checkApplicationStatus();
+                console.log('checkApplicationStatus returned:', existingApplication);
+                
                 if (existingApplication) {
+                    console.log('Found existing application, status:', existingApplication.status);
                     if (existingApplication.status === 'approved') {
+                        console.log('Showing approved message');
                         showApprovedMessage(existingApplication);
                     } else {
+                        console.log('Showing existing application (magic word)');
                         showExistingApplication(existingApplication);
                     }
                 } else {
+                    console.log('No existing application found, showing application form');
                     showApplicationForm();
                 }
                 updateMobileCollectionsVisibility(true);
             } catch (error) {
                 console.error('Error in delayed auth check:', error);
+                console.log('Error occurred, showing application form as fallback for logged-in user');
                 showApplicationForm();
                 updateMobileCollectionsVisibility(true);
             }
@@ -298,7 +307,17 @@ async function checkAuthenticationStatus() {
         }
     } catch (error) {
         console.error('Error checking authentication status:', error);
-        showNotAuthenticatedState();
+        // Check if user is actually logged in before showing not authenticated state
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session && session.user) {
+            console.log('User is logged in but error occurred, showing application form as fallback');
+            showApplicationForm();
+            updateMobileCollectionsVisibility(true);
+        } else {
+            console.log('User not logged in, showing login required');
+            showNotAuthenticatedState();
+            updateMobileCollectionsVisibility(false);
+        }
     }
 }
 
@@ -1000,7 +1019,8 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
             updateMobileCollectionsVisibility(true);
         } catch (appCheckError) {
             console.error('Error in auth state change application check:', appCheckError);
-            console.log('Error occurred, showing application form as fallback');
+            console.log('Error details:', appCheckError.message, appCheckError.code);
+            console.log('Error occurred, showing application form as fallback for logged-in user');
             showApplicationForm();
             updateMobileCollectionsVisibility(true);
         }
