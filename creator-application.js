@@ -34,41 +34,109 @@ let mobileCollectionsBtn;
 async function checkApplicationStatus() {
     try {
         console.log('checkApplicationStatus: Starting...');
-        const { data: { session } } = await supabaseClient.auth.getSession();
         
-        if (!session || !session.user) {
-            console.log('User not authenticated, cannot check application status');
+        // Define the elements we'll be showing/hiding
+        const applicationForm = document.getElementById('application-form');
+        const applicationStatusContainer = document.getElementById('application-status-container');
+        const loginPrompt = document.getElementById('login-prompt-container');
+        
+        // Get the current user session
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        
+        if (user) {
+            console.log('User is logged in:', user.email);
+            // --- USER IS LOGGED IN ---
+            
+            // Hide the login prompt
+            if (loginPrompt) {
+                loginPrompt.style.display = 'none';
+            }
+            
+            // Query for an existing application with timeout
+            const queryPromise = supabaseClient
+                .from('creator_applications')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
+            
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Database query timeout')), 5000)
+            );
+            
+            console.log('Making database query with timeout...');
+            const { data: application, error } = await Promise.race([queryPromise, timeoutPromise]);
+            
+            console.log('Database query completed. Application:', application, 'Error:', error);
+            
+            if (application && !error) {
+                // --- Logged-in user HAS an application ---
+                console.log('User has existing application, status:', application.status);
+                if (applicationForm) {
+                    applicationForm.style.display = 'none';
+                }
+                if (applicationStatusContainer) {
+                    applicationStatusContainer.style.display = 'block';
+                    // Populate the status container with their info
+                    applicationStatusContainer.innerHTML = `
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Application Status</h3>
+                            <p class="text-gray-600 mb-2"><strong>Status:</strong> <span class="capitalize">${application.status}</span></p>
+                            <p class="text-gray-600 mb-2"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
+                            <p class="text-gray-600 mb-2"><strong>Requested Username:</strong> ${application.requested_username}</p>
+                            <p class="text-gray-600 mb-2"><strong>Submitted:</strong> ${new Date(application.created_at).toLocaleDateString()}</p>
+                            ${application.magic_word ? `<p class="text-gray-600 mb-4"><strong>Magic Word:</strong> ${application.magic_word}</p>` : ''}
+                            <p class="text-sm text-gray-500">We'll review your application and get back to you soon!</p>
+                        </div>
+                    `;
+                }
+                return application;
+            } else {
+                // --- Logged-in user does NOT have an application ---
+                console.log('User has no existing application, showing form');
+                if (applicationForm) {
+                    applicationForm.style.display = 'block';
+                }
+                if (applicationStatusContainer) {
+                    applicationStatusContainer.style.display = 'none';
+                }
+                return null;
+            }
+            
+        } else {
+            console.log('User is not logged in');
+            // --- USER IS NOT LOGGED IN ---
+            if (applicationForm) {
+                applicationForm.style.display = 'none';
+            }
+            if (applicationStatusContainer) {
+                applicationStatusContainer.style.display = 'none';
+            }
+            if (loginPrompt) {
+                loginPrompt.style.display = 'block';
+                loginPrompt.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Sign In Required</h3>
+                        <p class="text-gray-600 mb-4">Please sign up or log in to apply for the Creator Program.</p>
+                        <button id="login-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                            Sign In
+                        </button>
+                    </div>
+                `;
+            }
             return null;
         }
         
-        console.log('Checking application status for user:', session.user.id);
-        
-        // Query the creator_applications table for existing application
-        console.log('Making database query...');
-        const { data, error } = await supabaseClient
-            .from('creator_applications')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-        
-        console.log('Database query completed. Data:', data, 'Error:', error);
-        
-        if (error) {
-            if (error.code === 'PGRST116') {
-                // No rows returned - no existing application
-                console.log('No existing application found (PGRST116)');
-                return null;
-            } else {
-                console.error('Error checking application status:', error);
-                return null;
-            }
-        }
-        
-        console.log('Existing application found:', data);
-        return data;
-        
     } catch (error) {
         console.error('Error in checkApplicationStatus:', error);
+        // Fallback: show application form for logged-in users
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+            console.log('Error occurred, showing application form as fallback');
+            const applicationForm = document.getElementById('application-form');
+            if (applicationForm) {
+                applicationForm.style.display = 'block';
+            }
+        }
         return null;
     }
 }
@@ -920,6 +988,15 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
             showApplicationForm();
             updateMobileCollectionsVisibility(true);
         }
+        
+        // Add a safety timeout - if nothing happens within 3 seconds, show the form
+        setTimeout(() => {
+            const applicationForm = document.getElementById('application-form');
+            if (applicationForm && applicationForm.classList.contains('hidden')) {
+                console.log('Safety timeout triggered - showing application form');
+                showApplicationForm();
+            }
+        }, 3000);
         // Stay on creators page - don't redirect
     } else if (event === 'SIGNED_OUT') {
         console.log('User signed out, showing login required');
