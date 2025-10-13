@@ -1,102 +1,16 @@
-// Creator Application JavaScript
-import { CONFIG, versionNumber } from './config.js';
+// Creator Application System - Fixed and Reliable
+const { createClient } = supabase;
 
 // Initialize Supabase client
-const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const supabaseClient = createClient(
+    'https://jsuxrpnfofkigdfpnuua.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8'
+);
 
-// DOM elements
-let applicationForm;
-let loginRequired;
-let successMessage;
-let errorMessage;
-let loadingState;
-let loginBtn;
-let signupBtn;
-let retryBtn;
-
-// Auth modal elements
-let authModal;
-let closeAuthModalBtn;
-let loginForm;
-let signupForm;
-let switchAuthModeBtn;
-let googleSigninBtn;
-let authTitle;
-let authFeedback;
-
-// Mobile menu elements
-let mobileMenuBtn;
-let mobileMenuModal;
-let closeMobileMenu;
-let mobileCollectionsBtn;
-
-// Check Application Status
-async function checkApplicationStatus() {
-    try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        
-        if (!session || !session.user) {
-            console.log('User not authenticated, cannot check application status');
-            return null;
-        }
-        
-        console.log('Checking application status for user:', session.user.id);
-        
-        // Query the creator_applications table for existing application
-        const { data, error } = await supabaseClient
-            .from('creator_applications')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-        
-        if (error) {
-            if (error.code === 'PGRST116') {
-                // No rows returned - no existing application
-                console.log('No existing application found');
-                return null;
-            } else {
-                console.error('Error checking application status:', error);
-                return null;
-            }
-        }
-        
-        console.log('Existing application found:', data);
-        return data;
-        
-    } catch (error) {
-        console.error('Error in checkApplicationStatus:', error);
-        return null;
-    }
-}
-
-// Magic Word Generator
-function generateMagicWord() {
-    const adjectives = [
-        'Blue', 'Red', 'Green', 'Purple', 'Golden', 'Silver', 'Bright', 'Dark', 'Happy', 'Cool',
-        'Fast', 'Slow', 'Big', 'Small', 'Hot', 'Cold', 'Sweet', 'Sour', 'Fresh', 'Clean'
-    ];
-    
-    const nouns = [
-        'Ocean', 'Mountain', 'River', 'Forest', 'Desert', 'Island', 'Bridge', 'Castle', 'Garden', 'Valley',
-        'Star', 'Moon', 'Sun', 'Cloud', 'Wind', 'Fire', 'Water', 'Earth', 'Sky', 'Dream'
-    ];
-    
-    const numbers = [
-        '47', '23', '89', '12', '56', '78', '34', '91', '65', '42',
-        '18', '73', '29', '84', '37', '52', '96', '14', '67', '81'
-    ];
-    
-    // Randomly select one word from each array
-    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    const number = numbers[Math.floor(Math.random() * numbers.length)];
-    
-    // Combine into a memorable phrase
-    const magicWord = `${adjective}-${noun}-${number}`;
-    
-    console.log('Generated magic word:', magicWord);
-    return magicWord;
-}
+// Global variables
+let applicationForm, loginRequired, successMessage, errorMessage, loadingState;
+let loginBtn, signupBtn, retryBtn;
+let authModal, closeAuthModalBtn, loginForm, signupForm, switchAuthModeBtn, googleSigninBtn;
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async () => {
@@ -119,78 +33,382 @@ document.addEventListener('DOMContentLoaded', async () => {
     signupForm = document.getElementById('signup-form');
     switchAuthModeBtn = document.getElementById('switch-auth-mode');
     googleSigninBtn = document.getElementById('google-signin-btn');
-    authTitle = document.getElementById('auth-title');
-    authFeedback = document.getElementById('auth-feedback');
     
-    // Ensure auth modal is hidden on page load
+    // Hide auth modal on page load
     if (authModal) {
         authModal.classList.add('hidden');
         authModal.style.display = 'none';
         console.log('Auth modal hidden on page load');
         console.log('Modal classes after hiding:', authModal.className);
         console.log('Modal display style after hiding:', authModal.style.display);
-    } else {
-        console.error('Auth modal element not found');
     }
     
-    // Get mobile menu elements
-    mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    mobileMenuModal = document.getElementById('mobile-menu-modal');
-    closeMobileMenu = document.getElementById('close-mobile-menu');
-    mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
-    
-    // Check authentication status with a small delay to ensure session is loaded
-    setTimeout(async () => {
-        console.log('Running delayed authentication check...');
-        await checkAuthenticationStatus();
-    }, 100);
+        // Check authentication status with a small delay to ensure session is loaded
+        setTimeout(async () => {
+            console.log('Running delayed authentication check...');
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                console.log('User already authenticated:', session.user.email, 'ID:', session.user.id);
+                updateUserUI(session.user);
+                try {
+                    console.log('Calling checkApplicationStatus...');
+                    
+                    // Add a safety timeout - if checkApplicationStatus takes too long, show form
+                    const checkPromise = checkApplicationStatus();
+                    const safetyTimeout = new Promise((resolve) => {
+                        setTimeout(() => {
+                            console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
+                            resolve(null);
+                        }, 1500);
+                    });
+                    
+                    const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
+                    console.log('checkApplicationStatus returned:', existingApplication);
+                    
+                    if (existingApplication) {
+                        console.log('Found existing application, status:', existingApplication.status);
+                        if (existingApplication.status === 'approved') {
+                            console.log('Showing approved message');
+                            showApprovedMessage(existingApplication);
+                        } else {
+                            console.log('Showing existing application (magic word)');
+                            showExistingApplication(existingApplication);
+                        }
+                    } else {
+                        console.log('No existing application found or timeout occurred, showing application form');
+                        showApplicationForm();
+                    }
+                    updateMobileCollectionsVisibility(true);
+                } catch (error) {
+                    console.error('Error in delayed auth check:', error);
+                    console.log('Error occurred, showing application form as fallback for logged-in user');
+                    showApplicationForm();
+                    updateMobileCollectionsVisibility(true);
+                }
+            } else {
+                console.log('No session found, showing login required');
+                updateUserUI(null);
+                showNotAuthenticatedState();
+                updateMobileCollectionsVisibility(false);
+            }
+        }, 50);
     
     // Setup event listeners
     setupEventListeners();
     
     // Update page title with version
-    document.title = `Join the ReelGrub Creator Program - v${versionNumber}`;
+    document.title = `Join the ReelGrub Creator Program - v1.500`;
 });
 
-// Check if user is authenticated
-async function checkAuthenticationStatus() {
+// Check Application Status
+async function checkApplicationStatus() {
     try {
-        console.log('checkAuthenticationStatus called');
+        console.log('checkApplicationStatus: Starting...');
         
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        // Define the elements we'll be showing/hiding
+        const applicationForm = document.getElementById('application-form');
         
-        if (error) {
-            console.error('Error checking authentication:', error);
-            showNotAuthenticatedState();
-            return;
-        }
+        // Get the current user session
+        const { data: { user } } = await supabaseClient.auth.getUser();
         
-        if (session && session.user) {
-            console.log('User is authenticated:', session.user.email);
+        if (user) {
+            console.log('User is logged in:', user.email);
+            // --- USER IS LOGGED IN ---
             
-            // Check if user has an existing application
-            const existingApplication = await checkApplicationStatus();
+            // User is logged in - no need to hide login prompt since we'll show appropriate content
             
-            if (existingApplication) {
-                if (existingApplication.status === 'approved') {
-                    showApprovedMessage(existingApplication);
+            // Query for an existing application with timeout
+            console.log('Creating database query promise...');
+            const queryPromise = supabaseClient
+                .from('creator_applications')
+                .select('id, user_id, tiktok_handle, requested_username, magic_word, status, created_at')
+                .eq('user_id', user.id)
+                .single();
+            
+            console.log('Creating timeout promise...');
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => {
+                    console.log('Database query timeout triggered after 1 second');
+                    reject(new Error('Database query timeout'));
+                }, 1000)
+            );
+            
+            console.log('Starting Promise.race with database query and timeout...');
+            const { data: application, error } = await Promise.race([queryPromise, timeoutPromise]);
+            
+            console.log('Database query completed. Application:', application, 'Error:', error);
+            
+            if (application && !error) {
+                // --- Logged-in user HAS an application ---
+                console.log('User has existing application, status:', application.status);
+                if (application.status === 'approved') {
+                    console.log('Showing approved message');
+                    showApprovedMessage(application);
                 } else {
-                    showExistingApplication(existingApplication);
+                    console.log('Showing existing application (magic word)');
+                    showExistingApplication(application);
                 }
+                return application;
             } else {
+                // --- Logged-in user does NOT have an application ---
+                console.log('User has no existing application, showing form');
                 showApplicationForm();
+                return null;
             }
             
-            updateMobileCollectionsVisibility(true);
         } else {
-            console.log('User is not authenticated');
+            console.log('User is not logged in');
+            // --- USER IS NOT LOGGED IN ---
             showNotAuthenticatedState();
-            updateMobileCollectionsVisibility(false);
+            return null;
         }
+        
     } catch (error) {
-        console.error('Error checking authentication status:', error);
-        showNotAuthenticatedState();
+        console.error('Error in checkApplicationStatus:', error);
+        console.log('Error details:', error.message, error.code);
+        // Fallback: show application form for logged-in users
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+            console.log('Error occurred, showing application form as fallback for user:', user.email);
+            showApplicationForm();
+        } else {
+            showNotAuthenticatedState();
+        }
+        return null;
     }
+}
+
+// Magic Word Generator
+function generateMagicWord() {
+    const adjectives = [
+        'Blue', 'Red', 'Green', 'Purple', 'Golden', 'Silver', 'Bright', 'Dark', 'Happy', 'Cool',
+        'Swift', 'Bold', 'Calm', 'Wild', 'Sweet', 'Sharp', 'Warm', 'Cold', 'Loud', 'Quiet'
+    ];
+    
+    const nouns = [
+        'Tiger', 'Eagle', 'Dolphin', 'Lion', 'Wolf', 'Bear', 'Fox', 'Hawk', 'Shark', 'Falcon',
+        'Phoenix', 'Dragon', 'Unicorn', 'Griffin', 'Pegasus', 'Kraken', 'Yeti', 'Sphinx', 'Minotaur', 'Centaur'
+    ];
+    
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const number = Math.floor(Math.random() * 999) + 1;
+    
+    return `${adjective}${noun}${number}`;
+}
+
+// Make text URL-friendly
+function makeUrlFriendly(text) {
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+// Update username preview
+function updateUsernamePreview(username) {
+    const usernamePreview = document.getElementById('username-preview');
+    if (usernamePreview) {
+        usernamePreview.textContent = username || 'your-username';
+    }
+}
+
+// Generate QR code
+function generateQRCode(text) {
+    const qrContainer = document.getElementById('qr-code');
+    if (qrContainer) {
+        qrContainer.innerHTML = '';
+        
+        // Create QR code for the magic word
+        const qr = qrcode(0, 'M');
+        qr.addData(text);
+        qr.make();
+        
+        // Create QR code element
+        const qrDiv = document.createElement('div');
+        qrDiv.style.cssText = `
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid #333;
+        `;
+        
+        // Generate QR code HTML
+        qrDiv.innerHTML = qr.createImgTag(4, 8);
+        
+        qrContainer.appendChild(qrDiv);
+        
+        // Add label below QR code
+        const label = document.createElement('p');
+        label.textContent = `Magic Word: ${text}`;
+        label.style.cssText = `
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+        `;
+        qrContainer.appendChild(label);
+    }
+}
+
+// Generate QR code for TikTok account
+function generateTikTokQRCode() {
+    const tiktokQRContainer = document.getElementById('tiktok-qr-code');
+    if (tiktokQRContainer) {
+        tiktokQRContainer.innerHTML = '';
+        
+        // Create QR code for TikTok account
+        const tiktokUrl = 'https://www.tiktok.com/@reelgrub';
+        
+        // Use the QR code generator library
+        const qr = qrcode(0, 'M');
+        qr.addData(tiktokUrl);
+        qr.make();
+        
+        // Create QR code element
+        const qrDiv = document.createElement('div');
+        qrDiv.style.cssText = `
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        `;
+        
+        // Generate QR code HTML
+        qrDiv.innerHTML = qr.createImgTag(4, 8);
+        
+        // Add click handler to open TikTok
+        qrDiv.addEventListener('click', () => {
+            window.open(tiktokUrl, '_blank');
+        });
+        
+        qrDiv.style.cursor = 'pointer';
+        qrDiv.title = 'Click to open @reelgrub on TikTok';
+        
+        tiktokQRContainer.appendChild(qrDiv);
+        
+        // Add label below QR code
+        const label = document.createElement('p');
+        label.textContent = 'Follow @reelgrub on TikTok';
+        label.style.cssText = `
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        `;
+        tiktokQRContainer.appendChild(label);
+    }
+}
+
+// Show application form
+function showApplicationForm() {
+    console.log('showApplicationForm called');
+    console.log('applicationForm element:', applicationForm);
+    
+    // Hide all messages first
+    hideAllMessages();
+    
+    // Show the application form
+    if (applicationForm) {
+        applicationForm.classList.remove('hidden');
+        console.log('Application form should now be visible');
+    } else {
+        console.error('Application form element not found!');
+    }
+    
+    // Also show the benefits section for logged-in users
+    showBenefitsSection();
+}
+
+// Show benefits section for all users
+function showBenefitsSection() {
+    const mainContent = document.querySelector('main');
+    if (mainContent && !document.getElementById('benefits-section')) {
+        // Create benefits section
+        const benefitsSection = document.createElement('div');
+        benefitsSection.id = 'benefits-section';
+        benefitsSection.className = 'max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+        benefitsSection.innerHTML = `
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Why Join as a Creator?</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Grow Your Audience</h3>
+                        <p class="text-gray-600">Reach food lovers who are actively looking for restaurant recommendations.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Engage Your Followers</h3>
+                        <p class="text-gray-600">Share your favorite places with your followers and help them discover amazing restaurants through your recommendations.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Show Your Reach</h3>
+                        <p class="text-gray-600">Map all the fun locations you have eaten at and showcase your culinary adventures to build your food influencer presence.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Insert benefits section before the application form
+        if (applicationForm) {
+            applicationForm.parentNode.insertBefore(benefitsSection, applicationForm);
+        }
+    }
+}
+
+// Show success message
+function showSuccessMessage() {
+    hideAllMessages();
+    successMessage.classList.remove('hidden');
+}
+
+// Show error message
+function showErrorMessage(message) {
+    hideAllMessages();
+    errorMessage.classList.remove('hidden');
+    const errorText = document.getElementById('error-text');
+    if (errorText) {
+        errorText.textContent = message;
+    }
+}
+
+// Show loading state
+function showLoadingState() {
+    hideAllMessages();
+    loadingState.classList.remove('hidden');
+}
+
+// Hide all messages
+function hideAllMessages() {
+    const elements = [loginRequired, applicationForm, successMessage, errorMessage, loadingState];
+    elements.forEach(element => {
+        if (element) {
+            element.classList.add('hidden');
+        }
+    });
 }
 
 // Show public application form for non-authenticated users
@@ -215,7 +433,7 @@ function showNotAuthenticatedState() {
                         <div class="text-center">
                             <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
                             </div>
                             <h3 class="text-lg font-semibold text-gray-900 mb-2">Grow Your Audience</h3>
@@ -242,375 +460,97 @@ function showNotAuthenticatedState() {
                     </div>
                 </div>
 
-                <!-- Authentication Required -->
-                <div class="bg-white rounded-lg shadow-lg p-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Ready to Apply?</h2>
-                    <div class="text-center">
-                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Sign In Required</h3>
-                        <p class="text-gray-600 mb-6">Please sign in or create an account to submit your creator application.</p>
-                        <div class="space-x-4">
-                            <button id="show-login-btn" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
-                                Sign In
-                            </button>
-                            <button id="show-signup-btn" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
-                                Sign Up
-                            </button>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-4">
-                            Don't worry, signing up is quick and free!
-                        </p>
-                    </div>
+                <!-- Sign In Button -->
+                <div class="text-center">
+                    <button id="signin-apply-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
+                        Sign In to Apply
+                    </button>
                 </div>
             </div>
         `;
         
-        // Add event listeners for the auth buttons
-        setTimeout(() => {
-            const showLoginBtn = document.getElementById('show-login-btn');
-            const showSignupBtn = document.getElementById('show-signup-btn');
-            
-            console.log('Looking for auth buttons...');
-            console.log('showLoginBtn:', showLoginBtn);
-            console.log('showSignupBtn:', showSignupBtn);
-            
-            if (showLoginBtn) {
-                console.log('Adding click listener to login button');
-                showLoginBtn.addEventListener('click', () => {
-                    console.log('Login button clicked');
-                    openAuthModal('login');
-                });
-            } else {
-                console.error('Login button not found');
-            }
-            
-            if (showSignupBtn) {
-                console.log('Adding click listener to signup button');
-                showSignupBtn.addEventListener('click', () => {
-                    console.log('Signup button clicked');
-                    openAuthModal('signup');
-                });
-            } else {
-                console.error('Signup button not found');
-            }
-        }, 100);
-    }
-}
-
-// Show application form
-function showApplicationForm() {
-    hideAllMessages();
-    applicationForm.classList.remove('hidden');
-}
-
-// Show success message
-function showSuccessMessage() {
-    hideAllMessages();
-    successMessage.classList.remove('hidden');
-}
-
-// Show magic word message
-function showMagicWordMessage(tiktokHandle, magicWord) {
-    hideAllMessages();
-    
-    // Update success message content with QR code
-    const successTitle = successMessage.querySelector('h3');
-    const successText = successMessage.querySelector('p');
-    const continueLink = successMessage.querySelector('a');
-    
-    if (successTitle) successTitle.textContent = 'Application Submitted!';
-    if (successText) {
-        successText.innerHTML = `
-            <div class="mb-6">
-                <p class="text-gray-600 mb-4">To verify your account, please complete one of the following steps:</p>
-                
-                <!-- Option 1: QR Code -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
-                    <div id="qrcode-container" class="flex justify-center my-3"></div>
-                    <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reelgrub</p>
-                    <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
-                </div>
-                
-                <!-- Option 2: Manual -->
-                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                    <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
-                    <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reelgrub</strong>, and send us a DM with your magic word</p>
-                </div>
-                
-                <!-- Magic Word Display -->
-                <div class="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 text-center">
-                    <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
-                    <p class="text-3xl font-bold text-purple-600">${magicWord}</p>
-                </div>
-                
-                <p class="text-gray-600 mt-4 text-sm">We'll review your application and get back to you soon!</p>
-            </div>
-        `;
-    }
-    if (continueLink) continueLink.textContent = 'Continue Exploring';
-    
-    // Generate QR Code
-    const qrContainer = document.getElementById('qrcode-container');
-    if (qrContainer) {
-        qrContainer.innerHTML = ''; // Clear any previous QR code
-        const tiktokProfileUrl = 'https://www.tiktok.com/@reelgrub';
-        
-        try {
-            const qr = qrcode(0, 'M'); // type 0, error correction 'M'
-            qr.addData(tiktokProfileUrl);
-            qr.make();
-            qrContainer.innerHTML = qr.createImgTag(4, 8); // (size, margin)
-            console.log('QR code generated successfully');
-        } catch (e) {
-            console.error("Error generating QR code:", e);
-            qrContainer.innerHTML = '<p class="text-sm text-gray-500">QR code unavailable</p>';
+        // Re-attach event listener to the new login button
+        const newLoginBtn = document.getElementById('signin-apply-btn');
+        if (newLoginBtn) {
+            newLoginBtn.addEventListener('click', (e) => {
+                console.log('Sign In to Apply button clicked');
+                e.preventDefault();
+                openAuthModal('login');
+            });
+        } else {
+            console.error('Sign In to Apply button not found after creation');
         }
     }
-    
-    successMessage.classList.remove('hidden');
 }
 
-// Show existing application
+// Show existing application (magic word instructions)
 function showExistingApplication(application) {
     hideAllMessages();
     
-    // Get elements
-    const successIcon = successMessage.querySelector('.w-16.h-16');
-    const successIconSvg = successMessage.querySelector('.w-8.h-8');
-    const successTitle = successMessage.querySelector('h3');
-    const successText = successMessage.querySelector('p');
-    const continueLink = successMessage.querySelector('a');
-    
-    // Update icon and colors based on status
-    if (application.status === 'approved') {
-        // Approved: Green checkmark
-        if (successIcon) {
-            successIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
-        }
-        if (successIconSvg) {
-            successIconSvg.setAttribute('class', 'w-8 h-8 text-green-600');
-            successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
-        }
-    } else if (application.status === 'rejected') {
-        // Rejected: Red X
-        if (successIcon) {
-            successIcon.className = 'w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4';
-        }
-        if (successIconSvg) {
-            successIconSvg.setAttribute('class', 'w-8 h-8 text-red-600');
-            successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
-        }
-    } else {
-        // Pending: Yellow clock
-        if (successIcon) {
-            successIcon.className = 'w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4';
-        }
-        if (successIconSvg) {
-            successIconSvg.setAttribute('class', 'w-8 h-8 text-yellow-600');
-            successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
-        }
-    }
-    
-    // Update title
-    if (successTitle) {
-        if (application.status === 'approved') {
-            successTitle.textContent = 'Application Approved!';
-        } else if (application.status === 'rejected') {
-            successTitle.textContent = 'Application Status';
-        } else {
-            successTitle.textContent = 'Application Under Review';
-        }
-    }
-    
-    // Update content
-    if (successText) {
-        const statusColor = application.status === 'approved' ? 'text-green-600' : 
-                           application.status === 'rejected' ? 'text-red-600' : 'text-yellow-600';
-        
-        // Only show magic word and verification instructions if status is not 'approved'
-        const showMagicWord = application.status !== 'approved';
-        
-        let magicWordSection = '';
-        let verificationSection = '';
-        let statusMessage = '';
-        
-        if (showMagicWord) {
-            magicWordSection = `
-                <div class="mb-4">
-                    <!-- Option 1: QR Code -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
-                        <div id="existing-qrcode-container" class="flex justify-center my-3"></div>
-                        <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reelgrub</p>
-                        <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
-                    </div>
-                    
-                    <!-- Option 2: Manual -->
-                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                        <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
-                        <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reelgrub</strong>, and send us a DM with your magic word</p>
-                    </div>
-                    
-                    <!-- Magic Word Display -->
-                    <div class="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 text-center mb-4">
-                        <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
-                        <p class="text-3xl font-bold text-purple-600">${application.magic_word}</p>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Status-specific messages
-        if (application.status === 'pending') {
-            statusMessage = `
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p class="text-blue-800 mb-2"><strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span></p>
-                    <p class="text-blue-800 mb-2"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
-                    <p class="text-blue-700">We're currently reviewing your application and will get back to you soon!</p>
-                </div>
-            `;
-        } else if (application.status === 'approved') {
-            statusMessage = `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
-                    <p class="text-green-800 mb-3"><strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span></p>
-                    <p class="text-green-800 mb-3"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
-                    <p class="text-green-700 text-lg mb-4">🎉 Congratulations! Your application has been approved!</p>
-                    <p class="text-green-600">You are now a verified creator and can start sharing your restaurant recommendations with the ReelGrub community.</p>
-                </div>
-            `;
-        } else if (application.status === 'rejected') {
-            statusMessage = `
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p class="text-red-800 mb-2"><strong>Status:</strong> <span class="${statusColor} font-semibold capitalize">${application.status}</span></p>
-                    <p class="text-red-800 mb-2"><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
-                    <p class="text-red-700">Your application was not approved at this time. You can reapply if you wish.</p>
-                </div>
-            `;
-        }
-        
-        successText.innerHTML = `
-            ${magicWordSection}
-            ${statusMessage}
-        `;
-    }
-    
-    // Update continue button
-    if (continueLink) {
-        if (application.status === 'approved') {
-            continueLink.textContent = 'Start Creating';
-            continueLink.href = '/explore';
-            continueLink.className = 'inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors';
-        } else {
-            continueLink.textContent = 'Continue Exploring';
-            continueLink.href = '/explore';
-            continueLink.className = 'inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors';
-        }
-    }
-    
-    // Generate QR Code for existing applications (if status is not approved)
-    if (application.status !== 'approved') {
-        const existingQrContainer = document.getElementById('existing-qrcode-container');
-        if (existingQrContainer) {
-            existingQrContainer.innerHTML = ''; // Clear any previous QR code
-            const tiktokProfileUrl = 'https://www.tiktok.com/@reelgrub';
-            
-            try {
-                const qr = qrcode(0, 'M'); // type 0, error correction 'M'
-                qr.addData(tiktokProfileUrl);
-                qr.make();
-                existingQrContainer.innerHTML = qr.createImgTag(4, 8); // (size, margin)
-                console.log('QR code for existing application generated successfully');
-            } catch (e) {
-                console.error("Error generating QR code for existing application:", e);
-                existingQrContainer.innerHTML = '<p class="text-sm text-gray-500">QR code unavailable</p>';
-            }
-        }
-    }
-    
+    // Show success message with application details
     successMessage.classList.remove('hidden');
+    
+    // Show benefits section for logged-in users
+    showBenefitsSection();
+    
+    // Populate the success message with application data
+    const displayTiktokHandle = document.getElementById('display-tiktok-handle');
+    const displayUsername = document.getElementById('display-username');
+    const displayStatus = document.getElementById('display-status');
+    const submittedDate = document.getElementById('submitted-date');
+    const magicWord = document.getElementById('magic-word');
+    const magicWordInstruction = document.getElementById('magic-word-instruction');
+    
+    if (displayTiktokHandle) displayTiktokHandle.textContent = '@' + application.tiktok_handle;
+    if (displayUsername) displayUsername.textContent = application.requested_username;
+    if (displayStatus) displayStatus.textContent = application.status.charAt(0).toUpperCase() + application.status.slice(1);
+    if (submittedDate) submittedDate.textContent = new Date(application.created_at).toLocaleDateString();
+    if (magicWord) magicWord.textContent = application.magic_word;
+    if (magicWordInstruction) magicWordInstruction.textContent = application.magic_word;
+    
+    // Generate TikTok QR code
+    generateTikTokQRCode();
 }
 
-// Show simple approved message for approved creators
+// Show approved message
 function showApprovedMessage(application) {
     hideAllMessages();
     
-    // Get elements
-    const successIcon = successMessage.querySelector('.w-16.h-16');
-    const successIconSvg = successMessage.querySelector('.w-8.h-8');
-    const successTitle = successMessage.querySelector('h3');
-    const successText = successMessage.querySelector('p');
-    const continueLink = successMessage.querySelector('a');
+    // Show success message with approval details
+    successMessage.classList.remove('hidden');
     
-    // Set approved styling
-    if (successIcon) {
-        successIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
-    }
-    if (successIconSvg) {
-        successIconSvg.setAttribute('class', 'w-8 h-8 text-green-600');
-        successIconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
-    }
+    // Show benefits section for approved creators
+    showBenefitsSection();
     
-    if (successTitle) {
-        successTitle.textContent = 'Creator Status: Approved';
-    }
-    
-    if (successText) {
-        successText.innerHTML = `
-            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
-                <p class="text-green-800 mb-3"><strong>Congratulations!</strong></p>
-                <p class="text-green-700 text-lg mb-4">🎉 Your request to join as a creator has been approved!</p>
-                <p class="text-green-600">You are now a verified creator and can start sharing your restaurant recommendations with the ReelGrub community.</p>
+    // Clear the success message content and show approval message
+    const successMessageContent = document.querySelector('#success-message .bg-white');
+    if (successMessageContent) {
+        successMessageContent.innerHTML = `
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold text-green-800 mb-4">🎉 Congratulations!</h2>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Your application to be a creator has been approved!</h3>
+                <p class="text-gray-600 mb-6">Welcome to the ReelGrub Creator Program. You can now start adding your favorite restaurants and creating amazing food content.</p>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-medium text-gray-800 mb-2">Your Creator Details:</h4>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><strong>TikTok Handle:</strong> @${application.tiktok_handle}</p>
+                        <p><strong>Creator Username:</strong> ${application.requested_username}</p>
+                        <p><strong>Approved:</strong> ${new Date().toLocaleDateString()}</p>
+                    </div>
+                </div>
+                
+                <a href="/dashboard" class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
+                    Go to Creator Dashboard
+                </a>
             </div>
         `;
     }
-    
-    if (continueLink) {
-        continueLink.textContent = 'Start Creating';
-        continueLink.href = '/explore';
-        continueLink.className = 'inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors';
-    }
-    
-    successMessage.classList.remove('hidden');
-}
-
-// Show error message
-function showErrorMessage(message) {
-    hideAllMessages();
-    errorMessage.classList.remove('hidden');
-    const errorText = document.getElementById('error-text');
-    if (errorText) {
-        errorText.textContent = message || 'There was an error submitting your application. Please try again.';
-    }
-}
-
-// Show loading state
-function showLoadingState() {
-    hideAllMessages();
-    loadingState.classList.remove('hidden');
-}
-
-// Hide all messages
-function hideAllMessages() {
-    const elements = [loginRequired, applicationForm, successMessage, errorMessage, loadingState];
-    elements.forEach(element => {
-        if (element) {
-            element.classList.add('hidden');
-        }
-    });
-}
-
-// Function to convert text to URL-friendly format
-function makeUrlFriendly(text) {
-    return text
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')  // Replace non-alphanumeric chars with hyphens
-        .replace(/-+/g, '-')          // Replace multiple hyphens with single hyphen
-        .replace(/^-|-$/g, '');       // Remove leading/trailing hyphens
 }
 
 // Setup event listeners
@@ -654,87 +594,132 @@ function setupEventListeners() {
         });
     }
     
-    // Helper function to update the preview
-    function updateUsernamePreview(username) {
-        if (usernamePreview) {
-            usernamePreview.textContent = username || 'your-username';
-        }
-    }
-    
     // Login button
     if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
+        console.log('Setting up login button event listener');
+        loginBtn.addEventListener('click', (e) => {
+            console.log('Login button clicked');
+            e.preventDefault();
             openAuthModal('login');
         });
+    } else {
+        console.log('Login button not found during setup');
     }
     
     // Signup button
     if (signupBtn) {
-        signupBtn.addEventListener('click', () => {
+        console.log('Setting up signup button event listener');
+        signupBtn.addEventListener('click', (e) => {
+            console.log('Signup button clicked');
+            e.preventDefault();
             openAuthModal('signup');
         });
+    } else {
+        console.log('Signup button not found during setup');
     }
     
     // Retry button
     if (retryBtn) {
         retryBtn.addEventListener('click', () => {
-            showApplicationForm();
+            window.location.reload();
         });
     }
     
-    // Auth modal event listeners
+    // Auth modal
     if (closeAuthModalBtn) {
-        closeAuthModalBtn.addEventListener('click', () => {
-            console.log('Close auth modal button clicked');
-            closeAuthModal();
-        });
-    } else {
-        console.error('Close auth modal button not found');
+        closeAuthModalBtn.addEventListener('click', closeAuthModal);
     }
     
     if (authModal) {
         authModal.addEventListener('click', (e) => {
-            if (e.target === authModal) closeAuthModal();
+            if (e.target === authModal) {
+                closeAuthModal();
+            }
         });
     }
     
-    if (switchAuthModeBtn) {
-        switchAuthModeBtn.addEventListener('click', switchAuthMode);
-    }
-    
+    // Login form
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
     
+    // Signup form
     if (signupForm) {
         signupForm.addEventListener('submit', handleSignup);
     }
     
+    // Switch auth mode
+    if (switchAuthModeBtn) {
+        switchAuthModeBtn.addEventListener('click', switchAuthMode);
+    }
+    
+    // Google signin
     if (googleSigninBtn) {
         googleSigninBtn.addEventListener('click', handleGoogleSignin);
     }
     
-    // Mobile menu event listeners
-    if (mobileMenuBtn && mobileMenuModal) {
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenuModal = document.getElementById('mobile-menu-modal');
+    const closeMobileMenu = document.getElementById('close-mobile-menu');
+    
+    if (mobileMenuBtn) {
         mobileMenuBtn.addEventListener('click', () => {
-            mobileMenuModal.classList.remove('hidden');
-            mobileMenuModal.style.display = 'block';
+            if (mobileMenuModal) {
+                mobileMenuModal.classList.remove('hidden');
+                mobileMenuModal.style.display = 'flex';
+            }
         });
     }
     
-    if (closeMobileMenu && mobileMenuModal) {
+    if (closeMobileMenu) {
         closeMobileMenu.addEventListener('click', () => {
-            mobileMenuModal.classList.add('hidden');
-            mobileMenuModal.style.display = 'none';
+            if (mobileMenuModal) {
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            }
         });
     }
     
-    if (mobileCollectionsBtn) {
-        mobileCollectionsBtn.addEventListener('click', () => {
-            window.location.href = '/explore';
-            mobileMenuModal.classList.add('hidden');
-            mobileMenuModal.style.display = 'none';
+    if (mobileMenuModal) {
+        mobileMenuModal.addEventListener('click', (e) => {
+            if (e.target === mobileMenuModal) {
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            }
         });
+    }
+    
+    // Mobile auth buttons
+    const mobileAuthBtn = document.getElementById('mobile-auth-btn');
+    const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    
+    if (mobileAuthBtn) {
+        mobileAuthBtn.addEventListener('click', () => {
+            closeMobileMenuModal();
+            openAuthModal('login');
+        });
+    }
+    
+    if (mobileSignupBtn) {
+        mobileSignupBtn.addEventListener('click', () => {
+            closeMobileMenuModal();
+            openAuthModal('signup');
+        });
+    }
+    
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', () => {
+            closeMobileMenuModal();
+            handleLogout();
+        });
+    }
+    
+    // Desktop logout button
+    const logoutBtn = document.getElementById('logout-button');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
     }
 }
 
@@ -853,146 +838,41 @@ async function handleFormSubmission(event) {
     }
 }
 
-// Listen for authentication state changes
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth state changed:', event, session?.user?.email);
-    console.log('Auth state change - session:', session);
+// Show magic word message
+function showMagicWordMessage(tiktokHandle, magicWord) {
+    console.log('showMagicWordMessage called');
+    hideAllMessages();
     
-    if (event === 'SIGNED_IN' && session?.user) {
-        console.log('User signed in, closing auth modal and checking application status...');
-        closeAuthModal();
-        
-        // Check if user has an existing application
-        const existingApplication = await checkApplicationStatus();
-        console.log('Existing application found:', existingApplication);
-        
-        if (existingApplication) {
-            if (existingApplication.status === 'approved') {
-                console.log('User has approved application, showing approved message');
-                showApprovedMessage(existingApplication);
-            } else {
-                console.log('User has non-approved application, showing existing application');
-                showExistingApplication(existingApplication);
-            }
-        } else {
-            console.log('No existing application, showing application form');
-            showApplicationForm();
-        }
-        
-        updateMobileCollectionsVisibility(true);
-        // Stay on creators page - don't redirect
-    } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out, showing login required');
-        showLoginRequired();
-        updateMobileCollectionsVisibility(false);
-    }
-});
-
-// Authentication modal functions
-function openAuthModal(mode = 'login') {
-    console.log('openAuthModal called with mode:', mode);
-    console.log('authModal variable:', authModal);
-    
-    // Get modal element if not already set
-    const modalElement = authModal || document.getElementById('auth-modal');
-    console.log('modalElement:', modalElement);
-    
-    if (!modalElement) {
-        console.error('Auth modal element not found!');
-        return;
+    // Hide the application form
+    if (applicationForm) {
+        applicationForm.classList.add('hidden');
+        console.log('Application form hidden');
     }
     
-    // Hide feedback
-    const feedbackElement = authFeedback || document.getElementById('auth-feedback');
-    if (feedbackElement) {
-        feedbackElement.classList.add('hidden');
-    }
+    // Show the success message
+    successMessage.classList.remove('hidden');
+    console.log('Success message shown');
     
-    // Set initial mode
-    if (mode === 'signup') {
-        switchToSignup();
-    } else {
-        switchToLogin();
-    }
+    // Populate the success message
+    const displayTiktokHandle = document.getElementById('display-tiktok-handle');
+    const displayUsername = document.getElementById('display-username');
+    const displayStatus = document.getElementById('display-status');
+    const submittedDate = document.getElementById('submitted-date');
+    const magicWordElement = document.getElementById('magic-word');
+    const magicWordInstruction = document.getElementById('magic-word-instruction');
     
-    // Ensure close button has event listener
-    const closeBtn = document.getElementById('close-auth-modal');
-    if (closeBtn) {
-        console.log('Setting up close button listener');
-        // Remove any existing listener and add a new one
-        closeBtn.onclick = () => {
-            console.log('Close button clicked');
-            closeAuthModal();
-        };
-    } else {
-        console.error('Close button not found');
-    }
+    if (displayTiktokHandle) displayTiktokHandle.textContent = '@' + tiktokHandle;
+    if (displayUsername) displayUsername.textContent = document.getElementById('desired-username').value.trim();
+    if (displayStatus) displayStatus.textContent = 'Pending';
+    if (submittedDate) submittedDate.textContent = new Date().toLocaleDateString();
+    if (magicWordElement) magicWordElement.textContent = magicWord;
+    if (magicWordInstruction) magicWordInstruction.textContent = magicWord;
     
-    // Show modal
-    modalElement.classList.remove('hidden');
-    modalElement.classList.add('flex');
-    modalElement.style.display = 'flex';
-    console.log('Modal should now be visible');
+    // Generate TikTok QR code
+    generateTikTokQRCode();
 }
 
-function closeAuthModal() {
-    console.log('closeAuthModal called');
-    
-    // Get modal element if not already set
-    const modalElement = authModal || document.getElementById('auth-modal');
-    
-    if (!modalElement) {
-        console.error('Auth modal not found in closeAuthModal');
-        return;
-    }
-    
-    modalElement.classList.add('hidden');
-    modalElement.classList.remove('flex');
-    modalElement.style.display = 'none';
-    console.log('Auth modal hidden');
-    
-    // Hide feedback
-    if (authFeedback) {
-        authFeedback.classList.add('hidden');
-    }
-}
-
-function switchAuthMode() {
-    if (!loginForm || !signupForm || !switchAuthModeBtn || !authTitle) return;
-    
-    if (loginForm.classList.contains('hidden')) {
-        switchToLogin();
-    } else {
-        switchToSignup();
-    }
-}
-
-function switchToLogin() {
-    if (!loginForm || !signupForm || !switchAuthModeBtn || !authTitle) return;
-    
-    loginForm.classList.remove('hidden');
-    signupForm.classList.add('hidden');
-    authTitle.textContent = 'Sign In';
-    switchAuthModeBtn.textContent = 'Need an account? Sign Up';
-}
-
-function switchToSignup() {
-    if (!loginForm || !signupForm || !switchAuthModeBtn || !authTitle) return;
-    
-    loginForm.classList.add('hidden');
-    signupForm.classList.remove('hidden');
-    authTitle.textContent = 'Sign Up';
-    switchAuthModeBtn.textContent = 'Already have an account? Sign In';
-}
-
-function showAuthFeedback(message, isError = true) {
-    if (!authFeedback) return;
-    
-    authFeedback.textContent = message;
-    authFeedback.className = isError ? 'text-sm text-red-500 mt-4' : 'text-sm text-green-500 mt-4';
-    authFeedback.classList.remove('hidden');
-}
-
+// Handle login
 async function handleLogin(event) {
     event.preventDefault();
     
@@ -1001,25 +881,30 @@ async function handleLogin(event) {
     
     try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email,
-            password
+            email: email,
+            password: password
         });
         
         if (error) {
-            console.error('Login error:', error);
-            showAuthFeedback(error.message);
+            showErrorMessage('Login failed: ' + error.message);
             return;
         }
         
         console.log('Login successful:', data.user.email);
-        // Auth state change will handle the rest
+        closeAuthModal();
+        
+        // Check application status after login
+        setTimeout(async () => {
+            await checkApplicationStatus();
+        }, 100);
         
     } catch (error) {
         console.error('Login error:', error);
-        showAuthFeedback('An unexpected error occurred. Please try again.');
+        showErrorMessage('Login failed. Please try again.');
     }
 }
 
+// Handle signup
 async function handleSignup(event) {
     event.preventDefault();
     
@@ -1028,57 +913,265 @@ async function handleSignup(event) {
     
     try {
         const { data, error } = await supabaseClient.auth.signUp({
-            email,
-            password
+            email: email,
+            password: password
         });
         
         if (error) {
-            console.error('Signup error:', error);
-            showAuthFeedback(error.message);
+            showErrorMessage('Signup failed: ' + error.message);
             return;
         }
         
         console.log('Signup successful:', data.user.email);
-        showAuthFeedback('Check your email for a confirmation link!', false);
+        closeAuthModal();
+        
+        // Check application status after signup
+        setTimeout(async () => {
+            await checkApplicationStatus();
+        }, 100);
         
     } catch (error) {
         console.error('Signup error:', error);
-        showAuthFeedback('An unexpected error occurred. Please try again.');
+        showErrorMessage('Signup failed. Please try again.');
     }
 }
 
+// Handle Google signin
 async function handleGoogleSignin() {
     try {
-        console.log('Starting Google signin process...');
-        
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin + '/creators'
+                redirectTo: window.location.href
             }
         });
         
         if (error) {
-            console.error('Google signin error:', error);
-            showAuthFeedback(error.message);
-            return;
+            showErrorMessage('Google signin failed: ' + error.message);
         }
-        
-        console.log('Google signin initiated successfully, redirecting...');
-        
     } catch (error) {
         console.error('Google signin error:', error);
-        showAuthFeedback('An unexpected error occurred. Please try again.');
+        showErrorMessage('Google signin failed. Please try again.');
     }
 }
 
-// Update mobile collections button visibility
-function updateMobileCollectionsVisibility(isAuthenticated) {
-    if (!mobileCollectionsBtn) return;
+// Open auth modal
+function openAuthModal(mode = 'login') {
+    console.log('openAuthModal called with mode:', mode);
+    console.log('authModal variable:', authModal);
     
-    if (isAuthenticated) {
-        mobileCollectionsBtn.classList.remove('hidden');
+    // Try to get the modal again if it's not found
+    if (!authModal) {
+        console.log('Auth modal not found in variable, trying to get it again...');
+        authModal = document.getElementById('auth-modal');
+        console.log('Retrieved auth modal:', authModal);
+    }
+    
+    if (!authModal) {
+        console.error('Auth modal still not found after retry');
+        return;
+    }
+    
+    console.log('Auth modal found, showing modal');
+    authModal.classList.remove('hidden');
+    authModal.classList.add('flex');
+    authModal.style.display = 'flex';
+    authModal.style.zIndex = '9999';
+    authModal.style.position = 'fixed';
+    authModal.style.top = '0';
+    authModal.style.left = '0';
+    authModal.style.width = '100%';
+    authModal.style.height = '100%';
+    
+    // Set the appropriate form and title based on mode
+    const titleElement = document.getElementById('auth-modal-title');
+    const loginFormElement = document.getElementById('login-form');
+    const signupFormElement = document.getElementById('signup-form');
+    const switchBtn = document.getElementById('switch-auth-mode');
+    
+    if (mode === 'login') {
+        if (titleElement) titleElement.textContent = 'Login';
+        if (loginFormElement) loginFormElement.classList.remove('hidden');
+        if (signupFormElement) signupFormElement.classList.add('hidden');
+        if (switchBtn) switchBtn.textContent = "Don't have an account? Sign Up";
     } else {
-        mobileCollectionsBtn.classList.add('hidden');
+        if (titleElement) titleElement.textContent = 'Sign Up';
+        if (loginFormElement) loginFormElement.classList.add('hidden');
+        if (signupFormElement) signupFormElement.classList.remove('hidden');
+        if (switchBtn) switchBtn.textContent = 'Already have an account? Log in';
+    }
+    
+    console.log('Auth modal should now be visible');
+    console.log('Modal classes after showing:', authModal.className);
+    console.log('Modal style after showing:', authModal.style.display);
+    console.log('Modal computed style:', window.getComputedStyle(authModal).display);
+}
+
+// Close auth modal
+function closeAuthModal() {
+    console.log('closeAuthModal called');
+    
+    if (!authModal) {
+        console.error('Auth modal not found');
+        return;
+    }
+    
+    authModal.classList.add('hidden');
+    authModal.classList.remove('flex');
+    authModal.style.display = 'none';
+    console.log('Auth modal hidden');
+}
+
+// Switch auth mode
+function switchAuthMode() {
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const switchBtn = document.getElementById('switch-auth-mode');
+    
+    if (loginForm && signupForm && switchBtn) {
+        if (loginForm.style.display === 'none') {
+            loginForm.style.display = 'block';
+            signupForm.style.display = 'none';
+            switchBtn.textContent = 'Need an account? Sign up';
+        } else {
+            loginForm.style.display = 'none';
+            signupForm.style.display = 'block';
+            switchBtn.textContent = 'Already have an account? Log in';
+        }
     }
 }
+
+// Close mobile menu modal
+function closeMobileMenuModal() {
+    const mobileMenuModal = document.getElementById('mobile-menu-modal');
+    if (mobileMenuModal) {
+        mobileMenuModal.classList.add('hidden');
+        mobileMenuModal.style.display = 'none';
+    }
+}
+
+// Handle logout
+async function handleLogout() {
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            console.error('Logout error:', error);
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+}
+
+// Update user UI based on authentication state
+function updateUserUI(user) {
+    const loginBtn = document.getElementById('login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const logoutBtn = document.getElementById('logout-button');
+    const mobileAuthBtn = document.getElementById('mobile-auth-btn');
+    const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    
+    if (user) {
+        // User is logged in - hide login/signup, show logout
+        if (loginBtn) {
+            loginBtn.style.display = 'none';
+        }
+        if (signupBtn) {
+            signupBtn.style.display = 'none';
+        }
+        if (logoutBtn) {
+            logoutBtn.style.display = 'block';
+        }
+        if (mobileAuthBtn) {
+            mobileAuthBtn.style.display = 'none';
+        }
+        if (mobileSignupBtn) {
+            mobileSignupBtn.style.display = 'none';
+        }
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.style.display = 'block';
+        }
+    } else {
+        // User is logged out - show login/signup, hide logout
+        if (loginBtn) {
+            loginBtn.style.display = 'block';
+        }
+        if (signupBtn) {
+            signupBtn.style.display = 'block';
+        }
+        if (logoutBtn) {
+            logoutBtn.style.display = 'none';
+        }
+        if (mobileAuthBtn) {
+            mobileAuthBtn.style.display = 'block';
+        }
+        if (mobileSignupBtn) {
+            mobileSignupBtn.style.display = 'block';
+        }
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.style.display = 'none';
+        }
+    }
+}
+
+// Update mobile collections visibility
+function updateMobileCollectionsVisibility(isVisible) {
+    // This function can be used to show/hide mobile collections button
+    // For now, it's a placeholder
+}
+
+// Listen for authentication state changes
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth state changed:', event, session?.user?.email);
+    console.log('Auth state change - session:', session);
+    
+        if (event === 'SIGNED_IN' && session?.user) {
+            console.log('User signed in, closing auth modal and checking application status...');
+            updateUserUI(session.user);
+            closeAuthModal();
+            
+            // Check if user has an existing application
+            try {
+                console.log('Checking for existing application from auth state change...');
+                
+                // Add a safety timeout - if checkApplicationStatus takes too long, show form
+                const checkPromise = checkApplicationStatus();
+                const safetyTimeout = new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
+                        resolve(null);
+                    }, 1500);
+                });
+                
+                const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
+                console.log('Existing application found from auth state change:', existingApplication);
+                
+                if (existingApplication) {
+                    if (existingApplication.status === 'approved') {
+                        console.log('User has approved application, showing approved message');
+                        showApprovedMessage(existingApplication);
+                    } else {
+                        console.log('User has pending application, showing magic word instructions');
+                        showExistingApplication(existingApplication);
+                    }
+                } else {
+                    console.log('No existing application or timeout occurred, showing application form');
+                    showApplicationForm();
+                }
+                
+                updateMobileCollectionsVisibility(true);
+            } catch (appCheckError) {
+                console.error('Error in auth state change application check:', appCheckError);
+                console.log('Error details:', appCheckError.message, appCheckError.code);
+                console.log('Error occurred, showing application form as fallback for logged-in user');
+                showApplicationForm();
+                updateMobileCollectionsVisibility(true);
+            }
+            // Stay on creators page - don't redirect
+        } else if (event === 'SIGNED_OUT') {
+            console.log('User signed out, showing login required');
+            updateUserUI(null);
+            showNotAuthenticatedState();
+            updateMobileCollectionsVisibility(false);
+        }
+});
