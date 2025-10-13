@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Get DOM elements
     applicationForm = document.getElementById('application-form');
+    console.log('Application form element found:', applicationForm);
     loginRequired = document.getElementById('login-required');
     successMessage = document.getElementById('success-message');
     errorMessage = document.getElementById('error-message');
@@ -169,15 +170,19 @@ async function checkAuthenticationStatus() {
             console.log('User is authenticated:', session.user.email);
             
             // Check if user has an existing application
+            console.log('Checking for existing application...');
             const existingApplication = await checkApplicationStatus();
+            console.log('Existing application result:', existingApplication);
             
             if (existingApplication) {
+                console.log('Found existing application, status:', existingApplication.status);
                 if (existingApplication.status === 'approved') {
                     showApprovedMessage(existingApplication);
                 } else {
                     showExistingApplication(existingApplication);
                 }
             } else {
+                console.log('No existing application found, showing application form');
                 showApplicationForm();
             }
             
@@ -303,8 +308,15 @@ function showNotAuthenticatedState() {
 
 // Show application form
 function showApplicationForm() {
+    console.log('showApplicationForm called');
+    console.log('applicationForm element:', applicationForm);
     hideAllMessages();
-    applicationForm.classList.remove('hidden');
+    if (applicationForm) {
+        applicationForm.classList.remove('hidden');
+        console.log('Application form should now be visible');
+    } else {
+        console.error('Application form element not found!');
+    }
 }
 
 // Show success message
