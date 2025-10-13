@@ -332,14 +332,14 @@ function showMagicWordMessage(tiktokHandle, magicWord) {
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                     <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
                     <div id="qrcode-container" class="flex justify-center my-3"></div>
-                    <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reeleats</p>
+                    <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reelgrub</p>
                     <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
                 </div>
                 
                 <!-- Option 2: Manual -->
                 <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
                     <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
-                    <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reeleats</strong>, and send us a DM with your magic word</p>
+                    <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reelgrub</strong>, and send us a DM with your magic word</p>
                 </div>
                 
                 <!-- Magic Word Display -->
@@ -358,7 +358,7 @@ function showMagicWordMessage(tiktokHandle, magicWord) {
     const qrContainer = document.getElementById('qrcode-container');
     if (qrContainer) {
         qrContainer.innerHTML = ''; // Clear any previous QR code
-        const tiktokProfileUrl = 'https://www.tiktok.com/@reeleats';
+        const tiktokProfileUrl = 'https://www.tiktok.com/@reelgrub';
         
         try {
             const qr = qrcode(0, 'M'); // type 0, error correction 'M'
@@ -446,14 +446,14 @@ function showExistingApplication(application) {
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                         <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
                         <div id="existing-qrcode-container" class="flex justify-center my-3"></div>
-                        <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reeleats</p>
+                        <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reelgrub</p>
                         <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
                     </div>
                     
                     <!-- Option 2: Manual -->
                     <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
                         <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
-                        <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reeleats</strong>, and send us a DM with your magic word</p>
+                        <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reelgrub</strong>, and send us a DM with your magic word</p>
                     </div>
                     
                     <!-- Magic Word Display -->
@@ -517,7 +517,7 @@ function showExistingApplication(application) {
         const existingQrContainer = document.getElementById('existing-qrcode-container');
         if (existingQrContainer) {
             existingQrContainer.innerHTML = ''; // Clear any previous QR code
-            const tiktokProfileUrl = 'https://www.tiktok.com/@reeleats';
+            const tiktokProfileUrl = 'https://www.tiktok.com/@reelgrub';
             
             try {
                 const qr = qrcode(0, 'M'); // type 0, error correction 'M'
