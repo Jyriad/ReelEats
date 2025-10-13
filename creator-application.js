@@ -33,6 +33,7 @@ let mobileCollectionsBtn;
 // Check Application Status
 async function checkApplicationStatus() {
     try {
+        console.log('checkApplicationStatus: Starting...');
         const { data: { session } } = await supabaseClient.auth.getSession();
         
         if (!session || !session.user) {
@@ -43,16 +44,19 @@ async function checkApplicationStatus() {
         console.log('Checking application status for user:', session.user.id);
         
         // Query the creator_applications table for existing application
+        console.log('Making database query...');
         const { data, error } = await supabaseClient
             .from('creator_applications')
             .select('*')
             .eq('user_id', session.user.id)
             .single();
         
+        console.log('Database query completed. Data:', data, 'Error:', error);
+        
         if (error) {
             if (error.code === 'PGRST116') {
                 // No rows returned - no existing application
-                console.log('No existing application found');
+                console.log('No existing application found (PGRST116)');
                 return null;
             } else {
                 console.error('Error checking application status:', error);
@@ -169,24 +173,32 @@ async function checkAuthenticationStatus() {
         if (session && session.user) {
             console.log('User is authenticated:', session.user.email);
             
-            // Check if user has an existing application
-            console.log('Checking for existing application...');
-            const existingApplication = await checkApplicationStatus();
-            console.log('Existing application result:', existingApplication);
-            
-            if (existingApplication) {
-                console.log('Found existing application, status:', existingApplication.status);
-                if (existingApplication.status === 'approved') {
-                    showApprovedMessage(existingApplication);
+            try {
+                // Check if user has an existing application
+                console.log('Checking for existing application...');
+                const existingApplication = await checkApplicationStatus();
+                console.log('Existing application result:', existingApplication);
+                
+                if (existingApplication) {
+                    console.log('Found existing application, status:', existingApplication.status);
+                    if (existingApplication.status === 'approved') {
+                        showApprovedMessage(existingApplication);
+                    } else {
+                        showExistingApplication(existingApplication);
+                    }
                 } else {
-                    showExistingApplication(existingApplication);
+                    console.log('No existing application found, showing application form');
+                    showApplicationForm();
                 }
-            } else {
-                console.log('No existing application found, showing application form');
+                
+                updateMobileCollectionsVisibility(true);
+            } catch (appCheckError) {
+                console.error('Error in application check:', appCheckError);
+                // If there's an error checking application status, show the form anyway
+                console.log('Error occurred, showing application form as fallback');
                 showApplicationForm();
+                updateMobileCollectionsVisibility(true);
             }
-            
-            updateMobileCollectionsVisibility(true);
         } else {
             console.log('User is not authenticated');
             showNotAuthenticatedState();
