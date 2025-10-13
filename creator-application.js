@@ -444,10 +444,13 @@ function showNotAuthenticatedState() {
         // Re-attach event listener to the new login button
         const newLoginBtn = document.getElementById('login-btn');
         if (newLoginBtn) {
-            newLoginBtn.addEventListener('click', () => {
+            newLoginBtn.addEventListener('click', (e) => {
                 console.log('Dynamic login button clicked');
+                e.preventDefault();
                 openAuthModal('login');
             });
+        } else {
+            console.error('Dynamic login button not found after creation');
         }
     }
 }
@@ -530,17 +533,26 @@ function setupEventListeners() {
     
     // Login button
     if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
+        console.log('Setting up login button event listener');
+        loginBtn.addEventListener('click', (e) => {
             console.log('Login button clicked');
+            e.preventDefault();
             openAuthModal('login');
         });
+    } else {
+        console.log('Login button not found during setup');
     }
     
     // Signup button
     if (signupBtn) {
-        signupBtn.addEventListener('click', () => {
+        console.log('Setting up signup button event listener');
+        signupBtn.addEventListener('click', (e) => {
+            console.log('Signup button clicked');
+            e.preventDefault();
             openAuthModal('signup');
         });
+    } else {
+        console.log('Signup button not found during setup');
     }
     
     // Retry button
@@ -873,23 +885,41 @@ function openAuthModal(mode = 'login') {
     console.log('openAuthModal called with mode:', mode);
     console.log('authModal variable:', authModal);
     
+    // Try to get the modal again if it's not found
     if (!authModal) {
-        console.error('Auth modal not found');
+        console.log('Auth modal not found in variable, trying to get it again...');
+        authModal = document.getElementById('auth-modal');
+        console.log('Retrieved auth modal:', authModal);
+    }
+    
+    if (!authModal) {
+        console.error('Auth modal still not found after retry');
         return;
     }
     
+    console.log('Auth modal found, showing modal');
     authModal.classList.remove('hidden');
     authModal.style.display = 'flex';
     
+    // Set the appropriate form and title based on mode
+    const titleElement = document.getElementById('auth-modal-title');
+    const loginFormElement = document.getElementById('login-form');
+    const signupFormElement = document.getElementById('signup-form');
+    const switchBtn = document.getElementById('switch-auth-mode');
+    
     if (mode === 'login') {
-        if (loginForm) loginForm.style.display = 'block';
-        if (signupForm) signupForm.style.display = 'none';
-        if (switchAuthModeBtn) switchAuthModeBtn.textContent = 'Need an account? Sign up';
+        if (titleElement) titleElement.textContent = 'Login';
+        if (loginFormElement) loginFormElement.classList.remove('hidden');
+        if (signupFormElement) signupFormElement.classList.add('hidden');
+        if (switchBtn) switchBtn.textContent = "Don't have an account? Sign Up";
     } else {
-        if (loginForm) loginForm.style.display = 'none';
-        if (signupForm) signupForm.style.display = 'block';
-        if (switchAuthModeBtn) switchAuthModeBtn.textContent = 'Already have an account? Log in';
+        if (titleElement) titleElement.textContent = 'Sign Up';
+        if (loginFormElement) loginFormElement.classList.add('hidden');
+        if (signupFormElement) signupFormElement.classList.remove('hidden');
+        if (switchBtn) switchBtn.textContent = 'Already have an account? Log in';
     }
+    
+    console.log('Auth modal should now be visible');
 }
 
 // Close auth modal
