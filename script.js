@@ -4347,8 +4347,6 @@ async function showVideoFor(restaurant) {
                 document.documentElement.style.setProperty('--drawer-height', initialHeight);
             }
 
-            let currentTranslate = 0;
-            
             // Unified event handler for both touch and mouse
             function startDrag(e) {
                 console.log('Start drag event');
@@ -4358,13 +4356,9 @@ async function showVideoFor(restaurant) {
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 startY = clientY;
                 startHeight = parseInt(getComputedStyle(aside).height);
-                currentTranslate = 0;
                 
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // Remove transition for smooth dragging
-                aside.style.transition = 'none';
                 
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#e5e7eb';
@@ -4377,14 +4371,12 @@ async function showVideoFor(restaurant) {
                 e.stopPropagation();
                 
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const deltaY = clientY - startY; // Positive when dragging down, negative when dragging up
+                const deltaY = startY - clientY; // Positive when dragging up (expanding), negative when dragging down
+                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
                 
-                // Calculate target height
-                const targetHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight - deltaY));
-                
-                // Use transform for GPU-accelerated smooth dragging
-                currentTranslate = startHeight - targetHeight;
-                aside.style.transform = `translateY(${currentTranslate}px)`;
+                // Direct height update with touch-action optimization
+                aside.style.setProperty('height', `${newHeight}px`, 'important');
+                document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
             }
 
             function endDrag(e) {
@@ -4396,22 +4388,14 @@ async function showVideoFor(restaurant) {
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';
                 
-                // Calculate final height based on transform
-                const finalHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight - currentTranslate));
+                // Get and persist final height
+                const finalHeight = parseInt(getComputedStyle(aside).height);
                 console.log('Final height:', finalHeight, 'px');
                 
-                // Smoothly transition back to no transform
-                aside.style.transition = 'transform 0.2s ease-out';
-                aside.style.transform = 'translateY(0)';
-                
-                // After transition, set the actual height
-                setTimeout(() => {
-                    aside.style.transition = 'none';
-                    aside.style.setProperty('height', `${finalHeight}px`, 'important');
-                    document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
-                    localStorage.setItem('drawer-height', finalHeight.toString());
-                    console.log('Height committed to:', finalHeight, 'px');
-                }, 200);
+                // Lock in the height
+                aside.style.setProperty('height', `${finalHeight}px`, 'important');
+                document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
+                localStorage.setItem('drawer-height', finalHeight.toString());
                 
                 // Double tap detection
                 const currentTime = new Date().getTime();

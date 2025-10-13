@@ -1335,6 +1335,15 @@ html {
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    contain: layout style;
+  }
+  
+  /* Prevent browser interference with dragging */
+  #drawer-handle {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 
