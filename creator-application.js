@@ -53,17 +53,22 @@ async function checkApplicationStatus() {
             }
             
             // Query for an existing application with timeout
+            console.log('Creating database query promise...');
             const queryPromise = supabaseClient
                 .from('creator_applications')
                 .select('*')
                 .eq('user_id', user.id)
                 .single();
             
+            console.log('Creating timeout promise...');
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Database query timeout')), 3000)
+                setTimeout(() => {
+                    console.log('Database query timeout triggered after 2 seconds');
+                    reject(new Error('Database query timeout'));
+                }, 2000)
             );
             
-            console.log('Making database query with timeout...');
+            console.log('Starting Promise.race with database query and timeout...');
             const { data: application, error } = await Promise.race([queryPromise, timeoutPromise]);
             
             console.log('Database query completed. Application:', application, 'Error:', error);
@@ -221,7 +226,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('User already authenticated:', session.user.email, 'ID:', session.user.id);
             try {
                 console.log('Calling checkApplicationStatus...');
-                const existingApplication = await checkApplicationStatus();
+                
+                // Add a safety timeout - if checkApplicationStatus takes too long, show form
+                const checkPromise = checkApplicationStatus();
+                const safetyTimeout = new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
+                        resolve(null);
+                    }, 3000);
+                });
+                
+                const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
                 console.log('checkApplicationStatus returned:', existingApplication);
                 
                 if (existingApplication) {
@@ -234,7 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         showExistingApplication(existingApplication);
                     }
                 } else {
-                    console.log('No existing application found, showing application form');
+                    console.log('No existing application found or timeout occurred, showing application form');
                     showApplicationForm();
                 }
                 updateMobileCollectionsVisibility(true);
@@ -1000,7 +1015,17 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
         // Check if user has an existing application
         try {
             console.log('Checking for existing application from auth state change...');
-            const existingApplication = await checkApplicationStatus();
+            
+            // Add a safety timeout - if checkApplicationStatus takes too long, show form
+            const checkPromise = checkApplicationStatus();
+            const safetyTimeout = new Promise((resolve) => {
+                setTimeout(() => {
+                    console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
+                    resolve(null);
+                }, 3000);
+            });
+            
+            const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
             console.log('Existing application found from auth state change:', existingApplication);
             
             if (existingApplication) {
@@ -1012,7 +1037,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
                     showExistingApplication(existingApplication);
                 }
             } else {
-                console.log('No existing application, showing application form');
+                console.log('No existing application or timeout occurred, showing application form');
                 showApplicationForm();
             }
             
