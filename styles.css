@@ -1328,6 +1328,14 @@ html {
     width: 1rem !important;
     height: 1rem !important;
   }
+  
+  /* Mobile drawer optimization for smooth dragging */
+  aside {
+    will-change: height;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
 }
 
 .logo { 
