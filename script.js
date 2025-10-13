@@ -4365,7 +4365,7 @@ async function showVideoFor(restaurant) {
             }
 
             let rafId = null;
-            let lastDragHeight = null;
+            let pendingHeight = null;
             
             function drag(e) {
                 if (!isDragging) return;
@@ -4377,10 +4377,8 @@ async function showVideoFor(restaurant) {
                 const deltaY = startY - clientY; // Inverted because we want to drag up to expand
                 const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
                 
-                // Only update if height changed significantly (reduces unnecessary updates)
-                if (Math.abs((lastDragHeight || newHeight) - newHeight) < 2) return;
-                
-                lastDragHeight = newHeight;
+                // Store the pending height
+                pendingHeight = newHeight;
                 
                 // Cancel any pending animation frame
                 if (rafId) {
@@ -4389,9 +4387,12 @@ async function showVideoFor(restaurant) {
                 
                 // Use requestAnimationFrame for smooth 60fps updates
                 rafId = requestAnimationFrame(() => {
-                    // Update both the style and the CSS variable with !important
-                    aside.style.setProperty('height', `${newHeight}px`, 'important');
-                    document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
+                    if (pendingHeight !== null) {
+                        // Update both the style and the CSS variable with !important
+                        aside.style.setProperty('height', `${pendingHeight}px`, 'important');
+                        document.documentElement.style.setProperty('--drawer-height', `${pendingHeight}px`);
+                        pendingHeight = null;
+                    }
                     rafId = null;
                 });
             }
