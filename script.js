@@ -4392,12 +4392,19 @@ async function showVideoFor(restaurant) {
                 const finalHeight = parseInt(getComputedStyle(aside).height);
                 console.log('Setting final height to:', finalHeight, 'px');
                 
-                // Persist the final height with !important
+                // Persist the final height with !important multiple times to ensure it sticks
                 aside.style.setProperty('height', `${finalHeight}px`, 'important');
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
                 
                 // Store the height in localStorage for persistence
                 localStorage.setItem('drawer-height', finalHeight.toString());
+                
+                // Force another update after a tiny delay to ensure it sticks
+                setTimeout(() => {
+                    aside.style.setProperty('height', `${finalHeight}px`, 'important');
+                    document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
+                    console.log('Re-applied height:', finalHeight, 'px');
+                }, 10);
                 
                 // Double tap detection
                 const currentTime = new Date().getTime();
