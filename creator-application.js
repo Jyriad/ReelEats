@@ -317,7 +317,7 @@ function showSuccessMessage() {
 function showMagicWordMessage(tiktokHandle, magicWord) {
     hideAllMessages();
     
-    // Update success message content
+    // Update success message content with QR code
     const successTitle = successMessage.querySelector('h3');
     const successText = successMessage.querySelector('p');
     const continueLink = successMessage.querySelector('a');
@@ -325,14 +325,52 @@ function showMagicWordMessage(tiktokHandle, magicWord) {
     if (successTitle) successTitle.textContent = 'Application Submitted!';
     if (successText) {
         successText.innerHTML = `
-            <strong>Your Magic Word:</strong><br>
-            <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-4">${magicWord}</span><br><br>
-            <strong>Verification Instructions:</strong><br>
-            To verify your account, please send a Direct Message from your TikTok account <strong>@${tiktokHandle}</strong> with your magic word: <strong>${magicWord}</strong><br><br>
-            We'll review your application and get back to you soon!
+            <div class="mb-6">
+                <p class="text-gray-600 mb-4">To verify your account, please complete one of the following steps:</p>
+                
+                <!-- Option 1: QR Code -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
+                    <div id="qrcode-container" class="flex justify-center my-3"></div>
+                    <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reeleats</p>
+                    <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
+                </div>
+                
+                <!-- Option 2: Manual -->
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                    <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
+                    <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reeleats</strong>, and send us a DM with your magic word</p>
+                </div>
+                
+                <!-- Magic Word Display -->
+                <div class="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 text-center">
+                    <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
+                    <p class="text-3xl font-bold text-purple-600">${magicWord}</p>
+                </div>
+                
+                <p class="text-gray-600 mt-4 text-sm">We'll review your application and get back to you soon!</p>
+            </div>
         `;
     }
     if (continueLink) continueLink.textContent = 'Continue Exploring';
+    
+    // Generate QR Code
+    const qrContainer = document.getElementById('qrcode-container');
+    if (qrContainer) {
+        qrContainer.innerHTML = ''; // Clear any previous QR code
+        const tiktokProfileUrl = 'https://www.tiktok.com/@reeleats';
+        
+        try {
+            const qr = qrcode(0, 'M'); // type 0, error correction 'M'
+            qr.addData(tiktokProfileUrl);
+            qr.make();
+            qrContainer.innerHTML = qr.createImgTag(4, 8); // (size, margin)
+            console.log('QR code generated successfully');
+        } catch (e) {
+            console.error("Error generating QR code:", e);
+            qrContainer.innerHTML = '<p class="text-sm text-gray-500">QR code unavailable</p>';
+        }
+    }
     
     successMessage.classList.remove('hidden');
 }
@@ -403,12 +441,25 @@ function showExistingApplication(application) {
         
         if (showMagicWord) {
             magicWordSection = `
-                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                    <strong class="text-purple-800">Your Magic Word:</strong><br>
-                    <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-3">${application.magic_word}</span><br>
-                    <div class="text-sm text-purple-700 mt-3">
-                        <strong>Verification Instructions:</strong><br>
-                        To verify your account, please send a Direct Message from your TikTok account <strong>@${application.tiktok_handle}</strong> with your magic word: <strong>${application.magic_word}</strong>
+                <div class="mb-4">
+                    <!-- Option 1: QR Code -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
+                        <div id="existing-qrcode-container" class="flex justify-center my-3"></div>
+                        <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reeleats</p>
+                        <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
+                    </div>
+                    
+                    <!-- Option 2: Manual -->
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                        <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
+                        <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reeleats</strong>, and send us a DM with your magic word</p>
+                    </div>
+                    
+                    <!-- Magic Word Display -->
+                    <div class="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 text-center mb-4">
+                        <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
+                        <p class="text-3xl font-bold text-purple-600">${application.magic_word}</p>
                     </div>
                 </div>
             `;
