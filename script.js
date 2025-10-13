@@ -1419,6 +1419,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // --- Check auth state on page load and when it changes ---
+        // Initial auth check on page load
+        async function checkInitialAuthState() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                if (error) {
+                    console.error('Error checking initial auth state:', error);
+                    return;
+                }
+                const user = session ? session.user : null;
+                updateUserUI(user);
+            } catch (error) {
+                console.error('Error in initial auth check:', error);
+            }
+        }
+        
+        // Run initial auth check
+        checkInitialAuthState();
+        
+        // Listen for auth state changes
         supabaseClient.auth.onAuthStateChange((_event, session) => {
             const user = session ? session.user : null;
             updateUserUI(user);
