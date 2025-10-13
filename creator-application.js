@@ -56,16 +56,16 @@ async function checkApplicationStatus() {
             console.log('Creating database query promise...');
             const queryPromise = supabaseClient
                 .from('creator_applications')
-                .select('*')
+                .select('id, user_id, tiktok_handle, requested_username, magic_word, status, created_at')
                 .eq('user_id', user.id)
                 .single();
             
             console.log('Creating timeout promise...');
             const timeoutPromise = new Promise((_, reject) => 
                 setTimeout(() => {
-                    console.log('Database query timeout triggered after 2 seconds');
+                    console.log('Database query timeout triggered after 1 second');
                     reject(new Error('Database query timeout'));
-                }, 2000)
+                }, 1000)
             );
             
             console.log('Starting Promise.race with database query and timeout...');
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     setTimeout(() => {
                         console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
                         resolve(null);
-                    }, 3000);
+                    }, 1500);
                 });
                 
                 const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showNotAuthenticatedState();
             updateMobileCollectionsVisibility(false);
         }
-    }, 100);
+    }, 50);
     
     // Setup event listeners
     setupEventListeners();
@@ -1022,7 +1022,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 setTimeout(() => {
                     console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
                     resolve(null);
-                }, 3000);
+                }, 1500);
             });
             
             const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
