@@ -156,6 +156,8 @@
             const loginLink = document.getElementById('login-link');
             const signupLink = document.getElementById('signup-link');
             const authModal = document.getElementById('auth-modal');
+            
+            console.log('Homepage elements found - signupLink:', signupLink, 'authModal:', authModal);
             const closeAuthModal = document.getElementById('close-auth-modal');
             const loginForm = document.getElementById('login-form');
             const signupForm = document.getElementById('signup-form');
@@ -167,11 +169,63 @@
             let filteredCities = [];
             let isSignupMode = false;
             
-            // Initialize Supabase
+            // Initialize Supabase client using config
             const { createClient } = supabase;
-            const supabaseUrl = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
-            const supabaseClient = createClient(supabaseUrl, supabaseKey);
+            const supabaseClient = createClient('https://jsuxrpnfofkigdfpnuua.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8');
+            
+            // Check authentication status and update header
+            async function updateHeaderForAuth() {
+                try {
+                    console.log('updateHeaderForAuth called, signupLink:', signupLink);
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
+                    
+                    if (error) {
+                        console.error('Error getting session on homepage:', error);
+                        return;
+                    }
+                    
+                    console.log('Homepage auth check - session:', session);
+                    console.log('Sign-up link element:', signupLink);
+                    console.log('Sign-up link current display:', signupLink ? signupLink.style.display : 'element not found');
+                    
+                    if (session && session.user) {
+                        // User is authenticated - hide sign-up button
+                        if (signupLink) {
+                            signupLink.style.display = 'none';
+                            console.log('Sign-up button hidden for authenticated user:', session.user.email);
+                            console.log('Sign-up link display after hiding:', signupLink.style.display);
+                        } else {
+                            console.error('Sign-up link not found - cannot hide button');
+                        }
+                    } else {
+                        // User not authenticated - show sign-up button
+                        if (signupLink) {
+                            signupLink.style.display = 'inline-block';
+                            console.log('Sign-up button shown for non-authenticated user');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error in updateHeaderForAuth:', error);
+                }
+            }
+            
+            // Run authentication check on page load
+            console.log('Homepage loaded, running authentication check...');
+            updateHeaderForAuth();
+            
+            // Also run it after a small delay to ensure session is loaded
+            setTimeout(() => {
+                console.log('Running delayed homepage authentication check...');
+                updateHeaderForAuth();
+            }, 500);
+            
+            // Listen for auth state changes
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                console.log('Auth state changed on homepage:', event, session?.user?.email);
+                updateHeaderForAuth();
+            });
+            
+            // Supabase client already initialized above
             
             // Load cities from cache or database
             async function loadCities() {

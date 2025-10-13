@@ -122,14 +122,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     authTitle = document.getElementById('auth-title');
     authFeedback = document.getElementById('auth-feedback');
     
+    // Ensure auth modal is hidden on page load
+    if (authModal) {
+        authModal.classList.add('hidden');
+        authModal.style.display = 'none';
+        console.log('Auth modal hidden on page load');
+        console.log('Modal classes after hiding:', authModal.className);
+        console.log('Modal display style after hiding:', authModal.style.display);
+    } else {
+        console.error('Auth modal element not found');
+    }
+    
     // Get mobile menu elements
     mobileMenuBtn = document.getElementById('mobile-menu-btn');
     mobileMenuModal = document.getElementById('mobile-menu-modal');
     closeMobileMenu = document.getElementById('close-mobile-menu');
     mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
     
-    // Check authentication status
-    await checkAuthenticationStatus();
+    // Check authentication status with a small delay to ensure session is loaded
+    setTimeout(async () => {
+        console.log('Running delayed authentication check...');
+        await checkAuthenticationStatus();
+    }, 100);
     
     // Setup event listeners
     setupEventListeners();
@@ -141,11 +155,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Check if user is authenticated
 async function checkAuthenticationStatus() {
     try {
+        console.log('checkAuthenticationStatus called');
+        
         const { data: { session }, error } = await supabaseClient.auth.getSession();
         
         if (error) {
             console.error('Error checking authentication:', error);
-            showLoginRequired();
+            showNotAuthenticatedState();
             return;
         }
         
@@ -168,19 +184,121 @@ async function checkAuthenticationStatus() {
             updateMobileCollectionsVisibility(true);
         } else {
             console.log('User is not authenticated');
-            showLoginRequired();
+            showNotAuthenticatedState();
             updateMobileCollectionsVisibility(false);
         }
     } catch (error) {
         console.error('Error checking authentication status:', error);
-        showLoginRequired();
+        showNotAuthenticatedState();
     }
 }
 
-// Show login required message
-function showLoginRequired() {
+// Show public application form for non-authenticated users
+function showNotAuthenticatedState() {
+    console.log('User not authenticated - showing public application form');
     hideAllMessages();
-    loginRequired.classList.remove('hidden');
+    
+    // Show a simple application form
+    const mainContent = document.querySelector('main');
+    if (mainContent) {
+        mainContent.innerHTML = `
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="text-center mb-12">
+                    <h1 class="text-4xl font-bold text-gray-900 mb-4">Join the ReelGrub Creator Program</h1>
+                    <p class="text-xl text-gray-600">Share your favorite food spots with the world and help others discover amazing restaurants through TikTok videos.</p>
+                </div>
+
+                <!-- Why Join Section -->
+                <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Why Join as a Creator?</h2>
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Grow Your Audience</h3>
+                            <p class="text-gray-600">Reach food lovers who are actively looking for restaurant recommendations.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Engage Your Followers</h3>
+                            <p class="text-gray-600">Share your favorite places with your followers and help them discover amazing restaurants through your recommendations.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Show Your Reach</h3>
+                            <p class="text-gray-600">Map all the fun locations you have eaten at and showcase your culinary adventures to build your food influencer presence.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Authentication Required -->
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Ready to Apply?</h2>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Sign In Required</h3>
+                        <p class="text-gray-600 mb-6">Please sign in or create an account to submit your creator application.</p>
+                        <div class="space-x-4">
+                            <button id="show-login-btn" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                Sign In
+                            </button>
+                            <button id="show-signup-btn" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                Sign Up
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4">
+                            Don't worry, signing up is quick and free!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add event listeners for the auth buttons
+        setTimeout(() => {
+            const showLoginBtn = document.getElementById('show-login-btn');
+            const showSignupBtn = document.getElementById('show-signup-btn');
+            
+            console.log('Looking for auth buttons...');
+            console.log('showLoginBtn:', showLoginBtn);
+            console.log('showSignupBtn:', showSignupBtn);
+            
+            if (showLoginBtn) {
+                console.log('Adding click listener to login button');
+                showLoginBtn.addEventListener('click', () => {
+                    console.log('Login button clicked');
+                    openAuthModal('login');
+                });
+            } else {
+                console.error('Login button not found');
+            }
+            
+            if (showSignupBtn) {
+                console.log('Adding click listener to signup button');
+                showSignupBtn.addEventListener('click', () => {
+                    console.log('Signup button clicked');
+                    openAuthModal('signup');
+                });
+            } else {
+                console.error('Signup button not found');
+            }
+        }, 100);
+    }
 }
 
 // Show application form
@@ -199,7 +317,7 @@ function showSuccessMessage() {
 function showMagicWordMessage(tiktokHandle, magicWord) {
     hideAllMessages();
     
-    // Update success message content
+    // Update success message content with QR code
     const successTitle = successMessage.querySelector('h3');
     const successText = successMessage.querySelector('p');
     const continueLink = successMessage.querySelector('a');
@@ -207,14 +325,52 @@ function showMagicWordMessage(tiktokHandle, magicWord) {
     if (successTitle) successTitle.textContent = 'Application Submitted!';
     if (successText) {
         successText.innerHTML = `
-            <strong>Your Magic Word:</strong><br>
-            <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-4">${magicWord}</span><br><br>
-            <strong>Verification Instructions:</strong><br>
-            To verify your account, please send a Direct Message from your TikTok account <strong>@${tiktokHandle}</strong> with your magic word: <strong>${magicWord}</strong><br><br>
-            We'll review your application and get back to you soon!
+            <div class="mb-6">
+                <p class="text-gray-600 mb-4">To verify your account, please complete one of the following steps:</p>
+                
+                <!-- Option 1: QR Code -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
+                    <div id="qrcode-container" class="flex justify-center my-3"></div>
+                    <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reelgrub</p>
+                    <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
+                </div>
+                
+                <!-- Option 2: Manual -->
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                    <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
+                    <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reelgrub</strong>, and send us a DM with your magic word</p>
+                </div>
+                
+                <!-- Magic Word Display -->
+                <div class="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 text-center">
+                    <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
+                    <p class="text-3xl font-bold text-purple-600">${magicWord}</p>
+                </div>
+                
+                <p class="text-gray-600 mt-4 text-sm">We'll review your application and get back to you soon!</p>
+            </div>
         `;
     }
     if (continueLink) continueLink.textContent = 'Continue Exploring';
+    
+    // Generate QR Code
+    const qrContainer = document.getElementById('qrcode-container');
+    if (qrContainer) {
+        qrContainer.innerHTML = ''; // Clear any previous QR code
+        const tiktokProfileUrl = 'https://www.tiktok.com/@reelgrub';
+        
+        try {
+            const qr = qrcode(0, 'M'); // type 0, error correction 'M'
+            qr.addData(tiktokProfileUrl);
+            qr.make();
+            qrContainer.innerHTML = qr.createImgTag(4, 8); // (size, margin)
+            console.log('QR code generated successfully');
+        } catch (e) {
+            console.error("Error generating QR code:", e);
+            qrContainer.innerHTML = '<p class="text-sm text-gray-500">QR code unavailable</p>';
+        }
+    }
     
     successMessage.classList.remove('hidden');
 }
@@ -285,12 +441,25 @@ function showExistingApplication(application) {
         
         if (showMagicWord) {
             magicWordSection = `
-                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                    <strong class="text-purple-800">Your Magic Word:</strong><br>
-                    <span class="text-2xl font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg inline-block mt-2 mb-3">${application.magic_word}</span><br>
-                    <div class="text-sm text-purple-700 mt-3">
-                        <strong>Verification Instructions:</strong><br>
-                        To verify your account, please send a Direct Message from your TikTok account <strong>@${application.tiktok_handle}</strong> with your magic word: <strong>${application.magic_word}</strong>
+                <div class="mb-4">
+                    <!-- Option 1: QR Code -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <h4 class="text-lg font-semibold text-blue-900 mb-2">Option 1: Scan QR Code (Easiest)</h4>
+                        <div id="existing-qrcode-container" class="flex justify-center my-3"></div>
+                        <p class="text-sm text-blue-800">1. Scan the code to open our TikTok profile @reelgrub</p>
+                        <p class="text-sm text-blue-800">2. Tap 'Message' and send us your magic word</p>
+                    </div>
+                    
+                    <!-- Option 2: Manual -->
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                        <h4 class="text-lg font-semibold text-purple-900 mb-2">Option 2: Manual</h4>
+                        <p class="text-sm text-purple-800">Open TikTok, search for <strong>@reelgrub</strong>, and send us a DM with your magic word</p>
+                    </div>
+                    
+                    <!-- Magic Word Display -->
+                    <div class="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 text-center mb-4">
+                        <p class="text-purple-800 mb-2"><strong>Your Magic Word:</strong></p>
+                        <p class="text-3xl font-bold text-purple-600">${application.magic_word}</p>
                     </div>
                 </div>
             `;
@@ -340,6 +509,26 @@ function showExistingApplication(application) {
             continueLink.textContent = 'Continue Exploring';
             continueLink.href = '/explore';
             continueLink.className = 'inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors';
+        }
+    }
+    
+    // Generate QR Code for existing applications (if status is not approved)
+    if (application.status !== 'approved') {
+        const existingQrContainer = document.getElementById('existing-qrcode-container');
+        if (existingQrContainer) {
+            existingQrContainer.innerHTML = ''; // Clear any previous QR code
+            const tiktokProfileUrl = 'https://www.tiktok.com/@reelgrub';
+            
+            try {
+                const qr = qrcode(0, 'M'); // type 0, error correction 'M'
+                qr.addData(tiktokProfileUrl);
+                qr.make();
+                existingQrContainer.innerHTML = qr.createImgTag(4, 8); // (size, margin)
+                console.log('QR code for existing application generated successfully');
+            } catch (e) {
+                console.error("Error generating QR code for existing application:", e);
+                existingQrContainer.innerHTML = '<p class="text-sm text-gray-500">QR code unavailable</p>';
+            }
         }
     }
     
@@ -445,7 +634,12 @@ function setupEventListeners() {
     
     // Auth modal event listeners
     if (closeAuthModalBtn) {
-        closeAuthModalBtn.addEventListener('click', closeAuthModal);
+        closeAuthModalBtn.addEventListener('click', () => {
+            console.log('Close auth modal button clicked');
+            closeAuthModal();
+        });
+    } else {
+        console.error('Close auth modal button not found');
     }
     
     if (authModal) {
@@ -584,6 +778,7 @@ async function handleFormSubmission(event) {
 // Listen for authentication state changes
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session?.user?.email);
+    console.log('Auth state change - session:', session);
     
     if (event === 'SIGNED_IN' && session?.user) {
         console.log('User signed in, closing auth modal and checking application status...');
@@ -617,11 +812,22 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 // Authentication modal functions
 function openAuthModal(mode = 'login') {
-    if (!authModal) return;
+    console.log('openAuthModal called with mode:', mode);
+    console.log('authModal variable:', authModal);
+    
+    // Get modal element if not already set
+    const modalElement = authModal || document.getElementById('auth-modal');
+    console.log('modalElement:', modalElement);
+    
+    if (!modalElement) {
+        console.error('Auth modal element not found!');
+        return;
+    }
     
     // Hide feedback
-    if (authFeedback) {
-        authFeedback.classList.add('hidden');
+    const feedbackElement = authFeedback || document.getElementById('auth-feedback');
+    if (feedbackElement) {
+        feedbackElement.classList.add('hidden');
     }
     
     // Set initial mode
@@ -631,16 +837,41 @@ function openAuthModal(mode = 'login') {
         switchToLogin();
     }
     
+    // Ensure close button has event listener
+    const closeBtn = document.getElementById('close-auth-modal');
+    if (closeBtn) {
+        console.log('Setting up close button listener');
+        // Remove any existing listener and add a new one
+        closeBtn.onclick = () => {
+            console.log('Close button clicked');
+            closeAuthModal();
+        };
+    } else {
+        console.error('Close button not found');
+    }
+    
     // Show modal
-    authModal.classList.remove('hidden');
-    authModal.style.display = 'flex';
+    modalElement.classList.remove('hidden');
+    modalElement.classList.add('flex');
+    modalElement.style.display = 'flex';
+    console.log('Modal should now be visible');
 }
 
 function closeAuthModal() {
-    if (!authModal) return;
+    console.log('closeAuthModal called');
     
-    authModal.classList.add('hidden');
-    authModal.style.display = 'none';
+    // Get modal element if not already set
+    const modalElement = authModal || document.getElementById('auth-modal');
+    
+    if (!modalElement) {
+        console.error('Auth modal not found in closeAuthModal');
+        return;
+    }
+    
+    modalElement.classList.add('hidden');
+    modalElement.classList.remove('flex');
+    modalElement.style.display = 'none';
+    console.log('Auth modal hidden');
     
     // Hide feedback
     if (authFeedback) {

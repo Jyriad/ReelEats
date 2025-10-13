@@ -921,10 +921,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             const collectionsBtn = document.getElementById('collections-btn');
             const collectionFilterBtn = document.getElementById('collection-filter-btn');
             const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
+            const signupBtn = document.getElementById('signup-btn');
+            const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+            const mobileAuthBtn = document.getElementById('mobile-auth-btn');
             
             if (user) {
-                // User is logged in - show logout button instead of login button
+                // User is logged in - show logout button instead of login button, hide signup
                 if (authBtn) authBtn.classList.add('hidden');
+                if (signupBtn) {
+                    signupBtn.style.display = 'none';
+                }
+                if (mobileSignupBtn) mobileSignupBtn.classList.add('hidden');
+                if (mobileAuthBtn) mobileAuthBtn.classList.add('hidden');
                 if (collectionsBtn) collectionsBtn.classList.remove('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.remove('hidden');
                 if (collectionFilterBtn) collectionFilterBtn.classList.remove('hidden');
@@ -948,6 +956,33 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 logoutButton.classList.remove('hidden');
+                
+                // Create or update mobile logout button
+                let mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+                if (!mobileLogoutBtn && mobileAuthBtn && mobileAuthBtn.parentNode) {
+                    mobileLogoutBtn = document.createElement('button');
+                    mobileLogoutBtn.id = 'mobile-logout-btn';
+                    mobileLogoutBtn.className = 'w-full bg-red-600 hover:bg-red-700 text-white rounded px-4 py-3 transition-colors text-left';
+                    mobileLogoutBtn.innerHTML = 'Log-out';
+                    
+                    // Insert after mobile auth button
+                    mobileAuthBtn.parentNode.insertBefore(mobileLogoutBtn, mobileAuthBtn.nextSibling);
+                    
+                    // Add click event
+                    mobileLogoutBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const mobileMenuModal = document.getElementById('mobile-menu-modal');
+                        if (mobileMenuModal) {
+                            mobileMenuModal.classList.add('hidden');
+                            mobileMenuModal.style.display = 'none';
+                        }
+                        handleLogout();
+                    });
+                }
+                
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.classList.remove('hidden');
+                }
 
                 // Fetch user's favorites
                 const { data, error } = await supabaseClient
@@ -971,8 +1006,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
             } else {
-                // User is logged out - show login button
+                // User is logged out - show login and signup buttons
                 if (authBtn) authBtn.classList.remove('hidden');
+                if (signupBtn) {
+                    signupBtn.style.display = '';
+                }
+                if (mobileSignupBtn) mobileSignupBtn.classList.remove('hidden');
+                if (mobileAuthBtn) mobileAuthBtn.classList.remove('hidden');
                 if (collectionsBtn) collectionsBtn.classList.add('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.add('hidden');
                 // Keep collection filter button visible for all users
@@ -982,6 +1022,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const logoutButton = document.getElementById('logout-button');
                 if (logoutButton) {
                     logoutButton.classList.add('hidden');
+                }
+                
+                // Hide mobile logout button if it exists
+                const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.classList.add('hidden');
                 }
                 
                 favoritedRestaurants.clear(); // Clear favorites on logout
@@ -1211,9 +1257,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return;
                 }
                 
-                showCollectionManagement();
+                // Close menu first
                 mobileMenuModal.classList.add('hidden');
                 mobileMenuModal.style.display = 'none';
+                
+                // Open collections modal
+                collectionsModal.classList.remove('hidden');
+                collectionsModal.classList.add('flex');
+                loadCollectionsForModal();
             });
         }
 
@@ -1372,6 +1423,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // --- Check auth state on page load and when it changes ---
+        // Initial auth check on page load
+        async function checkInitialAuthState() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                if (error) {
+                    console.error('Error checking initial auth state:', error);
+                    return;
+                }
+                const user = session ? session.user : null;
+                updateUserUI(user);
+            } catch (error) {
+                console.error('Error in initial auth check:', error);
+            }
+        }
+        
+        // Run initial auth check
+        checkInitialAuthState();
+        
+        // Listen for auth state changes
         supabaseClient.auth.onAuthStateChange((_event, session) => {
             const user = session ? session.user : null;
             updateUserUI(user);
@@ -4367,17 +4437,16 @@ async function showVideoFor(restaurant) {
             function drag(e) {
                 if (!isDragging) return;
                 
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const deltaY = startY - clientY; // Inverted because we want to drag up to expand
-                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
-                
-                console.log('Drag event - startY:', startY, 'clientY:', clientY, 'deltaY:', deltaY, 'startHeight:', startHeight, 'newHeight:', newHeight);
-                
-                // Update both the style and the CSS variable with !important
-                aside.style.setProperty('height', `${newHeight}px`, 'important');
-                document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
                 e.preventDefault();
                 e.stopPropagation();
+                
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const deltaY = startY - clientY; // Positive when dragging up (expanding), negative when dragging down
+                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
+                
+                // Direct height update with touch-action optimization
+                aside.style.setProperty('height', `${newHeight}px`, 'important');
+                document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
             }
 
             function endDrag(e) {
@@ -4389,13 +4458,13 @@ async function showVideoFor(restaurant) {
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';
                 
-                // Persist the final height with !important
+                // Get and persist final height
                 const finalHeight = parseInt(getComputedStyle(aside).height);
-                console.log('Setting final height to:', finalHeight, 'px');
+                console.log('Final height:', finalHeight, 'px');
+                
+                // Lock in the height
                 aside.style.setProperty('height', `${finalHeight}px`, 'important');
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
-                
-                // Store the height in localStorage for persistence
                 localStorage.setItem('drawer-height', finalHeight.toString());
                 
                 // Double tap detection

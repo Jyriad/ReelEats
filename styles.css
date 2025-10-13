@@ -1307,6 +1307,46 @@ html {
   min-height: 60px;
 }
 
+/* Mobile header styles */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.75rem 3%;
+    min-height: 56px;
+  }
+  
+  .header nav {
+    gap: 0.5rem !important;
+  }
+  
+  .header nav a {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    flex-shrink: 0;
+  }
+  
+  .header nav a svg {
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+  
+  /* Mobile drawer optimization for smooth dragging */
+  aside {
+    will-change: height;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    contain: layout style;
+  }
+  
+  /* Prevent browser interference with dragging */
+  #drawer-handle {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
 .logo { 
   font-weight: 700; 
   font-size: 1.25rem; 
@@ -1589,12 +1629,21 @@ html {
 }
 
 /* --- My Collections Button Layout Fix --- */
-#collections-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    flex-direction: row !important;
-    gap: 0.375rem !important; /* 1.5 in Tailwind */
-    white-space: nowrap !important;
+@media (min-width: 769px) {
+    #collections-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        flex-direction: row !important;
+        gap: 0.375rem !important; /* 1.5 in Tailwind */
+        white-space: nowrap !important;
+    }
+}
+
+/* Hide collections button on mobile */
+@media (max-width: 768px) {
+    #collections-btn {
+        display: none !important;
+    }
 }
 
 #collections-btn svg {
