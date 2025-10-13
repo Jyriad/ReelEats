@@ -101,7 +101,7 @@
                     </div>
                 </div>
                 
-                <button id="signup-btn" class="hidden md:block bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded px-3 py-2 transition-colors">
+                <button id="signup-btn" class="hidden md:block bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded px-3 py-2 transition-colors" style="display: none;">
                     Sign-up
                 </button>
                 
@@ -119,8 +119,8 @@
                     </svg>
                 </button>
                 
-                <!-- Location Button - Desktop: Blue, Mobile: Transparent -->
-                <button id="location-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm rounded px-3 py-2 transition-colors md:bg-blue-600 md:hover:bg-blue-700" title="Find my location">
+                <!-- Location Button - Desktop only, hidden on mobile -->
+                <button id="location-btn" class="hidden md:block bg-blue-600 hover:bg-blue-700 text-white text-sm rounded px-3 py-2 transition-colors" title="Find my location">
                     <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>

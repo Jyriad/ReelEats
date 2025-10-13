@@ -928,7 +928,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (user) {
                 // User is logged in - show logout button instead of login button, hide signup
                 if (authBtn) authBtn.classList.add('hidden');
-                if (signupBtn) signupBtn.classList.add('hidden');
+                if (signupBtn) {
+                    signupBtn.classList.add('hidden');
+                    signupBtn.style.display = 'none';
+                }
                 if (mobileSignupBtn) mobileSignupBtn.classList.add('hidden');
                 if (mobileAuthBtn) mobileAuthBtn.classList.add('hidden');
                 if (collectionsBtn) collectionsBtn.classList.remove('hidden');
@@ -1006,7 +1009,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 // User is logged out - show login and signup buttons
                 if (authBtn) authBtn.classList.remove('hidden');
-                if (signupBtn) signupBtn.classList.remove('hidden');
+                if (signupBtn) {
+                    signupBtn.classList.remove('hidden');
+                    signupBtn.style.display = '';
+                }
                 if (mobileSignupBtn) mobileSignupBtn.classList.remove('hidden');
                 if (mobileAuthBtn) mobileAuthBtn.classList.remove('hidden');
                 if (collectionsBtn) collectionsBtn.classList.add('hidden');
