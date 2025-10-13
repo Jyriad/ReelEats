@@ -899,7 +899,14 @@ function openAuthModal(mode = 'login') {
     
     console.log('Auth modal found, showing modal');
     authModal.classList.remove('hidden');
+    authModal.classList.add('flex');
     authModal.style.display = 'flex';
+    authModal.style.zIndex = '9999';
+    authModal.style.position = 'fixed';
+    authModal.style.top = '0';
+    authModal.style.left = '0';
+    authModal.style.width = '100%';
+    authModal.style.height = '100%';
     
     // Set the appropriate form and title based on mode
     const titleElement = document.getElementById('auth-modal-title');
@@ -920,6 +927,9 @@ function openAuthModal(mode = 'login') {
     }
     
     console.log('Auth modal should now be visible');
+    console.log('Modal classes after showing:', authModal.className);
+    console.log('Modal style after showing:', authModal.style.display);
+    console.log('Modal computed style:', window.getComputedStyle(authModal).display);
 }
 
 // Close auth modal
@@ -932,6 +942,7 @@ function closeAuthModal() {
     }
     
     authModal.classList.add('hidden');
+    authModal.classList.remove('flex');
     authModal.style.display = 'none';
     console.log('Auth modal hidden');
 }
