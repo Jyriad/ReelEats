@@ -43,53 +43,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Modal display style after hiding:', authModal.style.display);
     }
     
-    // Check authentication status with a small delay to ensure session is loaded
-    setTimeout(async () => {
-        console.log('Running delayed authentication check...');
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session && session.user) {
-            console.log('User already authenticated:', session.user.email, 'ID:', session.user.id);
-            try {
-                console.log('Calling checkApplicationStatus...');
-                
-                // Add a safety timeout - if checkApplicationStatus takes too long, show form
-                const checkPromise = checkApplicationStatus();
-                const safetyTimeout = new Promise((resolve) => {
-                    setTimeout(() => {
-                        console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
-                        resolve(null);
-                    }, 1500);
-                });
-                
-                const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
-                console.log('checkApplicationStatus returned:', existingApplication);
-                
-                if (existingApplication) {
-                    console.log('Found existing application, status:', existingApplication.status);
-                    if (existingApplication.status === 'approved') {
-                        console.log('Showing approved message');
-                        showApprovedMessage(existingApplication);
+        // Check authentication status with a small delay to ensure session is loaded
+        setTimeout(async () => {
+            console.log('Running delayed authentication check...');
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                console.log('User already authenticated:', session.user.email, 'ID:', session.user.id);
+                updateUserUI(session.user);
+                try {
+                    console.log('Calling checkApplicationStatus...');
+                    
+                    // Add a safety timeout - if checkApplicationStatus takes too long, show form
+                    const checkPromise = checkApplicationStatus();
+                    const safetyTimeout = new Promise((resolve) => {
+                        setTimeout(() => {
+                            console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
+                            resolve(null);
+                        }, 1500);
+                    });
+                    
+                    const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
+                    console.log('checkApplicationStatus returned:', existingApplication);
+                    
+                    if (existingApplication) {
+                        console.log('Found existing application, status:', existingApplication.status);
+                        if (existingApplication.status === 'approved') {
+                            console.log('Showing approved message');
+                            showApprovedMessage(existingApplication);
+                        } else {
+                            console.log('Showing existing application (magic word)');
+                            showExistingApplication(existingApplication);
+                        }
                     } else {
-                        console.log('Showing existing application (magic word)');
-                        showExistingApplication(existingApplication);
+                        console.log('No existing application found or timeout occurred, showing application form');
+                        showApplicationForm();
                     }
-                } else {
-                    console.log('No existing application found or timeout occurred, showing application form');
+                    updateMobileCollectionsVisibility(true);
+                } catch (error) {
+                    console.error('Error in delayed auth check:', error);
+                    console.log('Error occurred, showing application form as fallback for logged-in user');
                     showApplicationForm();
+                    updateMobileCollectionsVisibility(true);
                 }
-                updateMobileCollectionsVisibility(true);
-            } catch (error) {
-                console.error('Error in delayed auth check:', error);
-                console.log('Error occurred, showing application form as fallback for logged-in user');
-                showApplicationForm();
-                updateMobileCollectionsVisibility(true);
+            } else {
+                console.log('No session found, showing login required');
+                updateUserUI(null);
+                showNotAuthenticatedState();
+                updateMobileCollectionsVisibility(false);
             }
-        } else {
-            console.log('No session found, showing login required');
-            showNotAuthenticatedState();
-            updateMobileCollectionsVisibility(false);
-        }
-    }, 50);
+        }, 50);
     
     // Setup event listeners
     setupEventListeners();
@@ -283,12 +285,69 @@ function generateQRCode(text) {
 function showApplicationForm() {
     console.log('showApplicationForm called');
     console.log('applicationForm element:', applicationForm);
+    
+    // Hide all messages first
     hideAllMessages();
+    
+    // Show the application form
     if (applicationForm) {
         applicationForm.classList.remove('hidden');
         console.log('Application form should now be visible');
     } else {
         console.error('Application form element not found!');
+    }
+    
+    // Also show the benefits section for logged-in users
+    showBenefitsSection();
+}
+
+// Show benefits section for all users
+function showBenefitsSection() {
+    const mainContent = document.querySelector('main');
+    if (mainContent && !document.getElementById('benefits-section')) {
+        // Create benefits section
+        const benefitsSection = document.createElement('div');
+        benefitsSection.id = 'benefits-section';
+        benefitsSection.className = 'max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+        benefitsSection.innerHTML = `
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Why Join as a Creator?</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Grow Your Audience</h3>
+                        <p class="text-gray-600">Reach food lovers who are actively looking for restaurant recommendations.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Engage Your Followers</h3>
+                        <p class="text-gray-600">Share your favorite places with your followers and help them discover amazing restaurants through your recommendations.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Show Your Reach</h3>
+                        <p class="text-gray-600">Map all the fun locations you have eaten at and showcase your culinary adventures to build your food influencer presence.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Insert benefits section before the application form
+        if (applicationForm) {
+            applicationForm.parentNode.insertBefore(benefitsSection, applicationForm);
+        }
     }
 }
 
@@ -385,7 +444,10 @@ function showNotAuthenticatedState() {
         // Re-attach event listener to the new login button
         const newLoginBtn = document.getElementById('login-btn');
         if (newLoginBtn) {
-            newLoginBtn.addEventListener('click', openAuthModal);
+            newLoginBtn.addEventListener('click', () => {
+                console.log('Dynamic login button clicked');
+                openAuthModal('login');
+            });
         }
     }
 }
@@ -396,6 +458,9 @@ function showExistingApplication(application) {
     
     // Show success message with application details
     successMessage.classList.remove('hidden');
+    
+    // Show benefits section for logged-in users
+    showBenefitsSection();
     
     // Populate the success message with application data
     const displayTiktokHandle = document.getElementById('display-tiktok-handle');
@@ -466,6 +531,7 @@ function setupEventListeners() {
     // Login button
     if (loginBtn) {
         loginBtn.addEventListener('click', () => {
+            console.log('Login button clicked');
             openAuthModal('login');
         });
     }
@@ -515,6 +581,70 @@ function setupEventListeners() {
     // Google signin
     if (googleSigninBtn) {
         googleSigninBtn.addEventListener('click', handleGoogleSignin);
+    }
+    
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenuModal = document.getElementById('mobile-menu-modal');
+    const closeMobileMenu = document.getElementById('close-mobile-menu');
+    
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+            if (mobileMenuModal) {
+                mobileMenuModal.classList.remove('hidden');
+                mobileMenuModal.style.display = 'flex';
+            }
+        });
+    }
+    
+    if (closeMobileMenu) {
+        closeMobileMenu.addEventListener('click', () => {
+            if (mobileMenuModal) {
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            }
+        });
+    }
+    
+    if (mobileMenuModal) {
+        mobileMenuModal.addEventListener('click', (e) => {
+            if (e.target === mobileMenuModal) {
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Mobile auth buttons
+    const mobileAuthBtn = document.getElementById('mobile-auth-btn');
+    const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    
+    if (mobileAuthBtn) {
+        mobileAuthBtn.addEventListener('click', () => {
+            closeMobileMenuModal();
+            openAuthModal('login');
+        });
+    }
+    
+    if (mobileSignupBtn) {
+        mobileSignupBtn.addEventListener('click', () => {
+            closeMobileMenuModal();
+            openAuthModal('signup');
+        });
+    }
+    
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', () => {
+            closeMobileMenuModal();
+            handleLogout();
+        });
+    }
+    
+    // Desktop logout button
+    const logoutBtn = document.getElementById('logout-button');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
     }
 }
 
@@ -795,6 +925,79 @@ function switchAuthMode() {
     }
 }
 
+// Close mobile menu modal
+function closeMobileMenuModal() {
+    const mobileMenuModal = document.getElementById('mobile-menu-modal');
+    if (mobileMenuModal) {
+        mobileMenuModal.classList.add('hidden');
+        mobileMenuModal.style.display = 'none';
+    }
+}
+
+// Handle logout
+async function handleLogout() {
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            console.error('Logout error:', error);
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+}
+
+// Update user UI based on authentication state
+function updateUserUI(user) {
+    const loginBtn = document.getElementById('login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const logoutBtn = document.getElementById('logout-button');
+    const mobileAuthBtn = document.getElementById('mobile-auth-btn');
+    const mobileSignupBtn = document.getElementById('mobile-signup-btn');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    
+    if (user) {
+        // User is logged in - hide login/signup, show logout
+        if (loginBtn) {
+            loginBtn.style.display = 'none';
+        }
+        if (signupBtn) {
+            signupBtn.style.display = 'none';
+        }
+        if (logoutBtn) {
+            logoutBtn.style.display = 'block';
+        }
+        if (mobileAuthBtn) {
+            mobileAuthBtn.style.display = 'none';
+        }
+        if (mobileSignupBtn) {
+            mobileSignupBtn.style.display = 'none';
+        }
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.style.display = 'block';
+        }
+    } else {
+        // User is logged out - show login/signup, hide logout
+        if (loginBtn) {
+            loginBtn.style.display = 'block';
+        }
+        if (signupBtn) {
+            signupBtn.style.display = 'block';
+        }
+        if (logoutBtn) {
+            logoutBtn.style.display = 'none';
+        }
+        if (mobileAuthBtn) {
+            mobileAuthBtn.style.display = 'block';
+        }
+        if (mobileSignupBtn) {
+            mobileSignupBtn.style.display = 'block';
+        }
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.style.display = 'none';
+        }
+    }
+}
+
 // Update mobile collections visibility
 function updateMobileCollectionsVisibility(isVisible) {
     // This function can be used to show/hide mobile collections button
@@ -806,51 +1009,53 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session?.user?.email);
     console.log('Auth state change - session:', session);
     
-    if (event === 'SIGNED_IN' && session?.user) {
-        console.log('User signed in, closing auth modal and checking application status...');
-        closeAuthModal();
-        
-        // Check if user has an existing application
-        try {
-            console.log('Checking for existing application from auth state change...');
+        if (event === 'SIGNED_IN' && session?.user) {
+            console.log('User signed in, closing auth modal and checking application status...');
+            updateUserUI(session.user);
+            closeAuthModal();
             
-            // Add a safety timeout - if checkApplicationStatus takes too long, show form
-            const checkPromise = checkApplicationStatus();
-            const safetyTimeout = new Promise((resolve) => {
-                setTimeout(() => {
-                    console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
-                    resolve(null);
-                }, 1500);
-            });
-            
-            const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
-            console.log('Existing application found from auth state change:', existingApplication);
-            
-            if (existingApplication) {
-                if (existingApplication.status === 'approved') {
-                    console.log('User has approved application, showing approved message');
-                    showApprovedMessage(existingApplication);
+            // Check if user has an existing application
+            try {
+                console.log('Checking for existing application from auth state change...');
+                
+                // Add a safety timeout - if checkApplicationStatus takes too long, show form
+                const checkPromise = checkApplicationStatus();
+                const safetyTimeout = new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.log('Safety timeout: checkApplicationStatus taking too long, showing application form');
+                        resolve(null);
+                    }, 1500);
+                });
+                
+                const existingApplication = await Promise.race([checkPromise, safetyTimeout]);
+                console.log('Existing application found from auth state change:', existingApplication);
+                
+                if (existingApplication) {
+                    if (existingApplication.status === 'approved') {
+                        console.log('User has approved application, showing approved message');
+                        showApprovedMessage(existingApplication);
+                    } else {
+                        console.log('User has pending application, showing magic word instructions');
+                        showExistingApplication(existingApplication);
+                    }
                 } else {
-                    console.log('User has pending application, showing magic word instructions');
-                    showExistingApplication(existingApplication);
+                    console.log('No existing application or timeout occurred, showing application form');
+                    showApplicationForm();
                 }
-            } else {
-                console.log('No existing application or timeout occurred, showing application form');
+                
+                updateMobileCollectionsVisibility(true);
+            } catch (appCheckError) {
+                console.error('Error in auth state change application check:', appCheckError);
+                console.log('Error details:', appCheckError.message, appCheckError.code);
+                console.log('Error occurred, showing application form as fallback for logged-in user');
                 showApplicationForm();
+                updateMobileCollectionsVisibility(true);
             }
-            
-            updateMobileCollectionsVisibility(true);
-        } catch (appCheckError) {
-            console.error('Error in auth state change application check:', appCheckError);
-            console.log('Error details:', appCheckError.message, appCheckError.code);
-            console.log('Error occurred, showing application form as fallback for logged-in user');
-            showApplicationForm();
-            updateMobileCollectionsVisibility(true);
+            // Stay on creators page - don't redirect
+        } else if (event === 'SIGNED_OUT') {
+            console.log('User signed out, showing login required');
+            updateUserUI(null);
+            showNotAuthenticatedState();
+            updateMobileCollectionsVisibility(false);
         }
-        // Stay on creators page - don't redirect
-    } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out, showing login required');
-        showNotAuthenticatedState();
-        updateMobileCollectionsVisibility(false);
-    }
 });

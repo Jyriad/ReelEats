@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join the ReelGrub Creator Program</title>
+        <title>Join the ReelGrub Creator Program - v1.530</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -27,24 +27,70 @@
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="header">
-        <div class="logo">
-            <a href="/" style="color: inherit; text-decoration: none;">ReelGrub</a>
+    <header class="bg-gray-50 text-gray-900 shadow flex-shrink-0 z-20">
+        <!-- Main Header Row -->
+        <div class="h-[60px] flex items-center justify-between px-2 md:px-4">
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-lg md:text-2xl font-bold truncate" style="color: inherit; text-decoration: none;">ReelGrub</a>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/explore" class="text-gray-700 hover:text-gray-900 transition-colors">Explore</a>
+                    <a href="/creators" class="text-gray-700 hover:text-gray-900 transition-colors font-medium">Creators</a>
+                </nav>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Desktop Auth Buttons -->
+                <button id="login-btn" class="hidden md:block bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors">
+                    Log In
+                </button>
+                <button id="signup-btn" class="hidden md:block bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors" style="display: none !important;">
+                    Sign-up
+                </button>
+                <button id="logout-button" class="hidden md:block bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors" style="display: none;">
+                    Logout
+                </button>
+                
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden bg-gray-700 hover:bg-gray-800 text-white rounded px-2 py-1 transition-colors" title="Menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
         
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <!-- Desktop Navigation -->
-            <nav class="hidden md:flex space-x-8">
-                <a href="/explore" class="text-gray-700 hover:text-gray-900">Explore</a>
-                <a href="/creators" class="text-gray-700 hover:text-gray-900">Creators</a>
-            </nav>
-            
-            <!-- Mobile Menu Button -->
-            <button id="mobile-menu-btn" class="md:hidden bg-gray-700 hover:bg-gray-800 text-white rounded px-2 py-1 transition-colors" title="Menu">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-            </button>
+        <!-- Mobile Menu Modal -->
+        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900">Menu</h2>
+                    <button id="close-mobile-menu" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <nav class="space-y-4">
+                    <a href="/explore" class="block text-gray-700 hover:text-gray-900 py-2 transition-colors">Explore</a>
+                    <a href="/creators" class="block text-gray-700 hover:text-gray-900 py-2 transition-colors font-medium">Creators</a>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Mobile Auth Buttons -->
+                    <button id="mobile-auth-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-3 transition-colors text-left">
+                        Log In
+                    </button>
+                    <button id="mobile-signup-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded px-4 py-3 transition-colors text-left">
+                        Sign Up
+                    </button>
+                    <button id="mobile-logout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white rounded px-4 py-3 transition-colors text-left" style="display: none;">
+                        Log-out
+                    </button>
+                </nav>
+            </div>
         </div>
     </header>
 
