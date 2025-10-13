@@ -512,6 +512,26 @@ function showExistingApplication(application) {
         }
     }
     
+    // Generate QR Code for existing applications (if status is not approved)
+    if (application.status !== 'approved') {
+        const existingQrContainer = document.getElementById('existing-qrcode-container');
+        if (existingQrContainer) {
+            existingQrContainer.innerHTML = ''; // Clear any previous QR code
+            const tiktokProfileUrl = 'https://www.tiktok.com/@reeleats';
+            
+            try {
+                const qr = qrcode(0, 'M'); // type 0, error correction 'M'
+                qr.addData(tiktokProfileUrl);
+                qr.make();
+                existingQrContainer.innerHTML = qr.createImgTag(4, 8); // (size, margin)
+                console.log('QR code for existing application generated successfully');
+            } catch (e) {
+                console.error("Error generating QR code for existing application:", e);
+                existingQrContainer.innerHTML = '<p class="text-sm text-gray-500">QR code unavailable</p>';
+            }
+        }
+    }
+    
     successMessage.classList.remove('hidden');
 }
 
