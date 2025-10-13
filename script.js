@@ -4403,6 +4403,12 @@ async function showVideoFor(restaurant) {
                 console.log('End drag event');
                 isDragging = false;
                 
+                // Apply any pending height immediately before canceling
+                if (pendingHeight !== null) {
+                    aside.style.setProperty('height', `${pendingHeight}px`, 'important');
+                    document.documentElement.style.setProperty('--drawer-height', `${pendingHeight}px`);
+                }
+                
                 // Cancel any pending animation frame
                 if (rafId) {
                     cancelAnimationFrame(rafId);
@@ -4412,9 +4418,14 @@ async function showVideoFor(restaurant) {
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';
                 
-                // Persist the final height with !important
-                const finalHeight = parseInt(getComputedStyle(aside).height);
+                // Get the final height (use pendingHeight if available, otherwise computed style)
+                const finalHeight = pendingHeight !== null ? pendingHeight : parseInt(getComputedStyle(aside).height);
                 console.log('Setting final height to:', finalHeight, 'px');
+                
+                // Clear pending height
+                pendingHeight = null;
+                
+                // Persist the final height with !important
                 aside.style.setProperty('height', `${finalHeight}px`, 'important');
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
                 
