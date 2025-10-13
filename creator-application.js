@@ -60,7 +60,7 @@ async function checkApplicationStatus() {
                 .single();
             
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Database query timeout')), 5000)
+                setTimeout(() => reject(new Error('Database query timeout')), 3000)
             );
             
             console.log('Making database query with timeout...');
@@ -217,9 +217,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Running delayed authentication check...');
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session && session.user) {
-            console.log('User already authenticated, showing application form');
-            showApplicationForm();
-            updateMobileCollectionsVisibility(true);
+            console.log('User already authenticated, checking application status');
+            try {
+                const existingApplication = await checkApplicationStatus();
+                if (existingApplication) {
+                    if (existingApplication.status === 'approved') {
+                        showApprovedMessage(existingApplication);
+                    } else {
+                        showExistingApplication(existingApplication);
+                    }
+                } else {
+                    showApplicationForm();
+                }
+                updateMobileCollectionsVisibility(true);
+            } catch (error) {
+                console.error('Error in delayed auth check:', error);
+                showApplicationForm();
+                updateMobileCollectionsVisibility(true);
+            }
         } else {
             console.log('No session found, showing login required');
             showNotAuthenticatedState();
@@ -963,11 +978,32 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
         console.log('User signed in, closing auth modal and checking application status...');
         closeAuthModal();
         
-        // For now, just show the application form for logged-in users
-        // TODO: Implement proper application status checking once database is working
-        console.log('User signed in, showing application form');
-        showApplicationForm();
-        updateMobileCollectionsVisibility(true);
+        // Check if user has an existing application
+        try {
+            console.log('Checking for existing application from auth state change...');
+            const existingApplication = await checkApplicationStatus();
+            console.log('Existing application found from auth state change:', existingApplication);
+            
+            if (existingApplication) {
+                if (existingApplication.status === 'approved') {
+                    console.log('User has approved application, showing approved message');
+                    showApprovedMessage(existingApplication);
+                } else {
+                    console.log('User has pending application, showing magic word instructions');
+                    showExistingApplication(existingApplication);
+                }
+            } else {
+                console.log('No existing application, showing application form');
+                showApplicationForm();
+            }
+            
+            updateMobileCollectionsVisibility(true);
+        } catch (appCheckError) {
+            console.error('Error in auth state change application check:', appCheckError);
+            console.log('Error occurred, showing application form as fallback');
+            showApplicationForm();
+            updateMobileCollectionsVisibility(true);
+        }
         // Stay on creators page - don't redirect
     } else if (event === 'SIGNED_OUT') {
         console.log('User signed out, showing login required');
