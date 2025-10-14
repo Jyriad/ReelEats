@@ -535,12 +535,11 @@ async function handleSaveRestaurant(event) {
             .insert([
                 {
                     name: restaurantName,
-                    address: address,
-                    latitude: parseFloat(latitude),
-                    longitude: parseFloat(longitude),
+                    lat: parseFloat(latitude),
+                    lon: parseFloat(longitude),
                     submitted_by_user_id: currentUser.id,
                     city: 'Unknown', // You might want to add city detection
-                    cuisine: 'Unknown' // You might want to add cuisine selection
+                    google_maps_url: address
                 }
             ])
             .select();
@@ -728,7 +727,7 @@ async function handleRestaurantSearch() {
         // Step 1: Search database first
         const { data: dbRestaurants, error: dbError } = await supabaseClient
             .from('restaurants')
-            .select('id, name, address, city, latitude, longitude')
+            .select('id, name, city, lat, lon')
             .ilike('name', `%${searchTerm}%`)
             .limit(5);
         
@@ -763,8 +762,8 @@ async function handleRestaurantSearch() {
                         name: place.displayName?.text || place.displayName,
                         address: place.formattedAddress,
                         city: place.addressComponents?.find(comp => comp.types.includes('locality'))?.longText || 'Unknown',
-                        latitude: place.location?.latitude,
-                        longitude: place.location?.longitude,
+                        lat: place.location?.latitude,
+                        lon: place.location?.longitude,
                         source: 'google'
                     }));
                 }
@@ -802,7 +801,7 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                  data-restaurant-name="${restaurant.name}"
                  data-source="database">
                 <div class="font-medium text-gray-900">${restaurant.name}</div>
-                <div class="text-sm text-gray-600">${restaurant.address || 'No address'}</div>
+                <div class="text-sm text-gray-600">${restaurant.city || 'No city'}</div>
                 <div class="text-xs text-blue-600 mt-1">✓ Already in database</div>
             </div>
         `).join('');
@@ -819,8 +818,8 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                  data-restaurant-name="${place.name}"
                  data-address="${place.address}"
                  data-city="${place.city}"
-                 data-latitude="${place.latitude}"
-                 data-longitude="${place.longitude}"
+                 data-lat="${place.lat}"
+                 data-lon="${place.lon}"
                  data-source="google">
                 <div class="font-medium text-gray-900">${place.name}</div>
                 <div class="text-sm text-gray-600">${place.address || 'No address'}</div>
@@ -857,11 +856,10 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                 selectedRestaurantId = null; // Clear database selection
                 newRestaurantData = {
                     name: restaurantName,
-                    address: option.dataset.address,
                     city: option.dataset.city,
-                    latitude: parseFloat(option.dataset.latitude),
-                    longitude: parseFloat(option.dataset.longitude),
-                    cuisine: 'Unknown'
+                    lat: parseFloat(option.dataset.lat),
+                    lon: parseFloat(option.dataset.lon),
+                    google_maps_url: option.dataset.address
                 };
             }
             
@@ -933,11 +931,10 @@ async function handleGeocodeNewRestaurant() {
             // Store the new restaurant data
             newRestaurantData = {
                 name: name,
-                address: address,
-                latitude: data.lat,
-                longitude: data.lng,
                 city: data.city || 'Unknown',
-                cuisine: 'Unknown'
+                lat: data.lat,
+                lon: data.lng,
+                google_maps_url: address
             };
             
             showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng, 'success');
@@ -982,8 +979,13 @@ async function handleSubmitReel() {
             const { data: newRestaurant, error: restaurantError } = await supabaseClient
                 .from('restaurants')
                 .insert([{
-                    ...newRestaurantData,
-                    submitted_by_user_id: currentUser.id
+                    name: newRestaurantData.name,
+                    city: newRestaurantData.city,
+                    lat: newRestaurantData.lat,
+                    lon: newRestaurantData.lon,
+                    google_maps_url: newRestaurantData.google_maps_url,
+                    submitted_by_user_id: currentUser.id,
+                    is_publicly_approved: false
                 }])
                 .select()
                 .single();
