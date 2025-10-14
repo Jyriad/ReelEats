@@ -23,8 +23,8 @@ let newRestaurantData = null;
 let loadingState = null;
 let addRestaurantBtn = null;
 let myRestaurantsList = null;
-let myTiktoksLoading = null;
-let myTiktoksTable = null;
+let myContentLoading = null;
+let myContentTable = null;
 let logoutBtn = null;
 let mobileLogoutBtn = null;
 let mobileMenuBtn = null;
@@ -67,8 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadingState = document.getElementById('loading-state');
     addRestaurantBtn = document.getElementById('add-restaurant-btn');
     myRestaurantsList = document.getElementById('my-restaurants-list');
-    myTiktoksLoading = document.getElementById('my-tiktoks-loading');
-    myTiktoksTable = document.getElementById('my-tiktoks-table');
+    myContentLoading = document.getElementById('my-tiktoks-loading');
+    myContentTable = document.getElementById('my-tiktoks-table');
     logoutBtn = document.getElementById('logout-button');
     mobileLogoutBtn = document.getElementById('mobile-logout-btn');
     mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -299,8 +299,8 @@ async function loadDashboard() {
         // Load user's restaurants
         await loadUserRestaurants();
 
-        // Load user's TikToks
-        await loadUserTiktoks();
+        // Load user's content (restaurants with TikToks)
+        await loadUserContent();
 
         // Initialize map
         await initializeMap();
@@ -340,55 +340,55 @@ async function loadUserRestaurants() {
     }
 }
 
-// Load user's TikToks
-async function loadUserTiktoks() {
-    console.log('Loading user TikToks...');
+// Load user's content (restaurants with TikToks)
+async function loadUserContent() {
+    console.log('Loading user content...');
 
-    if (!myTiktoksLoading || !myTiktoksTable) return;
+    if (!myContentLoading || !myContentTable) return;
 
     try {
         // Show loading state
-        myTiktoksLoading.classList.remove('hidden');
+        myContentLoading.classList.remove('hidden');
 
-        // Query TikToks with restaurant information
-        const { data: tiktoks, error } = await supabaseClient
-            .from('tiktoks')
+        // Query restaurants with their TikToks
+        const { data: restaurants, error } = await supabaseClient
+            .from('restaurants')
             .select(`
                 id,
-                embed_html,
-                author_handle,
+                name,
+                city,
+                lat,
+                lon,
                 created_at,
-                is_featured,
-                restaurant_id,
-                restaurants (
+                tiktoks (
                     id,
-                    name,
-                    city,
-                    lat,
-                    lon
+                    embed_html,
+                    author_handle,
+                    created_at,
+                    is_featured
                 )
             `)
             .eq('submitted_by_user_id', currentUser.id)
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error loading TikToks:', error);
-            showTiktoksError('Error loading TikToks: ' + error.message);
+            console.error('Error loading content:', error);
+            showContentError('Error loading content: ' + error.message);
             return;
         }
 
-        userTiktoks = tiktoks || [];
-        console.log('Loaded TikToks:', userTiktoks.length);
+        userRestaurants = restaurants || [];
+        console.log('Loaded restaurants with TikToks:', userRestaurants.length);
 
-        // Display TikToks
-        displayTiktoks();
+        // Display content (restaurants with TikToks)
+        displayContent();
 
     } catch (error) {
-        console.error('Error loading TikToks:', error);
-        showTiktoksError('Error loading TikToks: ' + error.message);
+        console.error('Error loading content:', error);
+        showContentError('Error loading content: ' + error.message);
     } finally {
         // Hide loading state
-        myTiktoksLoading.classList.add('hidden');
+        myContentLoading.classList.add('hidden');
     }
 }
 
@@ -419,85 +419,92 @@ function displayRestaurants() {
     `).join('');
 }
 
-// Display TikToks in the table
-function displayTiktoks() {
-    if (!myTiktoksTable) return;
+// Display content (restaurants with TikToks)
+function displayContent() {
+    if (!myContentTable) return;
 
-    if (userTiktoks.length === 0) {
-        myTiktoksTable.innerHTML = `
+    if (userRestaurants.length === 0) {
+        myContentTable.innerHTML = `
             <div class="text-center py-8 text-gray-500">
-                <p class="text-lg mb-2">No TikToks submitted yet</p>
-                <p class="text-sm">Use "Add a New Reel" above to submit your first TikTok!</p>
+                <p class="text-lg mb-2">No restaurants added yet</p>
+                <p class="text-sm">Click "Add New Restaurant" to get started!</p>
             </div>
         `;
         return;
     }
 
-    myTiktoksTable.innerHTML = `
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            TikTok Video
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Restaurant
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Location
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Submitted
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    ${userTiktoks.map(tiktok => {
-                        const restaurant = tiktok.restaurants;
-                        const createdDate = new Date(tiktok.created_at).toLocaleDateString();
-                        const isFeatured = tiktok.is_featured ? 'Featured' : 'Standard';
+    myContentTable.innerHTML = `
+        <div class="space-y-6">
+            ${userRestaurants.map(restaurant => {
+                const restaurantTiktoks = restaurant.tiktoks || [];
+                const createdDate = new Date(restaurant.created_at).toLocaleDateString();
 
-                        return `
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="tiktok-embed-container" style="width: 200px; height: 120px; overflow: hidden; border-radius: 8px;">
-                                        ${tiktok.embed_html}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm font-medium text-gray-900">${restaurant?.name || 'Restaurant not found'}</div>
-                                    <div class="text-sm text-gray-500">${tiktok.author_handle || 'Unknown creator'}</div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900">${restaurant?.city || 'No location'}</div>
-                                    ${restaurant?.lat && restaurant?.lon ? `
-                                        <div class="text-xs text-gray-500">
-                                            ${restaurant.lat.toFixed(4)}, ${restaurant.lon.toFixed(4)}
+                return `
+                    <div class="border border-gray-200 rounded-lg p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">${restaurant.name}</h3>
+                                <p class="text-sm text-gray-600">${restaurant.city || 'No location'}</p>
+                                <p class="text-xs text-gray-500">Added: ${createdDate}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="edit-restaurant-location-btn bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded transition-colors"
+                                        data-restaurant-id="${restaurant.id}">
+                                    Edit Location
+                                </button>
+                                <button class="edit-restaurant-btn bg-gray-600 hover:bg-gray-700 text-white text-sm px-3 py-1 rounded transition-colors"
+                                        onclick="editRestaurant('${restaurant.id}')">
+                                    Edit Details
+                                </button>
+                            </div>
+                        </div>
+
+                        ${restaurantTiktoks.length > 0 ? `
+                            <div class="border-t border-gray-100 pt-4">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">Associated TikToks (${restaurantTiktoks.length})</h4>
+                                <div class="space-y-3">
+                                    ${restaurantTiktoks.map(tiktok => `
+                                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                            <div class="flex items-center gap-3">
+                                                <div class="tiktok-embed-container" style="width: 120px; height: 80px; overflow: hidden; border-radius: 6px; flex-shrink-0;">
+                                                    ${tiktok.embed_html}
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900">${tiktok.author_handle || 'Unknown creator'}</div>
+                                                    <div class="text-xs text-gray-500">Submitted: ${new Date(tiktok.created_at).toLocaleDateString()}</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${tiktok.is_featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                                    ${tiktok.is_featured ? 'Featured' : 'Standard'}
+                                                </span>
+                                                <button class="edit-tiktok-url-btn bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded transition-colors"
+                                                        data-tiktok-id="${tiktok.id}"
+                                                        data-restaurant-id="${restaurant.id}">
+                                                    Change URL
+                                                </button>
+                                            </div>
                                         </div>
-                                    ` : ''}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    ${createdDate}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tiktok.is_featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                                        ${isFeatured}
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="border-t border-gray-100 pt-4">
+                                <p class="text-sm text-gray-500 italic">No TikToks associated with this restaurant yet.</p>
+                                <p class="text-sm text-gray-500">Use "Add a New Reel" to link a TikTok to this restaurant.</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
 
     // Show the table
-    myTiktoksTable.classList.remove('hidden');
+    myContentTable.classList.remove('hidden');
+
+    // Add event listeners for edit buttons
+    addEditEventListeners();
 }
 
 // Initialize map
@@ -784,8 +791,8 @@ async function deleteRestaurant(restaurantId) {
         
         // Refresh display
         displayRestaurants();
-        // Reload TikToks in case the deleted restaurant had TikToks
-        loadUserTiktoks();
+        // Reload content in case the deleted restaurant had TikToks
+        loadUserContent();
         addRestaurantMarkers();
         
         console.log('Restaurant deleted successfully');
@@ -1064,17 +1071,58 @@ function showRestaurantSearchError(message) {
     }
 }
 
-// Helper functions for TikToks
-function showTiktoksError(message) {
-    if (myTiktoksTable) {
-        myTiktoksTable.innerHTML = `
+// Helper functions for content
+function showContentError(message) {
+    if (myContentTable) {
+        myContentTable.innerHTML = `
             <div class="text-center py-8 text-red-500">
-                <p class="text-lg mb-2">Error loading TikToks</p>
+                <p class="text-lg mb-2">Error loading content</p>
                 <p class="text-sm">${message}</p>
             </div>
         `;
-        myTiktoksTable.classList.remove('hidden');
+        myContentTable.classList.remove('hidden');
     }
+}
+
+// Add event listeners for edit buttons
+function addEditEventListeners() {
+    // Edit restaurant location buttons
+    document.querySelectorAll('.edit-restaurant-location-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const restaurantId = e.target.dataset.restaurantId;
+            editRestaurantLocation(restaurantId);
+        });
+    });
+
+    // Edit TikTok URL buttons
+    document.querySelectorAll('.edit-tiktok-url-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tiktokId = e.target.dataset.tiktokId;
+            const restaurantId = e.target.dataset.restaurantId;
+            editTiktokUrl(tiktokId, restaurantId);
+        });
+    });
+}
+
+// Edit restaurant location
+function editRestaurantLocation(restaurantId) {
+    // Find the restaurant
+    const restaurant = userRestaurants.find(r => r.id === parseInt(restaurantId));
+    if (!restaurant) return;
+
+    // For now, show a simple alert - in a real implementation you'd open a modal
+    alert(`Edit location for: ${restaurant.name}\n\nCurrent location: ${restaurant.city}\n\nThis would open a location picker similar to the admin panel.`);
+}
+
+// Edit TikTok URL
+function editTiktokUrl(tiktokId, restaurantId) {
+    // Find the TikTok
+    const restaurant = userRestaurants.find(r => r.id === parseInt(restaurantId));
+    const tiktok = restaurant?.tiktoks?.find(t => t.id === tiktokId);
+    if (!tiktok) return;
+
+    // For now, show a simple alert - in a real implementation you'd open a modal
+    alert(`Edit TikTok URL for restaurant: ${restaurant.name}\n\nCurrent creator: ${tiktok.author_handle}\n\nThis would open a URL editor similar to the admin panel.`);
 }
 
 // 3. Show new restaurant form
@@ -1310,6 +1358,9 @@ function resetReelForm() {
     hideTiktokValidationError();
     const reelGeocodeStatus = document.getElementById('reel-geocode-status');
     if (reelGeocodeStatus) reelGeocodeStatus.classList.add('hidden');
+
+    // Refresh content display
+    loadUserContent();
     
     // Show step 1
     showStep(1);
