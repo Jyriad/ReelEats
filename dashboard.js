@@ -34,7 +34,9 @@ let tiktokUrlInput = null;
 let tiktokValidationError = null;
 let editableTiktokUrl = null;
 let restaurantSearchInput = null;
+let searchRestaurantBtn = null;
 let restaurantSearchResults = null;
+let restaurantSearchOptions = null;
 let showNewRestaurantFormBtn = null;
 let newRestaurantName = null;
 let newRestaurantAddress = null;
@@ -85,7 +87,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     tiktokValidationError = document.getElementById('tiktok-validation-error');
     editableTiktokUrl = document.getElementById('editable-tiktok-url');
     restaurantSearchInput = document.getElementById('restaurant-search-input');
+    searchRestaurantBtn = document.getElementById('search-restaurant-btn');
     restaurantSearchResults = document.getElementById('restaurant-search-results');
+    restaurantSearchOptions = document.getElementById('restaurant-search-options');
     showNewRestaurantFormBtn = document.getElementById('show-new-restaurant-form-btn');
     newRestaurantName = document.getElementById('new-restaurant-name');
     newRestaurantAddress = document.getElementById('new-restaurant-address');
@@ -163,8 +167,18 @@ function setupEventListeners() {
     }
     
     // 2. Search for Restaurants
+    if (searchRestaurantBtn) {
+        searchRestaurantBtn.addEventListener('click', handleRestaurantSearch);
+    }
+    
+    // Also allow Enter key in search input
     if (restaurantSearchInput) {
-        restaurantSearchInput.addEventListener('keyup', handleRestaurantSearch);
+        restaurantSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleRestaurantSearch();
+            }
+        });
     }
     
     // 3. Show new restaurant form
@@ -695,64 +709,161 @@ async function handleValidateTiktok() {
     }
 }
 
-// 2. Search for Restaurants
+// 2. Search for Restaurants (Database + Google Places)
 async function handleRestaurantSearch() {
     const searchTerm = restaurantSearchInput?.value?.trim();
     
     if (!searchTerm || searchTerm.length < 3) {
-        if (restaurantSearchResults) {
-            restaurantSearchResults.innerHTML = '';
-        }
+        hideRestaurantSearchResults();
         return;
     }
     
+    if (!searchRestaurantBtn) return;
+    
+    // Show loading state
+    searchRestaurantBtn.disabled = true;
+    searchRestaurantBtn.textContent = 'Searching...';
+    
     try {
-        // Query the restaurants table
-        const { data: restaurants, error } = await supabaseClient
+        // Step 1: Search database first
+        const { data: dbRestaurants, error: dbError } = await supabaseClient
             .from('restaurants')
-            .select('id, name, address, city')
+            .select('id, name, address, city, latitude, longitude')
             .ilike('name', `%${searchTerm}%`)
-            .limit(10);
+            .limit(5);
         
-        if (error) {
-            console.error('Error searching restaurants:', error);
-            return;
+        if (dbError) {
+            console.error('Error searching database:', dbError);
         }
         
-        // Display results
-        displayRestaurantSearchResults(restaurants || []);
+        // Step 2: Search Google Places
+        let googlePlaces = [];
+        try {
+            const response = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/google-places`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    action: 'searchText',
+                    data: {
+                        textQuery: searchTerm + ' restaurant',
+                        maxResultCount: 8
+                    }
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data.places && result.data.places.length > 0) {
+                    // Convert Google Places format to our format
+                    googlePlaces = result.data.places.map(place => ({
+                        id: `google_${place.id}`,
+                        name: place.displayName?.text || place.displayName,
+                        address: place.formattedAddress,
+                        city: place.addressComponents?.find(comp => comp.types.includes('locality'))?.longText || 'Unknown',
+                        latitude: place.location?.latitude,
+                        longitude: place.location?.longitude,
+                        source: 'google'
+                    }));
+                }
+            }
+        } catch (googleError) {
+            console.error('Error searching Google Places:', googleError);
+        }
+        
+        // Step 3: Display combined results
+        displayCombinedSearchResults(dbRestaurants || [], googlePlaces);
         
     } catch (error) {
-        console.error('Error searching restaurants:', error);
+        console.error('Error in restaurant search:', error);
+        showRestaurantSearchError('Search failed. Please try again.');
+    } finally {
+        // Reset button state
+        searchRestaurantBtn.disabled = false;
+        searchRestaurantBtn.textContent = 'Search';
     }
 }
 
-// Display restaurant search results
-function displayRestaurantSearchResults(restaurants) {
-    if (!restaurantSearchResults) return;
+// Display combined search results (Database + Google Places)
+function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
+    if (!restaurantSearchOptions) return;
     
-    if (restaurants.length === 0) {
-        restaurantSearchResults.innerHTML = '<p class="text-gray-500 text-sm">No restaurants found</p>';
-        return;
+    let html = '';
+    
+    // Show database results first
+    if (dbRestaurants.length > 0) {
+        html += '<div class="mb-3">';
+        html += '<h5 class="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Existing Restaurants</h5>';
+        html += dbRestaurants.map(restaurant => `
+            <div class="restaurant-option p-3 border border-blue-200 rounded-md mb-2 cursor-pointer hover:bg-blue-50 transition-colors bg-blue-25" 
+                 data-restaurant-id="${restaurant.id}" 
+                 data-restaurant-name="${restaurant.name}"
+                 data-source="database">
+                <div class="font-medium text-gray-900">${restaurant.name}</div>
+                <div class="text-sm text-gray-600">${restaurant.address || 'No address'}</div>
+                <div class="text-xs text-blue-600 mt-1">✓ Already in database</div>
+            </div>
+        `).join('');
+        html += '</div>';
     }
     
-    restaurantSearchResults.innerHTML = restaurants.map(restaurant => `
-        <div class="restaurant-result p-3 border border-gray-200 rounded-md mb-2 cursor-pointer hover:bg-gray-50 transition-colors" 
-             data-restaurant-id="${restaurant.id}" data-restaurant-name="${restaurant.name}">
-            <h4 class="font-medium text-gray-900">${restaurant.name}</h4>
-            <p class="text-sm text-gray-600">${restaurant.address || 'No address'}</p>
-            <p class="text-xs text-gray-500">${restaurant.city || 'No city'}</p>
-        </div>
-    `).join('');
+    // Show Google Places results
+    if (googlePlaces.length > 0) {
+        html += '<div>';
+        html += '<h5 class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Google Places Results</h5>';
+        html += googlePlaces.map(place => `
+            <div class="restaurant-option p-3 border border-gray-200 rounded-md mb-2 cursor-pointer hover:bg-gray-50 transition-colors" 
+                 data-place-id="${place.id}" 
+                 data-restaurant-name="${place.name}"
+                 data-address="${place.address}"
+                 data-city="${place.city}"
+                 data-latitude="${place.latitude}"
+                 data-longitude="${place.longitude}"
+                 data-source="google">
+                <div class="font-medium text-gray-900">${place.name}</div>
+                <div class="text-sm text-gray-600">${place.address || 'No address'}</div>
+                <div class="text-xs text-gray-500">${place.city || 'No city'}</div>
+            </div>
+        `).join('');
+        html += '</div>';
+    }
+    
+    // Show no results message
+    if (dbRestaurants.length === 0 && googlePlaces.length === 0) {
+        html = '<p class="text-gray-500 text-sm text-center py-4">No restaurants found. Try a different search term or add a new restaurant.</p>';
+    }
+    
+    restaurantSearchOptions.innerHTML = html;
+    
+    // Show results container
+    if (restaurantSearchResults) {
+        restaurantSearchResults.classList.remove('hidden');
+    }
     
     // Add click listeners to each result
-    restaurantSearchResults.querySelectorAll('.restaurant-result').forEach(result => {
-        result.addEventListener('click', () => {
-            const restaurantId = result.dataset.restaurantId;
-            const restaurantName = result.dataset.restaurantName;
+    restaurantSearchOptions.querySelectorAll('.restaurant-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const source = option.dataset.source;
+            const restaurantName = option.dataset.restaurantName;
             
-            // Store selected restaurant
-            selectedRestaurantId = restaurantId;
+            if (source === 'database') {
+                // Existing restaurant from database
+                selectedRestaurantId = option.dataset.restaurantId;
+                newRestaurantData = null; // Clear any new restaurant data
+            } else if (source === 'google') {
+                // New restaurant from Google Places
+                selectedRestaurantId = null; // Clear database selection
+                newRestaurantData = {
+                    name: restaurantName,
+                    address: option.dataset.address,
+                    city: option.dataset.city,
+                    latitude: parseFloat(option.dataset.latitude),
+                    longitude: parseFloat(option.dataset.longitude),
+                    cuisine: 'Unknown'
+                };
+            }
             
             // Populate summary
             if (summaryRestaurantName) {
@@ -766,6 +877,22 @@ function displayRestaurantSearchResults(restaurants) {
             showStep(4);
         });
     });
+}
+
+// Helper functions for restaurant search
+function hideRestaurantSearchResults() {
+    if (restaurantSearchResults) {
+        restaurantSearchResults.classList.add('hidden');
+    }
+}
+
+function showRestaurantSearchError(message) {
+    if (restaurantSearchOptions) {
+        restaurantSearchOptions.innerHTML = `<p class="text-red-500 text-sm text-center py-4">${message}</p>`;
+    }
+    if (restaurantSearchResults) {
+        restaurantSearchResults.classList.remove('hidden');
+    }
 }
 
 // 3. Show new restaurant form
@@ -984,8 +1111,9 @@ function resetReelForm() {
     if (newRestaurantName) newRestaurantName.value = '';
     if (newRestaurantAddress) newRestaurantAddress.value = '';
     
-    // Clear results
-    if (restaurantSearchResults) restaurantSearchResults.innerHTML = '';
+    // Clear search results
+    hideRestaurantSearchResults();
+    if (restaurantSearchOptions) restaurantSearchOptions.innerHTML = '';
     
     // Hide error messages
     hideTiktokValidationError();
