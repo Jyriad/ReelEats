@@ -757,7 +757,7 @@ async function handleGeocodeNewRestaurant() {
     const address = newRestaurantAddress?.value?.trim();
     
     if (!name || !address) {
-        showGeocodeStatus('Please fill in both restaurant name and address', 'error');
+        showReelGeocodeStatus('Please fill in both restaurant name and address', 'error');
         return;
     }
     
@@ -766,7 +766,7 @@ async function handleGeocodeNewRestaurant() {
     // Show loading state
     geocodeAddressBtn.disabled = true;
     geocodeAddressBtn.textContent = 'Getting Coordinates...';
-    showGeocodeStatus('Looking up address...', 'info');
+    showReelGeocodeStatus('Looking up address...', 'info');
     
     try {
         // Call the geocode-address Supabase Edge Function
@@ -776,7 +776,7 @@ async function handleGeocodeNewRestaurant() {
         
         if (error) {
             console.error('Geocoding error:', error);
-            showGeocodeStatus('Error looking up address: ' + error.message, 'error');
+            showReelGeocodeStatus('Error looking up address: ' + error.message, 'error');
             return;
         }
         
@@ -791,7 +791,7 @@ async function handleGeocodeNewRestaurant() {
                 cuisine: 'Unknown'
             };
             
-            showGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng, 'success');
+            showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng, 'success');
             
             // Populate summary
             if (summaryRestaurantName) {
@@ -804,12 +804,12 @@ async function handleGeocodeNewRestaurant() {
             // Move to step 4
             showStep(4);
         } else {
-            showGeocodeStatus('Could not find coordinates for this address', 'error');
+            showReelGeocodeStatus('Could not find coordinates for this address', 'error');
         }
         
     } catch (error) {
         console.error('Geocoding error:', error);
-        showGeocodeStatus('Error looking up address: ' + error.message, 'error');
+        showReelGeocodeStatus('Error looking up address: ' + error.message, 'error');
     } finally {
         // Reset button state
         geocodeAddressBtn.disabled = false;
@@ -916,8 +916,8 @@ function hideTiktokValidationError() {
     }
 }
 
-function showGeocodeStatus(message, type) {
-    const statusElement = document.getElementById('geocode-status');
+function showReelGeocodeStatus(message, type) {
+    const statusElement = document.getElementById('reel-geocode-status');
     if (!statusElement) return;
     
     statusElement.textContent = message;
@@ -928,6 +928,7 @@ function showGeocodeStatus(message, type) {
     }`;
     statusElement.classList.remove('hidden');
 }
+
 
 function resetReelForm() {
     // Reset state
@@ -946,7 +947,8 @@ function resetReelForm() {
     
     // Hide error messages
     hideTiktokValidationError();
-    if (geocodeStatus) geocodeStatus.classList.add('hidden');
+    const reelGeocodeStatus = document.getElementById('reel-geocode-status');
+    if (reelGeocodeStatus) reelGeocodeStatus.classList.add('hidden');
     
     // Show step 1
     showStep(1);
