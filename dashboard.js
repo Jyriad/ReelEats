@@ -980,9 +980,11 @@ function editTiktokUrl(tiktokId, restaurantId) {
     const tiktok = restaurant?.tiktoks?.find(t => t.id === tiktokId);
     if (!tiktok || !restaurant) return;
 
+    // Extract current URL from embed HTML
+    const currentUrl = extractTiktokUrlFromEmbed(tiktok.embed_html) || '';
+
     // Populate modal with TikTok data
-    document.getElementById('edit-tiktok-restaurant').value = restaurant.name;
-    document.getElementById('edit-tiktok-url').value = ''; // Will be set when we implement URL extraction
+    document.getElementById('edit-tiktok-url').value = currentUrl;
     document.getElementById('edit-tiktok-id').value = tiktok.id;
     document.getElementById('edit-tiktok-restaurant-id').value = restaurant.id;
 
@@ -1478,6 +1480,13 @@ function extractTikTokCreatorHandle(url) {
     // Example: https://www.tiktok.com/@cajapanesepancakes/video/7294745895676022048
     // Should return: @cajapanesepancakes
     const match = url.match(/tiktok\.com\/(@[^\/]+)/);
+    return match ? match[1] : null;
+}
+
+// Extract TikTok URL from embed HTML
+function extractTiktokUrlFromEmbed(embedHtml) {
+    // Extract the URL from the cite attribute in the blockquote
+    const match = embedHtml.match(/cite="([^"]+)"/);
     return match ? match[1] : null;
 }
 

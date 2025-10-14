@@ -71,7 +71,7 @@
         </div>
         
         <!-- Mobile Menu Modal -->
-        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center p-4">
             <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-bold text-gray-900">Menu</h2>
@@ -211,7 +211,7 @@
     </main>
 
     <!-- Loading State -->
-    <div id="loading-state" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div id="loading-state" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center">
         <div class="bg-white rounded-lg p-8 text-center">
             <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
             <p class="text-gray-600 text-lg">Loading Dashboard...</p>
@@ -219,7 +219,7 @@
     </div>
 
     <!-- Edit Restaurant Location Modal -->
-    <div id="edit-location-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+    <div id="edit-location-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-900">Edit Restaurant Location</h2>
@@ -275,7 +275,7 @@
     </div>
 
     <!-- Edit TikTok URL Modal -->
-    <div id="edit-tiktok-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+    <div id="edit-tiktok-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-900">Edit TikTok URL</h2>
@@ -287,12 +287,6 @@
             </div>
 
             <form id="edit-tiktok-form">
-                <div class="mb-4">
-                    <label for="edit-tiktok-restaurant" class="block text-sm font-medium text-gray-700 mb-2">Restaurant</label>
-                    <input type="text" id="edit-tiktok-restaurant" readonly
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
-                </div>
-
                 <div class="mb-4">
                     <label for="edit-tiktok-url" class="block text-sm font-medium text-gray-700 mb-2">TikTok Video URL</label>
                     <input type="text" id="edit-tiktok-url" placeholder="https://www.tiktok.com/@user/video/..."
