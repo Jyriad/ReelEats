@@ -106,6 +106,66 @@
 
         <section id="management-tools" class="tools-section">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">My Content</h2>
+            
+            <!-- Add a Reel Section -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Add a New Reel</h2>
+                <div id="add-reel-flow">
+
+                    <div id="step-1-tiktok-url">
+                        <label for="tiktok-url-input" class="block text-sm font-medium text-gray-700 mb-2">Enter your TikTok Video URL</label>
+                        <input type="text" id="tiktok-url-input" placeholder="https://www.tiktok.com/@user/video/..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3">
+                        <button id="validate-tiktok-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            Next
+                        </button>
+                        <p id="tiktok-validation-error" class="error-message text-red-600 text-sm mt-2 hidden"></p>
+                    </div>
+
+                    <div id="step-2-link-restaurant" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Link to a Restaurant</h3>
+                        <p class="text-gray-600 mb-4">Your video has been validated! Now, search for the restaurant.</p>
+                        <input type="text" id="restaurant-search-input" placeholder="Search for restaurant name..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3">
+                        <div id="restaurant-search-results" class="mb-3"></div>
+                        <button id="show-new-restaurant-form-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            Can't find it? Add a new one
+                        </button>
+                    </div>
+
+                    <div id="step-3-new-restaurant" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add a New Restaurant</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="new-restaurant-name" class="block text-sm font-medium text-gray-700 mb-2">Restaurant Name</label>
+                                <input type="text" id="new-restaurant-name" placeholder="Restaurant Name" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="new-restaurant-address" class="block text-sm font-medium text-gray-700 mb-2">Full Address</label>
+                                <input type="text" id="new-restaurant-address" placeholder="Full Address" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <button id="geocode-address-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors mb-3">
+                            Get Coordinates
+                        </button>
+                        <p id="geocode-status" class="status-message text-sm mb-3 hidden"></p>
+                    </div>
+
+                    <div id="step-4-summary" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Ready to Submit?</h3>
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <p class="text-sm text-gray-600 mb-2"><strong>Video:</strong> <span id="summary-tiktok-url" class="text-blue-600"></span></p>
+                            <p class="text-sm text-gray-600"><strong>Restaurant:</strong> <span id="summary-restaurant-name" class="text-green-600"></span></p>
+                        </div>
+                        <button id="submit-reel-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            Save Reel
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
             <button id="add-restaurant-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors mb-6">
                 Add New Restaurant
             </button>
