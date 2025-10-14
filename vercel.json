@@ -1,7 +1,10 @@
 {
   "rewrites": [
-    { "source": "/explore", "destination": "/explore.html" },
+    { "source": "/creators/dashboard", "destination": "/dashboard.html" },
+    { "source": "/admin", "destination": "/admin.html" },
     { "source": "/creators", "destination": "/creator-application.html" },
+    { "source": "/explore", "destination": "/explore.html" },
+    { "source": "/collections/:id", "destination": "/collection.html" },
     { "source": "/:city", "destination": "/explore.html" }
   ]
 }

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Dashboard - ReelGrub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+    
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+    
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
+    
+    <style>
+        body {
+            font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <header class="bg-gray-50 text-gray-900 shadow flex-shrink-0 z-20">
+        <!-- Main Header Row -->
+        <div class="h-[60px] flex items-center justify-between px-2 md:px-4">
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-lg md:text-2xl font-bold truncate" style="color: inherit; text-decoration: none;">ReelGrub</a>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/explore" class="text-gray-700 hover:text-gray-900 transition-colors">Explore</a>
+                    <a href="/creators" class="text-gray-700 hover:text-gray-900 transition-colors">Creators</a>
+                    <a href="/creators/dashboard" class="text-gray-700 hover:text-gray-900 transition-colors font-medium">Dashboard</a>
+                </nav>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Desktop Auth Buttons -->
+                <button id="logout-button" class="hidden md:block bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors">
+                    Logout
+                </button>
+                
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden bg-gray-700 hover:bg-gray-800 text-white rounded px-2 py-1 transition-colors" title="Menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu Modal -->
+        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900">Menu</h2>
+                    <button id="close-mobile-menu" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <nav class="space-y-4">
+                    <a href="/explore" class="block text-gray-700 hover:text-gray-900 py-2 transition-colors">Explore</a>
+                    <a href="/creators" class="block text-gray-700 hover:text-gray-900 py-2 transition-colors">Creators</a>
+                    <a href="/creators/dashboard" class="block text-gray-700 hover:text-gray-900 py-2 transition-colors font-medium">Dashboard</a>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Mobile Logout Button -->
+                    <button id="mobile-logout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white rounded px-4 py-3 transition-colors text-left">
+                        Log-out
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Creator Dashboard</h1>
+            <p class="text-xl text-gray-600">Welcome! Here you can manage your restaurants and videos.</p>
+        </div>
+
+        <section id="management-tools" class="tools-section">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">My Content</h2>
+            <button id="add-restaurant-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors mb-6">
+                Add New Restaurant
+            </button>
+            <hr class="mb-6">
+            <div id="my-restaurants-list" class="space-y-4">
+                <!-- Restaurants will be loaded here -->
+            </div>
+        </section>
+
+        <section id="map-section" class="map-section">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">My Map</h2>
+            <div id="map" class="w-full border border-gray-300 rounded-lg"></div>
+        </section>
+    </main>
+
+    <!-- Loading State -->
+    <div id="loading-state" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600 text-lg">Loading Dashboard...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
