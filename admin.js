@@ -2680,6 +2680,11 @@ function addVideoToRestaurant(restaurantId, restaurantName) {
 async function loadCreatorApplications() {
     try {
         console.log('Loading creator applications...');
+        
+        // First, let's check what user we're authenticated as
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+        console.log('Current user:', user?.email, user?.id);
+        
         const { data: applications, error } = await supabaseClient
             .from('creator_applications')
             .select('*')
@@ -2687,10 +2692,23 @@ async function loadCreatorApplications() {
 
         if (error) {
             console.error('Error loading applications:', error);
+            console.error('Error details:', error.message, error.code, error.details);
             throw error;
         }
 
         console.log('Applications loaded:', applications);
+        console.log('Total applications found:', applications.length);
+        
+        // Let's also try a count query to see if RLS is filtering results
+        const { count, error: countError } = await supabaseClient
+            .from('creator_applications')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!countError) {
+            console.log('Total applications in database (by count):', count);
+        } else {
+            console.log('Count query error:', countError);
+        }
 
         const container = document.getElementById('creator-applications');
         
