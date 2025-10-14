@@ -305,22 +305,23 @@ async function loadUserContent() {
         // Show loading state
         myContentLoading.classList.remove('hidden');
 
-        // Query restaurants with their TikToks
-        const { data: restaurants, error } = await supabaseClient
-            .from('restaurants')
+        // Query TikToks submitted by the creator with restaurant information
+        const { data: tiktoks, error } = await supabaseClient
+            .from('tiktoks')
             .select(`
                 id,
-                name,
-                city,
-                lat,
-                lon,
+                embed_html,
+                author_handle,
                 created_at,
-                tiktoks (
+                is_featured,
+                restaurant_id,
+                restaurants (
                     id,
-                    embed_html,
-                    author_handle,
-                    created_at,
-                    is_featured
+                    name,
+                    city,
+                    lat,
+                    lon,
+                    created_at
                 )
             `)
             .eq('submitted_by_user_id', currentUser.id)
@@ -332,7 +333,31 @@ async function loadUserContent() {
             return;
         }
 
-        userContent = restaurants || [];
+        // Group TikToks by restaurant for display
+        const restaurantMap = new Map();
+
+        if (tiktoks) {
+            tiktoks.forEach(tiktok => {
+                if (tiktok.restaurants) {
+                    const restaurantId = tiktok.restaurants.id;
+                    if (!restaurantMap.has(restaurantId)) {
+                        restaurantMap.set(restaurantId, {
+                            ...tiktok.restaurants,
+                            tiktoks: []
+                        });
+                    }
+                    restaurantMap.get(restaurantId).tiktoks.push({
+                        id: tiktok.id,
+                        embed_html: tiktok.embed_html,
+                        author_handle: tiktok.author_handle,
+                        created_at: tiktok.created_at,
+                        is_featured: tiktok.is_featured
+                    });
+                }
+            });
+        }
+
+        userContent = Array.from(restaurantMap.values());
         console.log('Loaded restaurants with TikToks:', userContent.length);
 
         // Display content (restaurants with TikToks)
