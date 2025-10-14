@@ -2790,7 +2790,7 @@ async function approveCreatorApplication(applicationId, userId, tiktokHandle, re
                 user_id: userId,
                 role: 'creator',
                 tiktok_handle: tiktokHandle,
-                requested_username: requestedUsername
+                username: requestedUsername
             });
 
         if (roleError) throw roleError;
