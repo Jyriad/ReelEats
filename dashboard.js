@@ -1000,12 +1000,15 @@ async function handleSubmitReel() {
         }
         
         // B. Now create the TikTok link
+        const embedHtml = generateTikTokEmbed(validatedTiktokUrl);
         const { data: newTiktok, error: tiktokError } = await supabaseClient
             .from('tiktoks')
             .insert([{
-                url: validatedTiktokUrl,
+                embed_html: embedHtml,
                 restaurant_id: finalRestaurantId,
-                submitted_by_user_id: currentUser.id
+                submitted_by_user_id: currentUser.id,
+                is_featured: false,
+                is_publicly_approved: false
             }])
             .select()
             .single();
@@ -1124,6 +1127,25 @@ function resetReelForm() {
     
     // Show step 1
     showStep(1);
+}
+
+// Generate TikTok embed HTML from URL
+function generateTikTokEmbed(url) {
+    // Extract video ID from TikTok URL
+    const videoIdMatch = url.match(/\/video\/(\d+)/);
+    if (!videoIdMatch) {
+        throw new Error('Invalid TikTok URL format');
+    }
+    
+    const videoId = videoIdMatch[1];
+    
+    // Generate the embed HTML
+    return `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px; position: relative; overflow: hidden;">
+        <section>
+            <a target="_blank" title="@username" href="${url}">@username</a>
+        </section>
+    </blockquote>
+    <script async src="https://www.tiktok.com/embed.js"></script>`;
 }
 
 // Make functions globally accessible
