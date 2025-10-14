@@ -29,6 +29,14 @@ let mobileMenuBtn = null;
 let mobileMenuModal = null;
 let closeMobileMenu = null;
 
+// Modal elements
+let editLocationModal = null;
+let closeEditLocationModal = null;
+let editLocationForm = null;
+let editTiktokModal = null;
+let closeEditTiktokModal = null;
+let editTiktokForm = null;
+
 // --- REEL SUBMISSION ELEMENT SELECTORS ---
 let validateTiktokBtn = null;
 let tiktokUrlInput = null;
@@ -60,6 +68,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileMenuBtn = document.getElementById('mobile-menu-btn');
     mobileMenuModal = document.getElementById('mobile-menu-modal');
     closeMobileMenu = document.getElementById('close-mobile-menu');
+    
+    // Modal elements
+    editLocationModal = document.getElementById('edit-location-modal');
+    closeEditLocationModal = document.getElementById('close-edit-location-modal');
+    editLocationForm = document.getElementById('edit-location-form');
+    editTiktokModal = document.getElementById('edit-tiktok-modal');
+    closeEditTiktokModal = document.getElementById('close-edit-tiktok-modal');
+    editTiktokForm = document.getElementById('edit-tiktok-form');
     
     // --- REEL SUBMISSION ELEMENTS ---
     validateTiktokBtn = document.getElementById('validate-tiktok-btn');
@@ -117,6 +133,41 @@ function setupEventListeners() {
         mobileMenuModal.addEventListener('click', (e) => {
             if (e.target === mobileMenuModal) {
                 closeMobileMenuModal();
+            }
+        });
+    }
+    
+    // Modal close buttons
+    if (closeEditLocationModal) {
+        closeEditLocationModal.addEventListener('click', closeEditLocationModalFunc);
+    }
+
+    if (closeEditTiktokModal) {
+        closeEditTiktokModal.addEventListener('click', closeEditTiktokModalFunc);
+    }
+
+    // Modal form submissions
+    if (editLocationForm) {
+        editLocationForm.addEventListener('submit', handleEditLocation);
+    }
+
+    if (editTiktokForm) {
+        editTiktokForm.addEventListener('submit', handleEditTiktok);
+    }
+
+    // Modal background clicks
+    if (editLocationModal) {
+        editLocationModal.addEventListener('click', (e) => {
+            if (e.target === editLocationModal) {
+                closeEditLocationModalFunc();
+            }
+        });
+    }
+
+    if (editTiktokModal) {
+        editTiktokModal.addEventListener('click', (e) => {
+            if (e.target === editTiktokModal) {
+                closeEditTiktokModalFunc();
             }
         });
     }
@@ -418,12 +469,7 @@ function displayContent() {
                         return `
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center">
-                                        <div>
-                                            <div class="text-sm font-medium text-gray-900">${restaurant.name}</div>
-                                            <div class="text-sm text-gray-500">${restaurantTiktoks.length} TikTok${restaurantTiktoks.length !== 1 ? 's' : ''}</div>
-            </div>
-        </div>
+                                    <div class="text-sm font-medium text-gray-900">${restaurant.name}</div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm text-gray-900">${restaurant.city || 'No location'}</div>
@@ -433,11 +479,11 @@ function displayContent() {
                                         <div class="flex items-center gap-3">
                                             <div class="tiktok-embed-container" style="width: 100px; height: 70px; overflow: hidden; border-radius: 6px; flex-shrink-0;">
                                                 ${firstTiktok.embed_html}
-                                            </div>
+            </div>
                                             <div>
                                                 <div class="text-sm font-medium text-gray-900">${firstTiktok.author_handle || 'Unknown creator'}</div>
                                                 <div class="text-xs text-gray-500">${new Date(firstTiktok.created_at).toLocaleDateString()}</div>
-                                            </div>
+        </div>
                                         </div>
                                     ` : `
                                         <div class="text-sm text-gray-500 italic">No TikToks yet</div>
@@ -508,30 +554,28 @@ async function initializeMap() {
 // Add restaurant markers to map (from content data)
 function addRestaurantMarkers() {
     if (!map) return;
-
+    
     // Clear existing markers
     map.eachLayer(layer => {
         if (layer instanceof L.Marker) {
             map.removeLayer(layer);
         }
     });
-
+    
     // Add markers for each restaurant from content
     userContent.forEach(restaurant => {
         if (restaurant.lat && restaurant.lon) {
-            const tiktokCount = restaurant.tiktoks ? restaurant.tiktoks.length : 0;
             const marker = L.marker([restaurant.lat, restaurant.lon])
                 .addTo(map)
                 .bindPopup(`
                     <div>
                         <h3 class="font-semibold">${restaurant.name}</h3>
                         <p class="text-sm text-gray-600">${restaurant.city || 'No city'}</p>
-                        <p class="text-sm text-purple-600">${tiktokCount} TikTok${tiktokCount !== 1 ? 's' : ''}</p>
                     </div>
                 `);
         }
     });
-
+    
     // Fit map to show all markers
     const allLocations = [];
     userContent.forEach(restaurant => {
@@ -545,7 +589,7 @@ function addRestaurantMarkers() {
         allLocations.forEach(location => {
             group.addLayer(L.marker(location));
         });
-
+        
         if (group.getLayers().length > 0) {
             map.fitBounds(group.getBounds().pad(0.1));
         }
@@ -911,8 +955,22 @@ function editRestaurantLocation(restaurantId) {
     const restaurant = userContent.find(r => r.id === parseInt(restaurantId));
     if (!restaurant) return;
 
-    // For now, show a simple alert - in a real implementation you'd open a modal
-    alert(`Edit location for: ${restaurant.name}\n\nCurrent location: ${restaurant.city}\n\nThis would open a location picker similar to the admin panel.`);
+    // Populate modal with restaurant data
+    document.getElementById('edit-location-name').value = restaurant.name;
+    document.getElementById('edit-location-city').value = restaurant.city || '';
+    document.getElementById('edit-location-address').value = '';
+    document.getElementById('edit-location-id').value = restaurant.id;
+    document.getElementById('edit-location-lat').value = restaurant.lat || '';
+    document.getElementById('edit-location-lon').value = restaurant.lon || '';
+
+    // Clear any previous status messages
+    hideEditLocationStatus();
+
+    // Show modal
+    if (editLocationModal) {
+        editLocationModal.classList.remove('hidden');
+        editLocationModal.style.display = 'flex';
+    }
 }
 
 // Edit TikTok URL
@@ -920,15 +978,238 @@ function editTiktokUrl(tiktokId, restaurantId) {
     // Find the TikTok
     const restaurant = userContent.find(r => r.id === parseInt(restaurantId));
     const tiktok = restaurant?.tiktoks?.find(t => t.id === tiktokId);
-    if (!tiktok) return;
+    if (!tiktok || !restaurant) return;
 
-    // For now, show a simple alert - in a real implementation you'd open a modal
-    alert(`Edit TikTok URL for restaurant: ${restaurant.name}\n\nCurrent creator: ${tiktok.author_handle}\n\nThis would open a URL editor similar to the admin panel.`);
+    // Populate modal with TikTok data
+    document.getElementById('edit-tiktok-restaurant').value = restaurant.name;
+    document.getElementById('edit-tiktok-url').value = ''; // Will be set when we implement URL extraction
+    document.getElementById('edit-tiktok-id').value = tiktok.id;
+    document.getElementById('edit-tiktok-restaurant-id').value = restaurant.id;
+
+    // Clear any previous status messages
+    hideEditTiktokStatus();
+
+    // Show modal
+    if (editTiktokModal) {
+        editTiktokModal.classList.remove('hidden');
+        editTiktokModal.style.display = 'flex';
+    }
 }
 
 // Delete restaurant with content (alias for deleteRestaurant for backward compatibility)
 function deleteRestaurantWithContent(restaurantId) {
     deleteRestaurant(restaurantId);
+}
+
+// Modal handling functions
+function closeEditLocationModalFunc() {
+    if (editLocationModal) {
+        editLocationModal.classList.add('hidden');
+        editLocationModal.style.display = 'none';
+    }
+}
+
+function closeEditTiktokModalFunc() {
+    if (editTiktokModal) {
+        editTiktokModal.classList.add('hidden');
+        editTiktokModal.style.display = 'none';
+    }
+}
+
+function hideEditLocationStatus() {
+    const statusElement = document.getElementById('edit-location-status');
+    if (statusElement) {
+        statusElement.classList.add('hidden');
+    }
+}
+
+function hideEditTiktokStatus() {
+    const statusElement = document.getElementById('edit-tiktok-status');
+    if (statusElement) {
+        statusElement.classList.add('hidden');
+    }
+}
+
+function showEditLocationStatus(message, type) {
+    const statusElement = document.getElementById('edit-location-status');
+    if (!statusElement) return;
+
+    const statusText = statusElement.querySelector('p');
+    if (statusText) {
+        statusText.textContent = message;
+        statusText.className = `text-sm ${
+            type === 'error' ? 'text-red-600' :
+            type === 'success' ? 'text-green-600' :
+            'text-blue-600'
+        }`;
+    }
+
+    statusElement.classList.remove('hidden');
+}
+
+function showEditTiktokStatus(message, type) {
+    const statusElement = document.getElementById('edit-tiktok-status');
+    if (!statusElement) return;
+
+    const statusText = statusElement.querySelector('p');
+    if (statusText) {
+        statusText.textContent = message;
+        statusText.className = `text-sm ${
+            type === 'error' ? 'text-red-600' :
+            type === 'success' ? 'text-green-600' :
+            'text-blue-600'
+        }`;
+    }
+
+    statusElement.classList.remove('hidden');
+}
+
+// Handle edit location form submission
+async function handleEditLocation(event) {
+    event.preventDefault();
+
+    const restaurantId = document.getElementById('edit-location-id').value;
+    const address = document.getElementById('edit-location-address').value.trim();
+    const saveBtn = document.getElementById('save-location-btn');
+    
+    if (!address) {
+        showEditLocationStatus('Please enter an address', 'error');
+        return;
+    }
+    
+    if (!saveBtn) return;
+    
+    // Show loading state
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Updating...';
+    hideEditLocationStatus();
+
+    try {
+        // Geocode the address
+        const { data, error } = await supabaseClient.functions.invoke('geocode-address', {
+            body: { address: address }
+        });
+        
+        if (error) {
+            console.error('Geocoding error:', error);
+            showEditLocationStatus('Error looking up address: ' + error.message, 'error');
+            return;
+        }
+        
+        if (data && data.lat && data.lng) {
+            // Update restaurant with new coordinates
+            const { error: updateError } = await supabaseClient
+                .from('restaurants')
+                .update({
+                    lat: data.lat,
+                    lon: data.lng,
+                    google_maps_url: address,
+                    city: data.city || 'Unknown'
+                })
+                .eq('id', restaurantId)
+                .eq('submitted_by_user_id', currentUser.id);
+
+            if (updateError) {
+                console.error('Error updating restaurant:', updateError);
+                showEditLocationStatus('Error updating restaurant: ' + updateError.message, 'error');
+                return;
+            }
+
+            showEditLocationStatus('Location updated successfully!', 'success');
+
+            // Close modal and refresh data
+            setTimeout(() => {
+                closeEditLocationModalFunc();
+                loadUserContent();
+                addRestaurantMarkers();
+            }, 1500);
+
+        } else {
+            showEditLocationStatus('Could not find coordinates for this address', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error updating location:', error);
+        showEditLocationStatus('Error updating location: ' + error.message, 'error');
+    } finally {
+        // Reset button state
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Location';
+    }
+}
+
+// Handle edit TikTok form submission
+async function handleEditTiktok(event) {
+    event.preventDefault();
+    
+    const tiktokId = document.getElementById('edit-tiktok-id').value;
+    const newUrl = document.getElementById('edit-tiktok-url').value.trim();
+    const saveBtn = document.getElementById('save-tiktok-btn');
+
+    if (!newUrl) {
+        showEditTiktokStatus('Please enter a TikTok URL', 'error');
+        return;
+    }
+    
+    if (!saveBtn) return;
+
+    // Show loading state
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Updating...';
+    hideEditTiktokStatus();
+
+    try {
+        // Validate the new TikTok URL
+        const { data, error } = await supabaseClient.functions.invoke('validate-tiktok', {
+            body: { url: newUrl }
+        });
+
+        if (error) {
+            console.error('TikTok validation error:', error);
+            showEditTiktokStatus('Error validating TikTok URL: ' + error.message, 'error');
+        return;
+    }
+    
+        if (data && data.valid) {
+            // Update TikTok with new embed HTML
+            const embedHtml = generateTikTokEmbed(newUrl);
+            const authorHandle = extractTikTokCreatorHandle(newUrl);
+
+            const { error: updateError } = await supabaseClient
+                .from('tiktoks')
+                .update({
+                    embed_html: embedHtml,
+                    author_handle: authorHandle
+                })
+                .eq('id', tiktokId)
+                .eq('submitted_by_user_id', currentUser.id);
+
+            if (updateError) {
+                console.error('Error updating TikTok:', updateError);
+                showEditTiktokStatus('Error updating TikTok: ' + updateError.message, 'error');
+                return;
+            }
+
+            showEditTiktokStatus('TikTok updated successfully!', 'success');
+
+            // Close modal and refresh data
+            setTimeout(() => {
+                closeEditTiktokModalFunc();
+                loadUserContent();
+            }, 1500);
+
+        } else {
+            showEditTiktokStatus('Invalid TikTok URL or video not found', 'error');
+        }
+
+    } catch (error) {
+        console.error('Error updating TikTok:', error);
+        showEditTiktokStatus('Error updating TikTok: ' + error.message, 'error');
+    } finally {
+        // Reset button state
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save TikTok';
+    }
 }
 
 // 3. Show new restaurant form
