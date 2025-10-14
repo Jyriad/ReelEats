@@ -52,6 +52,7 @@
       </a>
       <a href="#" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="login-link">Log-in</a>
       <a href="#" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-link">Sign-up</a>
+      <a href="#" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="logout-link" style="display: none;">Logout</a>
     </nav>
     </header>
 
@@ -155,6 +156,7 @@
             const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
             const loginLink = document.getElementById('login-link');
             const signupLink = document.getElementById('signup-link');
+            const logoutLink = document.getElementById('logout-link');
             const authModal = document.getElementById('auth-modal');
             
             console.log('Homepage elements found - signupLink:', signupLink, 'authModal:', authModal);
@@ -189,19 +191,32 @@
                     console.log('Sign-up link current display:', signupLink ? signupLink.style.display : 'element not found');
                     
                     if (session && session.user) {
-                        // User is authenticated - hide sign-up button
+                        // User is authenticated - hide login/signup buttons, show logout
                         if (signupLink) {
                             signupLink.style.display = 'none';
                             console.log('Sign-up button hidden for authenticated user:', session.user.email);
-                            console.log('Sign-up link display after hiding:', signupLink.style.display);
-                        } else {
-                            console.error('Sign-up link not found - cannot hide button');
+                        }
+                        if (loginLink) {
+                            loginLink.style.display = 'none';
+                            console.log('Login button hidden for authenticated user');
+                        }
+                        if (logoutLink) {
+                            logoutLink.style.display = 'inline-block';
+                            console.log('Logout button shown for authenticated user');
                         }
                     } else {
-                        // User not authenticated - show sign-up button
+                        // User not authenticated - show login/signup buttons, hide logout
                         if (signupLink) {
                             signupLink.style.display = 'inline-block';
                             console.log('Sign-up button shown for non-authenticated user');
+                        }
+                        if (loginLink) {
+                            loginLink.style.display = 'inline-block';
+                            console.log('Login button shown for non-authenticated user');
+                        }
+                        if (logoutLink) {
+                            logoutLink.style.display = 'none';
+                            console.log('Logout button hidden for non-authenticated user');
                         }
                     }
                 } catch (error) {
@@ -372,6 +387,21 @@
             signupLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 openAuthModal('signup');
+            });
+            
+            logoutLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    const { error } = await supabaseClient.auth.signOut();
+                    if (error) {
+                        console.error('Logout error:', error);
+                    } else {
+                        console.log('User logged out successfully');
+                        // The auth state change will automatically update the header
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
             });
             
             closeAuthModal.addEventListener('click', closeAuthModalFunc);

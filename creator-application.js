@@ -545,7 +545,7 @@ function showApprovedMessage(application) {
                     </div>
                 </div>
                 
-                <a href="/dashboard" class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
+                <a href="/creators/dashboard" class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
                     Go to Creator Dashboard
                 </a>
             </div>
