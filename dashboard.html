@@ -33,10 +33,21 @@
         body {
             font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
         }
-        
+
         h1, h2, h3, h4, h5, h6 {
             font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             font-weight: 700;
+        }
+
+        /* Ensure modals appear above all content including Leaflet map */
+        #edit-location-modal,
+        #edit-tiktok-modal {
+            z-index: 1000 !important;
+        }
+
+        #edit-location-modal .bg-white,
+        #edit-tiktok-modal .bg-white {
+            z-index: 1001 !important;
         }
     </style>
 </head>
@@ -71,7 +82,7 @@
         </div>
         
         <!-- Mobile Menu Modal -->
-        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center p-4">
+        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[900] hidden items-center justify-center p-4">
             <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-bold text-gray-900">Menu</h2>
@@ -219,8 +230,8 @@
     </div>
 
     <!-- Edit Restaurant Location Modal -->
-    <div id="edit-location-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+    <div id="edit-location-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[1000] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative" style="z-index: 1001;">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-900">Edit Restaurant Location</h2>
                 <button id="close-edit-location-modal" class="text-gray-400 hover:text-gray-600">
@@ -275,8 +286,8 @@
     </div>
 
     <!-- Edit TikTok URL Modal -->
-    <div id="edit-tiktok-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+    <div id="edit-tiktok-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[1000] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative" style="z-index: 1001;">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-900">Edit TikTok URL</h2>
                 <button id="close-edit-tiktok-modal" class="text-gray-400 hover:text-gray-600">
