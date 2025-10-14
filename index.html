@@ -437,7 +437,7 @@
                         showAuthFeedback('Successfully signed in!');
                         setTimeout(() => {
                             closeAuthModalFunc();
-                            window.location.href = '/explore';
+                            // Stay on homepage after login - no redirect needed
                         }, 1000);
                     }
                 } catch (error) {
@@ -476,7 +476,7 @@
                     const { data, error } = await supabaseClient.auth.signInWithOAuth({
                         provider: 'google',
                         options: {
-                            redirectTo: window.location.origin + '/explore'
+                            redirectTo: window.location.origin + '/'
                         }
                     });
                     
