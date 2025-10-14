@@ -21,8 +21,6 @@ let newRestaurantData = null;
 
 // DOM elements
 let loadingState = null;
-let addRestaurantBtn = null;
-let myRestaurantsList = null;
 let myContentLoading = null;
 let myContentTable = null;
 let logoutBtn = null;
@@ -55,7 +53,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Get DOM elements
     loadingState = document.getElementById('loading-state');
-    myRestaurantsList = document.getElementById('my-restaurants-list');
     myContentLoading = document.getElementById('my-tiktoks-loading');
     myContentTable = document.getElementById('my-tiktoks-table');
     logoutBtn = document.getElementById('logout-button');
@@ -257,12 +254,9 @@ async function loadDashboard() {
             loadingState.style.display = 'none';
         }
         
-        // Load user's restaurants
-        await loadUserRestaurants();
-
         // Load user's content (restaurants with TikToks)
         await loadUserContent();
-
+        
         // Initialize map
         await initializeMap();
         
@@ -277,25 +271,25 @@ async function loadDashboard() {
 // Load user's restaurants
 async function loadUserRestaurants() {
     console.log('Loading user restaurants...');
-
+    
     try {
         const { data: restaurants, error } = await supabaseClient
             .from('restaurants')
             .select('*')
             .eq('submitted_by_user_id', currentUser.id)
             .order('created_at', { ascending: false });
-
+        
         if (error) {
             console.error('Error loading restaurants:', error);
             return;
         }
-
+        
         userRestaurants = restaurants || [];
         console.log('Loaded restaurants:', userRestaurants.length);
-
+        
         // Display restaurants
         displayRestaurants();
-
+        
     } catch (error) {
         console.error('Error loading restaurants:', error);
     }
@@ -353,32 +347,6 @@ async function loadUserContent() {
     }
 }
 
-// Display restaurants in the list
-function displayRestaurants() {
-    if (!myRestaurantsList) return;
-
-    if (userRestaurants.length === 0) {
-        myRestaurantsList.innerHTML = `
-            <div class="text-center py-8 text-gray-500">
-                <p class="text-lg mb-2">No restaurants added yet</p>
-                <p class="text-sm">Click "Add New Restaurant" to get started!</p>
-            </div>
-        `;
-        return;
-    }
-
-    myRestaurantsList.innerHTML = userRestaurants.map(restaurant => `
-        <div class="restaurant-card" data-restaurant-id="${restaurant.id}">
-            <h3 class="text-lg font-semibold">${restaurant.name}</h3>
-            <p class="text-gray-600">${restaurant.city || 'No city provided'}</p>
-            <p class="text-gray-500 text-sm">Added: ${new Date(restaurant.created_at).toLocaleDateString()}</p>
-            <div class="restaurant-actions">
-                <button class="btn-edit" onclick="editRestaurant('${restaurant.id}')">Edit</button>
-                <button class="btn-delete" onclick="deleteRestaurant('${restaurant.id}')">Delete</button>
-            </div>
-        </div>
-    `).join('');
-}
 
 // Display content (restaurants with TikToks)
 function displayContent() {
@@ -387,85 +355,104 @@ function displayContent() {
     if (userContent.length === 0) {
         myContentTable.innerHTML = `
             <div class="text-center py-8 text-gray-500">
-                <p class="text-lg mb-2">No restaurants added yet</p>
-                <p class="text-sm">Use "Add a New Reel" above to submit your first TikTok and create a restaurant!</p>
+                <p class="text-lg mb-2">No content added yet</p>
+                <p class="text-sm">Use "Add New Content" above to submit your first TikTok and create a restaurant!</p>
             </div>
         `;
         return;
     }
-
+    
     myContentTable.innerHTML = `
-        <div class="space-y-6">
-            ${userContent.map(restaurant => {
-                const restaurantTiktoks = restaurant.tiktoks || [];
-                const createdDate = new Date(restaurant.created_at).toLocaleDateString();
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Restaurant
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Location
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            TikTok Video
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Added
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    ${userContent.map(restaurant => {
+                        const restaurantTiktoks = restaurant.tiktoks || [];
+                        const createdDate = new Date(restaurant.created_at).toLocaleDateString();
+                        const firstTiktok = restaurantTiktoks[0]; // Show the first TikTok
 
-                return `
-                    <div class="border border-gray-200 rounded-lg p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">${restaurant.name}</h3>
-                                <p class="text-sm text-gray-600">${restaurant.city || 'No location'}</p>
-                                <p class="text-xs text-gray-500">Added: ${createdDate}</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button class="edit-restaurant-location-btn bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded transition-colors"
-                                        data-restaurant-id="${restaurant.id}">
-                                    Edit Location
-                                </button>
-                                <button class="edit-restaurant-btn bg-gray-600 hover:bg-gray-700 text-white text-sm px-3 py-1 rounded transition-colors"
-                                        onclick="editRestaurant('${restaurant.id}')">
-                                    Edit Details
-                                </button>
-                            </div>
-                        </div>
-
-                        ${restaurantTiktoks.length > 0 ? `
-                            <div class="border-t border-gray-100 pt-4">
-                                <h4 class="text-sm font-medium text-gray-700 mb-3">Associated TikToks (${restaurantTiktoks.length})</h4>
-                                <div class="space-y-3">
-                                    ${restaurantTiktoks.map(tiktok => `
-                                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                                            <div class="flex items-center gap-3">
-                                                <div class="tiktok-embed-container" style="width: 120px; height: 80px; overflow: hidden; border-radius: 6px; flex-shrink-0;">
-                                                    ${tiktok.embed_html}
-                                                </div>
-                                                <div>
-                                                    <div class="text-sm font-medium text-gray-900">${tiktok.author_handle || 'Unknown creator'}</div>
-                                                    <div class="text-xs text-gray-500">Submitted: ${new Date(tiktok.created_at).toLocaleDateString()}</div>
-                                                </div>
+                        return `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">${restaurant.name}</div>
+                                            <div class="text-sm text-gray-500">${restaurantTiktoks.length} TikTok${restaurantTiktoks.length !== 1 ? 's' : ''}</div>
+            </div>
+        </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900">${restaurant.city || 'No location'}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    ${firstTiktok ? `
+                                        <div class="flex items-center gap-3">
+                                            <div class="tiktok-embed-container" style="width: 100px; height: 70px; overflow: hidden; border-radius: 6px; flex-shrink-0;">
+                                                ${firstTiktok.embed_html}
                                             </div>
-                                            <div class="flex items-center gap-2">
-                                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${tiktok.is_featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                                                    ${tiktok.is_featured ? 'Featured' : 'Standard'}
-                                                </span>
-                                                <button class="edit-tiktok-url-btn bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded transition-colors"
-                                                        data-tiktok-id="${tiktok.id}"
-                                                        data-restaurant-id="${restaurant.id}">
-                                                    Change URL
-                                                </button>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900">${firstTiktok.author_handle || 'Unknown creator'}</div>
+                                                <div class="text-xs text-gray-500">${new Date(firstTiktok.created_at).toLocaleDateString()}</div>
                                             </div>
                                         </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        ` : `
-                            <div class="border-t border-gray-100 pt-4">
-                                <p class="text-sm text-gray-500 italic">No TikToks associated with this restaurant yet.</p>
-                                <p class="text-sm text-gray-500">Use "Add a New Reel" to link a TikTok to this restaurant.</p>
-                            </div>
-                        `}
-                    </div>
-                `;
-            }).join('')}
+                                    ` : `
+                                        <div class="text-sm text-gray-500 italic">No TikToks yet</div>
+                                    `}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${createdDate}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex flex-col gap-2">
+                                        <button class="edit-restaurant-location-btn bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded transition-colors"
+                                                data-restaurant-id="${restaurant.id}">
+                                            Edit Location
+                                        </button>
+                                        ${firstTiktok ? `
+                                            <button class="edit-tiktok-url-btn bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded transition-colors"
+                                                    data-tiktok-id="${firstTiktok.id}"
+                                                    data-restaurant-id="${restaurant.id}">
+                                                Edit TikTok
+                                            </button>
+                                        ` : ''}
+                                        <button class="delete-restaurant-btn bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition-colors"
+                                                data-restaurant-id="${restaurant.id}">
+                                            Delete Restaurant
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
         </div>
     `;
 
     // Show the table
     myContentTable.classList.remove('hidden');
 
-    // Add event listeners for edit buttons
-    addEditEventListeners();
+    // Add event listeners for edit and delete buttons
+    addContentEventListeners();
 }
 
 // Initialize map
@@ -493,7 +480,7 @@ async function initializeMap() {
     }
 }
 
-// Add restaurant and TikTok markers to map
+// Add restaurant markers to map (from content data)
 function addRestaurantMarkers() {
     if (!map) return;
 
@@ -504,31 +491,17 @@ function addRestaurantMarkers() {
         }
     });
 
-    // Add markers for each restaurant (from restaurants table)
-    userRestaurants.forEach(restaurant => {
+    // Add markers for each restaurant from content
+    userContent.forEach(restaurant => {
         if (restaurant.lat && restaurant.lon) {
+            const tiktokCount = restaurant.tiktoks ? restaurant.tiktoks.length : 0;
             const marker = L.marker([restaurant.lat, restaurant.lon])
                 .addTo(map)
                 .bindPopup(`
                     <div>
                         <h3 class="font-semibold">${restaurant.name}</h3>
                         <p class="text-sm text-gray-600">${restaurant.city || 'No city'}</p>
-                        <p class="text-sm text-blue-600">Your Restaurant</p>
-                    </div>
-                `);
-        }
-    });
-
-    // Add markers for TikTok locations (from tiktoks table with restaurant data)
-    userTiktoks.forEach(tiktok => {
-        if (tiktok.restaurants && tiktok.restaurants.lat && tiktok.restaurants.lon) {
-            const marker = L.marker([tiktok.restaurants.lat, tiktok.restaurants.lon])
-                .addTo(map)
-                .bindPopup(`
-                    <div>
-                        <h3 class="font-semibold">${tiktok.restaurants.name}</h3>
-                        <p class="text-sm text-gray-600">${tiktok.restaurants.city || 'No city'}</p>
-                        <p class="text-sm text-purple-600">TikTok: ${tiktok.author_handle || 'Unknown'}</p>
+                        <p class="text-sm text-purple-600">${tiktokCount} TikTok${tiktokCount !== 1 ? 's' : ''}</p>
                     </div>
                 `);
         }
@@ -536,18 +509,9 @@ function addRestaurantMarkers() {
 
     // Fit map to show all markers
     const allLocations = [];
-
-    // Add restaurant locations
-    userRestaurants.forEach(restaurant => {
+    userContent.forEach(restaurant => {
         if (restaurant.lat && restaurant.lon) {
             allLocations.push([restaurant.lat, restaurant.lon]);
-        }
-    });
-
-    // Add TikTok locations
-    userTiktoks.forEach(tiktok => {
-        if (tiktok.restaurants && tiktok.restaurants.lat && tiktok.restaurants.lon) {
-            allLocations.push([tiktok.restaurants.lat, tiktok.restaurants.lon]);
         }
     });
 
@@ -575,34 +539,32 @@ function editRestaurant(restaurantId) {
 
 // Delete restaurant function
 async function deleteRestaurant(restaurantId) {
-    if (!confirm('Are you sure you want to delete this restaurant?')) {
+    if (!confirm('Are you sure you want to delete this restaurant? This will also delete all associated TikToks.')) {
         return;
     }
-    
+
     try {
         const { error } = await supabaseClient
             .from('restaurants')
             .delete()
             .eq('id', restaurantId)
             .eq('submitted_by_user_id', currentUser.id); // Security check
-        
+
         if (error) {
             console.error('Error deleting restaurant:', error);
             alert('Error deleting restaurant. Please try again.');
             return;
         }
-        
-        // Remove from local array
-        userRestaurants = userRestaurants.filter(r => r.id !== restaurantId);
-        
+
+        // Remove from local arrays
+        userContent = userContent.filter(r => r.id !== restaurantId);
+
         // Refresh display
-        displayRestaurants();
-        // Reload content in case the deleted restaurant had TikToks
-        loadUserContent();
+        displayContent();
         addRestaurantMarkers();
-        
+
         console.log('Restaurant deleted successfully');
-        
+
     } catch (error) {
         console.error('Error deleting restaurant:', error);
         alert('Error deleting restaurant. Please try again.');
@@ -890,8 +852,8 @@ function showContentError(message) {
     }
 }
 
-// Add event listeners for edit buttons
-function addEditEventListeners() {
+// Add event listeners for content edit and delete buttons
+function addContentEventListeners() {
     // Edit restaurant location buttons
     document.querySelectorAll('.edit-restaurant-location-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -906,6 +868,14 @@ function addEditEventListeners() {
             const tiktokId = e.target.dataset.tiktokId;
             const restaurantId = e.target.dataset.restaurantId;
             editTiktokUrl(tiktokId, restaurantId);
+        });
+    });
+
+    // Delete restaurant buttons
+    document.querySelectorAll('.delete-restaurant-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const restaurantId = e.target.dataset.restaurantId;
+            deleteRestaurantWithContent(restaurantId);
         });
     });
 }
@@ -929,6 +899,11 @@ function editTiktokUrl(tiktokId, restaurantId) {
 
     // For now, show a simple alert - in a real implementation you'd open a modal
     alert(`Edit TikTok URL for restaurant: ${restaurant.name}\n\nCurrent creator: ${tiktok.author_handle}\n\nThis would open a URL editor similar to the admin panel.`);
+}
+
+// Delete restaurant with content (alias for deleteRestaurant for backward compatibility)
+function deleteRestaurantWithContent(restaurantId) {
+    deleteRestaurant(restaurantId);
 }
 
 // 3. Show new restaurant form
@@ -962,9 +937,9 @@ async function handleGeocodeNewRestaurant() {
         if (error) {
             console.error('Geocoding error:', error);
             showReelGeocodeStatus('Error looking up address: ' + error.message, 'error');
-            return;
-        }
-        
+        return;
+    }
+    
         if (data && data.lat && data.lng) {
             // Store the new restaurant data
             newRestaurantData = {
@@ -1015,7 +990,7 @@ async function handleSubmitReel() {
         // A. If newRestaurantData is not null, create the restaurant first
         if (newRestaurantData) {
             const { data: newRestaurant, error: restaurantError } = await supabaseClient
-                .from('restaurants')
+            .from('restaurants')
                 .insert([{
                     name: newRestaurantData.name,
                     city: newRestaurantData.city,
@@ -1121,10 +1096,10 @@ function showReelGeocodeStatus(message, type) {
     
     statusElement.textContent = message;
     statusElement.className = `status-message text-sm mb-3 ${
-        type === 'error' ? 'text-red-600' : 
-        type === 'success' ? 'text-green-600' : 
-        'text-blue-600'
-    }`;
+            type === 'error' ? 'text-red-600' : 
+            type === 'success' ? 'text-green-600' : 
+            'text-blue-600'
+        }`;
     statusElement.classList.remove('hidden');
 }
 
