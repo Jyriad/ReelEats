@@ -148,6 +148,7 @@ async function performSecurityChecks() {
         
         if (!userRole || userRole.role !== 'creator') {
             console.log('User does not have creator role, redirecting to homepage');
+            console.log('User role found:', userRole);
             redirectToHomepage();
             return;
         }
@@ -162,6 +163,7 @@ async function performSecurityChecks() {
 
 // Redirect to homepage
 function redirectToHomepage() {
+    console.log('Redirecting to homepage...');
     window.location.href = '/';
 }
 
