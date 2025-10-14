@@ -32,6 +32,7 @@ let closeMobileMenu = null;
 let validateTiktokBtn = null;
 let tiktokUrlInput = null;
 let tiktokValidationError = null;
+let editableTiktokUrl = null;
 let restaurantSearchInput = null;
 let restaurantSearchResults = null;
 let showNewRestaurantFormBtn = null;
@@ -82,6 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     validateTiktokBtn = document.getElementById('validate-tiktok-btn');
     tiktokUrlInput = document.getElementById('tiktok-url-input');
     tiktokValidationError = document.getElementById('tiktok-validation-error');
+    editableTiktokUrl = document.getElementById('editable-tiktok-url');
     restaurantSearchInput = document.getElementById('restaurant-search-input');
     restaurantSearchResults = document.getElementById('restaurant-search-results');
     showNewRestaurantFormBtn = document.getElementById('show-new-restaurant-form-btn');
@@ -178,6 +180,11 @@ function setupEventListeners() {
     // 5. Final submission
     if (submitReelBtn) {
         submitReelBtn.addEventListener('click', handleSubmitReel);
+    }
+    
+    // 6. Editable TikTok URL change
+    if (editableTiktokUrl) {
+        editableTiktokUrl.addEventListener('input', handleEditableUrlChange);
     }
 }
 
@@ -607,13 +614,28 @@ async function deleteRestaurant(restaurantId) {
 
 // --- REEL SUBMISSION HANDLER FUNCTIONS ---
 
+// Helper function to clean TikTok URL
+function cleanTiktokUrl(url) {
+    // Remove query parameters and fragments
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    return cleanUrl;
+}
+
 // 1. Validate TikTok URL
 async function handleValidateTiktok() {
-    const url = tiktokUrlInput?.value?.trim();
+    const rawUrl = tiktokUrlInput?.value?.trim();
     
-    if (!url) {
+    if (!rawUrl) {
         showTiktokValidationError('Please enter a TikTok URL');
         return;
+    }
+    
+    // Clean the URL by removing query parameters
+    const cleanUrl = cleanTiktokUrl(rawUrl);
+    
+    // Update the input field with the cleaned URL
+    if (tiktokUrlInput && cleanUrl !== rawUrl) {
+        tiktokUrlInput.value = cleanUrl;
     }
     
     if (!validateTiktokBtn) return;
@@ -624,9 +646,9 @@ async function handleValidateTiktok() {
     hideTiktokValidationError();
     
     try {
-        // Call the validate-tiktok Supabase Edge Function
+        // Call the validate-tiktok Supabase Edge Function with cleaned URL
         const { data, error } = await supabaseClient.functions.invoke('validate-tiktok', {
-            body: { url: url }
+            body: { url: cleanUrl }
         });
         
         if (error) {
@@ -651,8 +673,8 @@ async function handleValidateTiktok() {
             
             // Compare handles
             if (data.handle && userRole.tiktok_handle && data.handle.toLowerCase() === userRole.tiktok_handle.toLowerCase()) {
-                // Store the validated URL
-                validatedTiktokUrl = url;
+                // Store the validated URL (use the cleaned URL)
+                validatedTiktokUrl = cleanUrl;
                 
                 // Move to step 2
                 showStep(2);
@@ -901,6 +923,11 @@ function showStep(stepNumber) {
     if (step) {
         step.style.display = 'block';
     }
+    
+    // Populate editable URL when showing step 2
+    if (stepNumber === 2 && editableTiktokUrl && validatedTiktokUrl) {
+        editableTiktokUrl.value = validatedTiktokUrl;
+    }
 }
 
 function showTiktokValidationError(message) {
@@ -930,6 +957,20 @@ function showReelGeocodeStatus(message, type) {
 }
 
 
+// Handle editable URL changes
+function handleEditableUrlChange() {
+    if (editableTiktokUrl) {
+        // Clean the URL and update the validated URL
+        const cleanUrl = cleanTiktokUrl(editableTiktokUrl.value);
+        validatedTiktokUrl = cleanUrl;
+        
+        // Update the summary if we're on step 4
+        if (summaryTiktokUrl) {
+            summaryTiktokUrl.textContent = cleanUrl;
+        }
+    }
+}
+
 function resetReelForm() {
     // Reset state
     validatedTiktokUrl = null;
@@ -938,6 +979,7 @@ function resetReelForm() {
     
     // Clear form inputs
     if (tiktokUrlInput) tiktokUrlInput.value = '';
+    if (editableTiktokUrl) editableTiktokUrl.value = '';
     if (restaurantSearchInput) restaurantSearchInput.value = '';
     if (newRestaurantName) newRestaurantName.value = '';
     if (newRestaurantAddress) newRestaurantAddress.value = '';
