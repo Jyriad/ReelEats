@@ -12,7 +12,7 @@ const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KE
 let map = null;
 let currentUser = null;
 let userRestaurants = [];
-let userTiktoks = [];
+let userContent = []; // Restaurants with TikToks for content display
 
 // --- REEL SUBMISSION STATE MANAGEMENT ---
 let validatedTiktokUrl = null;
@@ -48,16 +48,6 @@ let submitReelBtn = null;
 let summaryTiktokUrl = null;
 let summaryRestaurantName = null;
 
-// Restaurant form elements
-let addRestaurantForm = null;
-let restaurantForm = null;
-let findOnMapBtn = null;
-let saveRestaurantBtn = null;
-let cancelRestaurantBtn = null;
-let addressInput = null;
-let latitudeInput = null;
-let longitudeInput = null;
-let geocodeStatus = null;
 
 // Initialize the dashboard
 document.addEventListener('DOMContentLoaded', async () => {
@@ -65,7 +55,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Get DOM elements
     loadingState = document.getElementById('loading-state');
-    addRestaurantBtn = document.getElementById('add-restaurant-btn');
     myRestaurantsList = document.getElementById('my-restaurants-list');
     myContentLoading = document.getElementById('my-tiktoks-loading');
     myContentTable = document.getElementById('my-tiktoks-table');
@@ -74,17 +63,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileMenuBtn = document.getElementById('mobile-menu-btn');
     mobileMenuModal = document.getElementById('mobile-menu-modal');
     closeMobileMenu = document.getElementById('close-mobile-menu');
-    
-    // Restaurant form elements
-    addRestaurantForm = document.getElementById('add-restaurant-form');
-    restaurantForm = document.getElementById('restaurant-form');
-    findOnMapBtn = document.getElementById('find-on-map-btn');
-    saveRestaurantBtn = document.getElementById('save-restaurant-btn');
-    cancelRestaurantBtn = document.getElementById('cancel-restaurant-btn');
-    addressInput = document.getElementById('address-input');
-    latitudeInput = document.getElementById('latitude-input');
-    longitudeInput = document.getElementById('longitude-input');
-    geocodeStatus = document.getElementById('geocode-status');
     
     // --- REEL SUBMISSION ELEMENTS ---
     validateTiktokBtn = document.getElementById('validate-tiktok-btn');
@@ -146,23 +124,6 @@ function setupEventListeners() {
         });
     }
     
-    // Add restaurant button
-    if (addRestaurantBtn) {
-        addRestaurantBtn.addEventListener('click', showAddRestaurantForm);
-    }
-    
-    // Restaurant form buttons
-    if (findOnMapBtn) {
-        findOnMapBtn.addEventListener('click', handleFindOnMap);
-    }
-    
-    if (saveRestaurantBtn) {
-        saveRestaurantBtn.addEventListener('click', handleSaveRestaurant);
-    }
-    
-    if (cancelRestaurantBtn) {
-        cancelRestaurantBtn.addEventListener('click', hideAddRestaurantForm);
-    }
     
     // --- REEL SUBMISSION EVENT LISTENERS ---
     
@@ -377,8 +338,8 @@ async function loadUserContent() {
             return;
         }
 
-        userRestaurants = restaurants || [];
-        console.log('Loaded restaurants with TikToks:', userRestaurants.length);
+        userContent = restaurants || [];
+        console.log('Loaded restaurants with TikToks:', userContent.length);
 
         // Display content (restaurants with TikToks)
         displayContent();
@@ -423,11 +384,11 @@ function displayRestaurants() {
 function displayContent() {
     if (!myContentTable) return;
 
-    if (userRestaurants.length === 0) {
+    if (userContent.length === 0) {
         myContentTable.innerHTML = `
             <div class="text-center py-8 text-gray-500">
                 <p class="text-lg mb-2">No restaurants added yet</p>
-                <p class="text-sm">Click "Add New Restaurant" to get started!</p>
+                <p class="text-sm">Use "Add a New Reel" above to submit your first TikTok and create a restaurant!</p>
             </div>
         `;
         return;
@@ -435,7 +396,7 @@ function displayContent() {
 
     myContentTable.innerHTML = `
         <div class="space-y-6">
-            ${userRestaurants.map(restaurant => {
+            ${userContent.map(restaurant => {
                 const restaurantTiktoks = restaurant.tiktoks || [];
                 const createdDate = new Date(restaurant.created_at).toLocaleDateString();
 
@@ -602,164 +563,9 @@ function addRestaurantMarkers() {
     }
 }
 
-// Show add restaurant form
-function showAddRestaurantForm() {
-    if (addRestaurantForm) {
-        addRestaurantForm.classList.remove('hidden');
-        addRestaurantBtn.style.display = 'none';
-    }
-}
 
-// Hide add restaurant form
-function hideAddRestaurantForm() {
-    if (addRestaurantForm) {
-        addRestaurantForm.classList.add('hidden');
-        addRestaurantBtn.style.display = 'block';
-        // Reset form
-        if (restaurantForm) {
-            restaurantForm.reset();
-        }
-        // Clear status message
-        if (geocodeStatus) {
-            geocodeStatus.classList.add('hidden');
-        }
-    }
-}
 
-// Handle find on map button click
-async function handleFindOnMap() {
-    const address = addressInput?.value?.trim();
-    
-    if (!address) {
-        showGeocodeStatus('Please enter an address', 'error');
-        return;
-    }
-    
-    if (!findOnMapBtn) return;
-    
-    // Show loading state
-    findOnMapBtn.disabled = true;
-    findOnMapBtn.textContent = 'Finding...';
-    showGeocodeStatus('Looking up address...', 'info');
-    
-    try {
-        // Call the geocode-address Supabase Edge Function
-        const { data, error } = await supabaseClient.functions.invoke('geocode-address', {
-            body: { address: address }
-        });
-        
-        if (error) {
-            console.error('Geocoding error:', error);
-            showGeocodeStatus('Error looking up address: ' + error.message, 'error');
-            return;
-        }
-        
-        if (data && data.lat && data.lng) {
-            // Populate hidden fields
-            if (latitudeInput) latitudeInput.value = data.lat;
-            if (longitudeInput) longitudeInput.value = data.lng;
-            
-            showGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng, 'success');
-            
-            // Center map on the new coordinates
-            if (map) {
-                map.setView([data.lat, data.lng], 15);
-            }
-        } else {
-            showGeocodeStatus('Could not find coordinates for this address', 'error');
-        }
-        
-    } catch (error) {
-        console.error('Geocoding error:', error);
-        showGeocodeStatus('Error looking up address: ' + error.message, 'error');
-    } finally {
-        // Reset button state
-        findOnMapBtn.disabled = false;
-        findOnMapBtn.textContent = 'Find on Map';
-    }
-}
 
-// Handle save restaurant button click
-async function handleSaveRestaurant(event) {
-    event.preventDefault();
-    
-    const restaurantName = document.getElementById('restaurant-name')?.value?.trim();
-    const address = addressInput?.value?.trim();
-    const latitude = latitudeInput?.value;
-    const longitude = longitudeInput?.value;
-    
-    if (!restaurantName || !address) {
-        showGeocodeStatus('Please fill in all required fields', 'error');
-        return;
-    }
-    
-    if (!latitude || !longitude) {
-        showGeocodeStatus('Please find the address on the map first', 'error');
-        return;
-    }
-    
-    if (!saveRestaurantBtn) return;
-    
-    // Show loading state
-    saveRestaurantBtn.disabled = true;
-    saveRestaurantBtn.textContent = 'Saving...';
-    
-    try {
-        // Insert restaurant into database
-        const { data, error } = await supabaseClient
-            .from('restaurants')
-            .insert([
-                {
-                    name: restaurantName,
-                    lat: parseFloat(latitude),
-                    lon: parseFloat(longitude),
-                    submitted_by_user_id: currentUser.id,
-                    city: 'Unknown', // You might want to add city detection
-                    google_maps_url: address
-                }
-            ])
-            .select();
-        
-        if (error) {
-            console.error('Error saving restaurant:', error);
-            showGeocodeStatus('Error saving restaurant: ' + error.message, 'error');
-            return;
-        }
-        
-        showGeocodeStatus('Restaurant saved successfully!', 'success');
-        
-        // Hide form and reload restaurants
-        setTimeout(() => {
-            hideAddRestaurantForm();
-            loadUserRestaurants(currentUser.id);
-        }, 1500);
-        
-    } catch (error) {
-        console.error('Error saving restaurant:', error);
-        showGeocodeStatus('Error saving restaurant: ' + error.message, 'error');
-    } finally {
-        // Reset button state
-        saveRestaurantBtn.disabled = false;
-        saveRestaurantBtn.textContent = 'Save Restaurant';
-    }
-}
-
-// Show geocode status message
-function showGeocodeStatus(message, type) {
-    if (!geocodeStatus) return;
-    
-    const statusText = geocodeStatus.querySelector('p');
-    if (statusText) {
-        statusText.textContent = message;
-        statusText.className = `text-sm ${
-            type === 'error' ? 'text-red-600' : 
-            type === 'success' ? 'text-green-600' : 
-            'text-blue-600'
-        }`;
-    }
-    
-    geocodeStatus.classList.remove('hidden');
-}
 
 // Edit restaurant function
 function editRestaurant(restaurantId) {
@@ -1107,7 +913,7 @@ function addEditEventListeners() {
 // Edit restaurant location
 function editRestaurantLocation(restaurantId) {
     // Find the restaurant
-    const restaurant = userRestaurants.find(r => r.id === parseInt(restaurantId));
+    const restaurant = userContent.find(r => r.id === parseInt(restaurantId));
     if (!restaurant) return;
 
     // For now, show a simple alert - in a real implementation you'd open a modal
@@ -1117,7 +923,7 @@ function editRestaurantLocation(restaurantId) {
 // Edit TikTok URL
 function editTiktokUrl(tiktokId, restaurantId) {
     // Find the TikTok
-    const restaurant = userRestaurants.find(r => r.id === parseInt(restaurantId));
+    const restaurant = userContent.find(r => r.id === parseInt(restaurantId));
     const tiktok = restaurant?.tiktoks?.find(t => t.id === tiktokId);
     if (!tiktok) return;
 
