@@ -545,7 +545,7 @@ function showApprovedMessage(application) {
                     </div>
                 </div>
                 
-                <a href="/dashboard" class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
+                <a href="/creators/dashboard" class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
                     Go to Creator Dashboard
                 </a>
             </div>
@@ -891,12 +891,8 @@ async function handleLogin(event) {
         }
         
         console.log('Login successful:', data.user.email);
-        closeAuthModal();
-        
-        // Check application status after login
-        setTimeout(async () => {
-            await checkApplicationStatus();
-        }, 100);
+        // Don't close modal or check status here - let onAuthStateChange handle it
+        // This prevents race conditions and duplicate processing
         
     } catch (error) {
         console.error('Login error:', error);

@@ -318,6 +318,22 @@ function toggleRecentRestaurants() {
     }
 }
 
+// Toggle creator applications section
+function toggleCreatorApplications() {
+    const content = document.getElementById('creator-applications-content');
+    const arrow = document.getElementById('creator-applications-arrow');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+        // Load applications when first opened
+        loadCreatorApplications();
+    } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
 // Select restaurant from "Restaurants Without Videos" to pre-fill TikTok form
 function selectRestaurantForTikTok(restaurantId, restaurantName) {
     console.log('🎯 Selecting restaurant for TikTok:', { restaurantId, restaurantName });
@@ -2660,14 +2676,264 @@ function addVideoToRestaurant(restaurantId, restaurantName) {
     }
 }
 
+// Load creator applications
+async function loadCreatorApplications() {
+    try {
+        console.log('Loading creator applications...');
+        
+        // First, let's check what user we're authenticated as
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+        console.log('Current user:', user?.email, user?.id);
+        
+        const { data: applications, error } = await supabaseClient
+            .from('creator_applications')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error loading applications:', error);
+            console.error('Error details:', error.message, error.code, error.details);
+            throw error;
+        }
+
+        console.log('Applications loaded:', applications);
+        console.log('Total applications found:', applications.length);
+        
+        // Let's also try a count query to see if RLS is filtering results
+        const { count, error: countError } = await supabaseClient
+            .from('creator_applications')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!countError) {
+            console.log('Total applications in database (by count):', count);
+        } else {
+            console.log('Count query error:', countError);
+        }
+
+        const container = document.getElementById('creator-applications');
+        
+        if (applications.length === 0) {
+            container.innerHTML = '<div class="text-sm text-gray-500">No creator applications found.</div>';
+            return;
+        }
+
+        container.innerHTML = applications.map(app => `
+            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h4 class="font-medium text-gray-900">@${app.tiktok_handle}</h4>
+                        <p class="text-sm text-gray-600">Username: ${app.requested_username}</p>
+                        <p class="text-sm text-gray-500">Applied: ${new Date(app.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium rounded-full ${
+                        app.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                        app.status === 'rejected' ? 'bg-red-100 text-red-800' : 
+                        'bg-yellow-100 text-yellow-800'
+                    }">
+                        ${app.status}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <p class="text-sm text-gray-700"><strong>Magic Word:</strong> ${app.magic_word}</p>
+                    <p class="text-sm text-gray-700"><strong>User ID:</strong> ${app.user_id}</p>
+                </div>
+                
+                <div class="flex gap-2">
+                    ${app.status === 'pending' ? `
+                        <button onclick="approveCreatorApplication(${app.id}, '${app.user_id}', '${app.tiktok_handle}', '${app.requested_username}')" 
+                                class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors">
+                            Approve
+                        </button>
+                        <button onclick="rejectCreatorApplication(${app.id})" 
+                                class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors">
+                            Reject
+                        </button>
+                    ` : ''}
+                    <button onclick="viewCreatorApplication(${app.id})" 
+                            class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading creator applications:', error);
+        document.getElementById('creator-applications').innerHTML = 
+            '<div class="text-sm text-red-500">Error loading applications: ' + error.message + '</div>';
+    }
+}
+
+// Approve creator application
+async function approveCreatorApplication(applicationId, userId, tiktokHandle, requestedUsername) {
+    if (!confirm(`Are you sure you want to approve @${tiktokHandle} as a creator?`)) {
+        return;
+    }
+
+    try {
+        // Start transaction-like operations
+        showStatus('Approving creator application...', 'info');
+
+        // 1. Update the application status to 'approved'
+        const { error: updateError } = await supabaseClient
+            .from('creator_applications')
+            .update({ status: 'approved' })
+            .eq('id', applicationId);
+
+        if (updateError) throw updateError;
+
+        // 2. Create user role record
+        const { error: roleError } = await supabaseClient
+            .from('user_roles')
+            .insert({
+                user_id: userId,
+                role: 'creator',
+                tiktok_handle: tiktokHandle,
+                username: requestedUsername
+            });
+
+        if (roleError) throw roleError;
+
+        showStatus(`Successfully approved @${tiktokHandle} as a creator!`, 'success');
+        
+        // Reload the applications list
+        await loadCreatorApplications();
+        
+    } catch (error) {
+        console.error('Error approving creator application:', error);
+        showStatus('Failed to approve application: ' + error.message, 'error');
+    }
+}
+
+// Reject creator application
+async function rejectCreatorApplication(applicationId) {
+    const application = await getCreatorApplication(applicationId);
+    if (!application) return;
+
+    if (!confirm(`Are you sure you want to reject @${application.tiktok_handle}'s application?`)) {
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('creator_applications')
+            .update({ status: 'rejected' })
+            .eq('id', applicationId);
+
+        if (error) throw error;
+
+        showStatus(`Application from @${application.tiktok_handle} has been rejected.`, 'success');
+        
+        // Reload the applications list
+        await loadCreatorApplications();
+        
+    } catch (error) {
+        console.error('Error rejecting creator application:', error);
+        showStatus('Failed to reject application: ' + error.message, 'error');
+    }
+}
+
+// Get single creator application
+async function getCreatorApplication(applicationId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('creator_applications')
+            .select('*')
+            .eq('id', applicationId)
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error getting creator application:', error);
+        return null;
+    }
+}
+
+// View creator application details
+async function viewCreatorApplication(applicationId) {
+    const application = await getCreatorApplication(applicationId);
+    if (!application) {
+        showStatus('Could not load application details', 'error');
+        return;
+    }
+
+    // Create modal to show application details
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+    modal.innerHTML = `
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Creator Application Details</h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">TikTok Handle</label>
+                        <p class="text-sm text-gray-900">@${application.tiktok_handle}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Requested Username</label>
+                        <p class="text-sm text-gray-900">${application.requested_username}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">User ID</label>
+                        <p class="text-sm text-gray-900 font-mono">${application.user_id}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Magic Word</label>
+                        <p class="text-sm text-gray-900 font-mono">${application.magic_word}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <span class="px-2 py-1 text-xs font-medium rounded-full ${
+                            application.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                            application.status === 'rejected' ? 'bg-red-100 text-red-800' : 
+                            'bg-yellow-100 text-yellow-800'
+                        }">
+                            ${application.status}
+                        </span>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Applied Date</label>
+                        <p class="text-sm text-gray-900">${new Date(application.created_at).toLocaleString()}</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button onclick="this.closest('.fixed').remove()" 
+                            class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
 // Ensure functions are globally accessible (for onclick handlers)
 // This is a fallback to make sure the functions are available
 if (typeof window !== 'undefined') {
     window.selectLocation = selectLocation;
     window.selectRestaurant = selectRestaurant;
+    window.toggleCreatorApplications = toggleCreatorApplications;
+    window.approveCreatorApplication = approveCreatorApplication;
+    window.rejectCreatorApplication = rejectCreatorApplication;
+    window.viewCreatorApplication = viewCreatorApplication;
     
     console.log('🔧 Fallback: Global functions registered at end of file:', {
         selectLocation: typeof window.selectLocation,
-        selectRestaurant: typeof window.selectRestaurant
+        selectRestaurant: typeof window.selectRestaurant,
+        toggleCreatorApplications: typeof window.toggleCreatorApplications,
+        approveCreatorApplication: typeof window.approveCreatorApplication,
+        rejectCreatorApplication: typeof window.rejectCreatorApplication,
+        viewCreatorApplication: typeof window.viewCreatorApplication
     });
 }

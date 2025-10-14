@@ -347,7 +347,7 @@
                             </div>
 
                             <!-- Videos List -->
-                            <div id="videos-list" class="space-y-4">
+                            <div id="videos-list" class="space-y-4 max-h-96 overflow-y-auto">
                                 <!-- Video cards will be loaded here -->
                             </div>
                         </div>
@@ -422,6 +422,23 @@
                             </div>
                         </div>
 
+                    </div>
+
+                    <!-- Creator Applications Section -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <div class="flex items-center justify-between cursor-pointer" onclick="toggleCreatorApplications()">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Creator Applications</h3>
+                                <svg id="creator-applications-arrow" class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                            <div id="creator-applications-content" class="hidden mt-4">
+                                <div id="creator-applications" class="space-y-4 max-h-96 overflow-y-auto">
+                                    <div class="text-sm text-gray-500">Loading creator applications...</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Restaurants Without Videos -->
