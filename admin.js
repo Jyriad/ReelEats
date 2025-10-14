@@ -2679,12 +2679,18 @@ function addVideoToRestaurant(restaurantId, restaurantName) {
 // Load creator applications
 async function loadCreatorApplications() {
     try {
+        console.log('Loading creator applications...');
         const { data: applications, error } = await supabaseClient
             .from('creator_applications')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error loading applications:', error);
+            throw error;
+        }
+
+        console.log('Applications loaded:', applications);
 
         const container = document.getElementById('creator-applications');
         

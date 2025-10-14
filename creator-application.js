@@ -891,12 +891,8 @@ async function handleLogin(event) {
         }
         
         console.log('Login successful:', data.user.email);
-        closeAuthModal();
-        
-        // Check application status after login
-        setTimeout(async () => {
-            await checkApplicationStatus();
-        }, 100);
+        // Don't close modal or check status here - let onAuthStateChange handle it
+        // This prevents race conditions and duplicate processing
         
     } catch (error) {
         console.error('Login error:', error);
