@@ -12,6 +12,7 @@ const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KE
 let map = null;
 let currentUser = null;
 let userRestaurants = [];
+let userTiktoks = [];
 
 // --- REEL SUBMISSION STATE MANAGEMENT ---
 let validatedTiktokUrl = null;
@@ -22,6 +23,8 @@ let newRestaurantData = null;
 let loadingState = null;
 let addRestaurantBtn = null;
 let myRestaurantsList = null;
+let myTiktoksLoading = null;
+let myTiktoksTable = null;
 let logoutBtn = null;
 let mobileLogoutBtn = null;
 let mobileMenuBtn = null;
@@ -64,6 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadingState = document.getElementById('loading-state');
     addRestaurantBtn = document.getElementById('add-restaurant-btn');
     myRestaurantsList = document.getElementById('my-restaurants-list');
+    myTiktoksLoading = document.getElementById('my-tiktoks-loading');
+    myTiktoksTable = document.getElementById('my-tiktoks-table');
     logoutBtn = document.getElementById('logout-button');
     mobileLogoutBtn = document.getElementById('mobile-logout-btn');
     mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -293,7 +298,10 @@ async function loadDashboard() {
         
         // Load user's restaurants
         await loadUserRestaurants();
-        
+
+        // Load user's TikToks
+        await loadUserTiktoks();
+
         // Initialize map
         await initializeMap();
         
@@ -308,34 +316,86 @@ async function loadDashboard() {
 // Load user's restaurants
 async function loadUserRestaurants() {
     console.log('Loading user restaurants...');
-    
+
     try {
         const { data: restaurants, error } = await supabaseClient
             .from('restaurants')
             .select('*')
             .eq('submitted_by_user_id', currentUser.id)
             .order('created_at', { ascending: false });
-        
+
         if (error) {
             console.error('Error loading restaurants:', error);
             return;
         }
-        
+
         userRestaurants = restaurants || [];
         console.log('Loaded restaurants:', userRestaurants.length);
-        
+
         // Display restaurants
         displayRestaurants();
-        
+
     } catch (error) {
         console.error('Error loading restaurants:', error);
+    }
+}
+
+// Load user's TikToks
+async function loadUserTiktoks() {
+    console.log('Loading user TikToks...');
+
+    if (!myTiktoksLoading || !myTiktoksTable) return;
+
+    try {
+        // Show loading state
+        myTiktoksLoading.classList.remove('hidden');
+
+        // Query TikToks with restaurant information
+        const { data: tiktoks, error } = await supabaseClient
+            .from('tiktoks')
+            .select(`
+                id,
+                embed_html,
+                author_handle,
+                created_at,
+                is_featured,
+                restaurant_id,
+                restaurants (
+                    id,
+                    name,
+                    city,
+                    lat,
+                    lon
+                )
+            `)
+            .eq('submitted_by_user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error loading TikToks:', error);
+            showTiktoksError('Error loading TikToks: ' + error.message);
+            return;
+        }
+
+        userTiktoks = tiktoks || [];
+        console.log('Loaded TikToks:', userTiktoks.length);
+
+        // Display TikToks
+        displayTiktoks();
+
+    } catch (error) {
+        console.error('Error loading TikToks:', error);
+        showTiktoksError('Error loading TikToks: ' + error.message);
+    } finally {
+        // Hide loading state
+        myTiktoksLoading.classList.add('hidden');
     }
 }
 
 // Display restaurants in the list
 function displayRestaurants() {
     if (!myRestaurantsList) return;
-    
+
     if (userRestaurants.length === 0) {
         myRestaurantsList.innerHTML = `
             <div class="text-center py-8 text-gray-500">
@@ -345,12 +405,11 @@ function displayRestaurants() {
         `;
         return;
     }
-    
+
     myRestaurantsList.innerHTML = userRestaurants.map(restaurant => `
         <div class="restaurant-card" data-restaurant-id="${restaurant.id}">
             <h3 class="text-lg font-semibold">${restaurant.name}</h3>
-            <p class="text-gray-600">${restaurant.address || 'No address provided'}</p>
-            <p class="text-gray-500 text-sm">Cuisine: ${restaurant.cuisine || 'Not specified'}</p>
+            <p class="text-gray-600">${restaurant.city || 'No city provided'}</p>
             <p class="text-gray-500 text-sm">Added: ${new Date(restaurant.created_at).toLocaleDateString()}</p>
             <div class="restaurant-actions">
                 <button class="btn-edit" onclick="editRestaurant('${restaurant.id}')">Edit</button>
@@ -358,6 +417,87 @@ function displayRestaurants() {
             </div>
         </div>
     `).join('');
+}
+
+// Display TikToks in the table
+function displayTiktoks() {
+    if (!myTiktoksTable) return;
+
+    if (userTiktoks.length === 0) {
+        myTiktoksTable.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p class="text-lg mb-2">No TikToks submitted yet</p>
+                <p class="text-sm">Use "Add a New Reel" above to submit your first TikTok!</p>
+            </div>
+        `;
+        return;
+    }
+
+    myTiktoksTable.innerHTML = `
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            TikTok Video
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Restaurant
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Location
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Submitted
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    ${userTiktoks.map(tiktok => {
+                        const restaurant = tiktok.restaurants;
+                        const createdDate = new Date(tiktok.created_at).toLocaleDateString();
+                        const isFeatured = tiktok.is_featured ? 'Featured' : 'Standard';
+
+                        return `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="tiktok-embed-container" style="width: 200px; height: 120px; overflow: hidden; border-radius: 8px;">
+                                        ${tiktok.embed_html}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900">${restaurant?.name || 'Restaurant not found'}</div>
+                                    <div class="text-sm text-gray-500">${tiktok.author_handle || 'Unknown creator'}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900">${restaurant?.city || 'No location'}</div>
+                                    ${restaurant?.lat && restaurant?.lon ? `
+                                        <div class="text-xs text-gray-500">
+                                            ${restaurant.lat.toFixed(4)}, ${restaurant.lon.toFixed(4)}
+                                        </div>
+                                    ` : ''}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${createdDate}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tiktok.is_featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                        ${isFeatured}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    // Show the table
+    myTiktoksTable.classList.remove('hidden');
 }
 
 // Initialize map
@@ -385,41 +525,70 @@ async function initializeMap() {
     }
 }
 
-// Add restaurant markers to map
+// Add restaurant and TikTok markers to map
 function addRestaurantMarkers() {
-    if (!map || !userRestaurants) return;
-    
+    if (!map) return;
+
     // Clear existing markers
     map.eachLayer(layer => {
         if (layer instanceof L.Marker) {
             map.removeLayer(layer);
         }
     });
-    
-    // Add markers for each restaurant
+
+    // Add markers for each restaurant (from restaurants table)
     userRestaurants.forEach(restaurant => {
-        if (restaurant.latitude && restaurant.longitude) {
-            const marker = L.marker([restaurant.latitude, restaurant.longitude])
+        if (restaurant.lat && restaurant.lon) {
+            const marker = L.marker([restaurant.lat, restaurant.lon])
                 .addTo(map)
                 .bindPopup(`
                     <div>
                         <h3 class="font-semibold">${restaurant.name}</h3>
-                        <p class="text-sm text-gray-600">${restaurant.address || 'No address'}</p>
-                        <p class="text-sm text-gray-500">${restaurant.cuisine || 'No cuisine specified'}</p>
+                        <p class="text-sm text-gray-600">${restaurant.city || 'No city'}</p>
+                        <p class="text-sm text-blue-600">Your Restaurant</p>
                     </div>
                 `);
         }
     });
-    
+
+    // Add markers for TikTok locations (from tiktoks table with restaurant data)
+    userTiktoks.forEach(tiktok => {
+        if (tiktok.restaurants && tiktok.restaurants.lat && tiktok.restaurants.lon) {
+            const marker = L.marker([tiktok.restaurants.lat, tiktok.restaurants.lon])
+                .addTo(map)
+                .bindPopup(`
+                    <div>
+                        <h3 class="font-semibold">${tiktok.restaurants.name}</h3>
+                        <p class="text-sm text-gray-600">${tiktok.restaurants.city || 'No city'}</p>
+                        <p class="text-sm text-purple-600">TikTok: ${tiktok.author_handle || 'Unknown'}</p>
+                    </div>
+                `);
+        }
+    });
+
     // Fit map to show all markers
-    if (userRestaurants.length > 0) {
+    const allLocations = [];
+
+    // Add restaurant locations
+    userRestaurants.forEach(restaurant => {
+        if (restaurant.lat && restaurant.lon) {
+            allLocations.push([restaurant.lat, restaurant.lon]);
+        }
+    });
+
+    // Add TikTok locations
+    userTiktoks.forEach(tiktok => {
+        if (tiktok.restaurants && tiktok.restaurants.lat && tiktok.restaurants.lon) {
+            allLocations.push([tiktok.restaurants.lat, tiktok.restaurants.lon]);
+        }
+    });
+
+    if (allLocations.length > 0) {
         const group = new L.featureGroup();
-        userRestaurants.forEach(restaurant => {
-            if (restaurant.latitude && restaurant.longitude) {
-                group.addLayer(L.marker([restaurant.latitude, restaurant.longitude]));
-            }
+        allLocations.forEach(location => {
+            group.addLayer(L.marker(location));
         });
-        
+
         if (group.getLayers().length > 0) {
             map.fitBounds(group.getBounds().pad(0.1));
         }
@@ -615,6 +784,8 @@ async function deleteRestaurant(restaurantId) {
         
         // Refresh display
         displayRestaurants();
+        // Reload TikToks in case the deleted restaurant had TikToks
+        loadUserTiktoks();
         addRestaurantMarkers();
         
         console.log('Restaurant deleted successfully');
@@ -890,6 +1061,19 @@ function showRestaurantSearchError(message) {
     }
     if (restaurantSearchResults) {
         restaurantSearchResults.classList.remove('hidden');
+    }
+}
+
+// Helper functions for TikToks
+function showTiktoksError(message) {
+    if (myTiktoksTable) {
+        myTiktoksTable.innerHTML = `
+            <div class="text-center py-8 text-red-500">
+                <p class="text-lg mb-2">Error loading TikToks</p>
+                <p class="text-sm">${message}</p>
+            </div>
+        `;
+        myTiktoksTable.classList.remove('hidden');
     }
 }
 
