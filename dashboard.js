@@ -1,8 +1,9 @@
 // Dashboard JavaScript - Creator Dashboard
 // This script handles authentication, role checking, and content management
 
-// Import Supabase configuration
+// Import Supabase configuration and client
 import { CONFIG } from './config.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
 // Initialize Supabase client
 const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
