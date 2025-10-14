@@ -255,9 +255,11 @@ async function initializeMap() {
         // Initialize map centered on a default location (you can adjust this)
         map = L.map('map').setView([51.505, -0.09], 13);
         
-        // Add tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        // Add tile layer - using same style as rest of website
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
         
         // Add markers for user's restaurants
