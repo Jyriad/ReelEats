@@ -21,14 +21,16 @@ h1, h2, h3, h4, h5, h6 {
 html, body { 
     margin: 0; 
     padding: 0; 
+    overflow: hidden; /* Prevent body scroll - this was working fine originally */
     background-color: #f3f4f6 !important; /* Force light background */
     color: #111827 !important; /* Force dark text */
 }
 
-/* Prevent body scroll on map pages only, but preserve flexbox layout */
-body:not(.homepage):not(.dashboard-page) { 
-    overflow: hidden; /* Prevent body scroll on map pages only */
-    height: 100vh; /* Ensure full viewport height for flexbox */
+/* Allow scrolling on homepage only */
+body.homepage {
+    overflow: auto;
+    height: auto;
+    min-height: 100vh;
 }
 #map { 
     height: 100%; 
