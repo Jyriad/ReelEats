@@ -1653,6 +1653,18 @@ async function initializePreviewMap() {
     console.log('Initializing preview map...');
     
     try {
+        // Wait a bit to ensure DOM is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check if container exists
+        const mapContainer = document.getElementById('preview-map');
+        if (!mapContainer) {
+            console.error('Preview map container not found');
+            return;
+        }
+        
+        console.log('Map container found:', mapContainer);
+        
         // Initialize preview map centered on a default location
         previewMap = L.map('preview-map').setView([51.505, -0.09], 13);
         
@@ -1662,6 +1674,14 @@ async function initializePreviewMap() {
             subdomains: 'abcd',
             maxZoom: 20
         }).addTo(previewMap);
+        
+        // Invalidate map size to ensure it renders properly
+        setTimeout(() => {
+            if (previewMap) {
+                previewMap.invalidateSize();
+                console.log('Map size invalidated');
+            }
+        }, 200);
         
         // Add markers for user's restaurants
         addPreviewRestaurantMarkers();
@@ -1678,7 +1698,14 @@ async function initializePreviewMap() {
 
 // Add restaurant markers to preview map
 function addPreviewRestaurantMarkers() {
-    if (!previewMap) return;
+    console.log('Adding preview restaurant markers...');
+    console.log('Preview map exists:', !!previewMap);
+    console.log('User content length:', userContent.length);
+    
+    if (!previewMap) {
+        console.log('No preview map available');
+        return;
+    }
     
     // Clear existing markers
     previewRestaurantMarkers.forEach(marker => {
@@ -1688,6 +1715,7 @@ function addPreviewRestaurantMarkers() {
     
     // Add markers for each restaurant from content
     userContent.forEach((restaurant, index) => {
+        console.log(`Adding marker for restaurant ${index + 1}:`, restaurant.name, 'at', restaurant.lat, restaurant.lon);
         if (restaurant.lat && restaurant.lon) {
             const marker = createPreviewMarker(restaurant, index);
             previewRestaurantMarkers.push(marker);
@@ -1695,10 +1723,15 @@ function addPreviewRestaurantMarkers() {
         }
     });
     
+    console.log('Total markers added:', previewRestaurantMarkers.length);
+    
     // Fit map to show all markers
     if (previewRestaurantMarkers.length > 0) {
         const group = new L.featureGroup(previewRestaurantMarkers);
         previewMap.fitBounds(group.getBounds().pad(0.1));
+        console.log('Map fitted to bounds');
+    } else {
+        console.log('No markers to fit map to');
     }
 }
 
