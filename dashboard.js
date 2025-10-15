@@ -9,7 +9,6 @@ const { createClient } = supabase;
 const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 // Global variables
-let map = null;
 let previewMap = null;
 let currentUser = null;
 let userRestaurants = [];
@@ -353,10 +352,7 @@ async function loadDashboard() {
         // Load user's content (restaurants with TikToks)
         await loadUserContent();
         
-        // Initialize map
-        await initializeMap();
-        
-        // Initialize preview map
+        // Initialize preview map (explore page format)
         await initializePreviewMap();
         
         console.log('Dashboard loaded successfully');
@@ -367,32 +363,6 @@ async function loadDashboard() {
     }
 }
 
-// Load user's restaurants
-async function loadUserRestaurants() {
-    console.log('Loading user restaurants...');
-    
-    try {
-        const { data: restaurants, error } = await supabaseClient
-            .from('restaurants')
-            .select('*')
-            .eq('submitted_by_user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-        
-        if (error) {
-            console.error('Error loading restaurants:', error);
-            return;
-        }
-        
-        userRestaurants = restaurants || [];
-        console.log('Loaded restaurants:', userRestaurants.length);
-        
-        // Display restaurants
-        displayRestaurants();
-        
-    } catch (error) {
-        console.error('Error loading restaurants:', error);
-    }
-}
 
 // Load user's content (restaurants with TikToks)
 async function loadUserContent() {
@@ -574,75 +544,7 @@ function displayContent() {
     addContentEventListeners();
 }
 
-// Initialize map
-async function initializeMap() {
-    console.log('Initializing map...');
-    
-    try {
-        // Initialize map centered on a default location (you can adjust this)
-        map = L.map('map').setView([51.505, -0.09], 13);
-        
-        // Add tile layer - using same style as rest of website
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
-        
-        // Add markers for user's restaurants
-        addRestaurantMarkers();
-        
-        console.log('Map initialized successfully');
-        
-    } catch (error) {
-        console.error('Error initializing map:', error);
-    }
-}
 
-// Add restaurant markers to map (from content data)
-function addRestaurantMarkers() {
-    if (!map) return;
-    
-    // Clear existing markers
-    map.eachLayer(layer => {
-        if (layer instanceof L.Marker) {
-            map.removeLayer(layer);
-        }
-    });
-    
-    // Add markers for each restaurant from content
-    userContent.forEach(restaurant => {
-        if (restaurant.lat && restaurant.lon) {
-            const marker = L.marker([restaurant.lat, restaurant.lon])
-                .addTo(map)
-                .bindPopup(`
-                    <div>
-                        <h3 class="font-semibold">${restaurant.name}</h3>
-                        <p class="text-sm text-gray-600">${restaurant.city || 'No city'}</p>
-                    </div>
-                `);
-        }
-    });
-    
-    // Fit map to show all markers
-    const allLocations = [];
-    userContent.forEach(restaurant => {
-        if (restaurant.lat && restaurant.lon) {
-            allLocations.push([restaurant.lat, restaurant.lon]);
-        }
-    });
-
-    if (allLocations.length > 0) {
-        const group = new L.featureGroup();
-        allLocations.forEach(location => {
-            group.addLayer(L.marker(location));
-        });
-        
-        if (group.getLayers().length > 0) {
-            map.fitBounds(group.getBounds().pad(0.1));
-        }
-    }
-}
 
 
 
@@ -678,7 +580,10 @@ async function deleteRestaurant(restaurantId) {
 
         // Refresh display
         displayContent();
-        addRestaurantMarkers();
+        if (previewMap) {
+            addPreviewRestaurantMarkers();
+            displayPreviewRestaurantCards();
+        }
 
         console.log('Restaurant deleted successfully');
 
@@ -1348,7 +1253,6 @@ async function handleEditLocation(event) {
         setTimeout(() => {
             closeEditLocationModalFunc();
             loadUserContent();
-            addRestaurantMarkers();
         }, 1500);
 
     } catch (error) {
@@ -1569,9 +1473,8 @@ async function handleSubmitReel() {
         // Reset form back to step 1
         resetReelForm();
         
-        // Refresh the map to show new locations
-        await loadUserRestaurants();
-        addRestaurantMarkers();
+        // Refresh the content to show new locations
+        await loadUserContent();
         
     } catch (error) {
         console.error('Error submitting reel:', error);
