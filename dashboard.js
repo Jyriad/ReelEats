@@ -1073,18 +1073,30 @@ async function handleEditLocationSearch() {
 
             if (response.ok) {
                 const result = await response.json();
-                if (result.success && result.data.places && result.data.places.length > 0) {
+                console.log('Google Places API response:', result); // Debug log
+
+                if (result.success && result.data && result.data.places && result.data.places.length > 0) {
                     // Convert Google Places format to our format
-                    googlePlaces = result.data.places.map(place => ({
-                        id: `google_${place.id}`,
-                        name: place.displayName?.text || place.displayName,
-                        address: place.formattedAddress,
-                        city: place.addressComponents?.find(comp => comp.types.includes('locality'))?.longText || 'Unknown',
-                        lat: place.location?.latitude,
-                        lon: place.location?.longitude,
-                        source: 'google'
-                    }));
+                    googlePlaces = result.data.places.map(place => {
+                        console.log('Processing place:', place); // Debug log
+                        return {
+                            id: `google_${place.id}`,
+                            name: place.displayName?.text || place.displayName || 'Unknown',
+                            address: place.formattedAddress || 'No address',
+                            city: place.addressComponents?.find(comp => comp.types?.includes('locality'))?.longText ||
+                                  place.addressComponents?.find(comp => comp.types?.includes('administrative_area_level_2'))?.longText ||
+                                  'Unknown',
+                            lat: place.location?.latitude,
+                            lon: place.location?.longitude,
+                            source: 'google'
+                        };
+                    });
+                    console.log('Converted Google Places:', googlePlaces); // Debug log
+                } else {
+                    console.log('No Google Places results or invalid response structure');
                 }
+            } else {
+                console.error('Google Places API error:', response.status, response.statusText);
             }
         } catch (googleError) {
             console.error('Error searching Google Places:', googleError);
@@ -1271,10 +1283,16 @@ async function handleEditLocation(event) {
     event.preventDefault();
 
     const restaurantId = document.getElementById('edit-location-id').value;
+    const restaurantName = document.getElementById('edit-location-name').value.trim();
     const lat = document.getElementById('edit-location-lat').value;
     const lon = document.getElementById('edit-location-lon').value;
     const city = document.getElementById('edit-location-city').value;
     const saveBtn = document.getElementById('save-location-btn');
+
+    if (!restaurantName) {
+        showEditLocationStatus('Please enter a restaurant name', 'error');
+        return;
+    }
 
     if (!lat || !lon) {
         showEditLocationStatus('Please select a location first', 'error');
@@ -1289,10 +1307,11 @@ async function handleEditLocation(event) {
     hideEditLocationStatus();
 
     try {
-        // Update restaurant with new coordinates and city
+        // Update restaurant with new name, coordinates and city
         const { error: updateError } = await supabaseClient
             .from('restaurants')
             .update({
+                name: restaurantName,
                 lat: parseFloat(lat),
                 lon: parseFloat(lon),
                 city: city || 'Unknown'
@@ -1306,7 +1325,7 @@ async function handleEditLocation(event) {
             return;
         }
 
-        showEditLocationStatus('Location updated successfully!', 'success');
+        showEditLocationStatus('Restaurant updated successfully!', 'success');
 
         // Close modal and refresh data
         setTimeout(() => {
@@ -1316,8 +1335,8 @@ async function handleEditLocation(event) {
         }, 1500);
 
     } catch (error) {
-        console.error('Error updating location:', error);
-        showEditLocationStatus('Error updating location: ' + error.message, 'error');
+        console.error('Error updating restaurant:', error);
+        showEditLocationStatus('Error updating restaurant: ' + error.message, 'error');
     } finally {
         // Reset button state
         saveBtn.disabled = false;
