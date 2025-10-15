@@ -498,15 +498,8 @@ function displayContent() {
                                 </td>
                                 <td class="px-6 py-4">
                                     ${firstTiktok ? `
-                                        <div class="flex items-center gap-3">
-                                            <div class="tiktok-embed-container" style="width: 100px; height: 70px; overflow: hidden; border-radius: 6px; flex-shrink-0;">
-                                                ${firstTiktok.embed_html}
-            </div>
-                                            <div>
-                                                <div class="text-sm font-medium text-gray-900">
-                                                    <a href="${extractTiktokUrlFromEmbed(firstTiktok.embed_html)}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">video link</a>
-                                                </div>
-        </div>
+                                        <div class="text-sm font-medium text-gray-900">
+                                            <a href="${extractTiktokUrlFromEmbed(firstTiktok.embed_html)}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">video link</a>
                                         </div>
                                     ` : `
                                         <div class="text-sm text-gray-500 italic">No TikToks yet</div>
