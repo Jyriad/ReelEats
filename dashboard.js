@@ -1757,6 +1757,7 @@ function createPreviewMarker(restaurant, index) {
     
     // Add click event to open video
     marker.on('click', () => {
+        console.log('Map marker clicked for restaurant:', restaurant.name);
         showPreviewVideoFor(restaurant);
     });
     
@@ -1808,9 +1809,13 @@ function displayPreviewRestaurantCards() {
     // Add click event listeners to restaurant cards
     previewRestaurantList.querySelectorAll('.preview-restaurant-card').forEach(card => {
         card.addEventListener('click', () => {
+            console.log('Restaurant card clicked!');
             const restaurantId = parseInt(card.dataset.restaurantId);
+            console.log('Restaurant ID:', restaurantId);
             const restaurant = userContent.find(r => r.id === restaurantId);
+            console.log('Found restaurant:', restaurant);
             if (restaurant) {
+                console.log('Calling showPreviewVideoFor...');
                 showPreviewVideoFor(restaurant);
                 previewMap.flyTo([restaurant.lat, restaurant.lon], 15);
             }
@@ -1826,8 +1831,15 @@ async function showPreviewVideoFor(restaurant) {
     const videoContainer = document.querySelector('.video-container');
     const videoRestaurantName = document.getElementById('video-restaurant-name');
     
+    console.log('Video modal element:', videoModal);
+    console.log('Video container element:', videoContainer);
+    console.log('Video restaurant name element:', videoRestaurantName);
+    
     if (!videoModal || !videoContainer || !videoRestaurantName) {
         console.error('Video modal elements not found');
+        console.error('videoModal:', !!videoModal);
+        console.error('videoContainer:', !!videoContainer);
+        console.error('videoRestaurantName:', !!videoRestaurantName);
         return;
     }
     
@@ -1844,7 +1856,9 @@ async function showPreviewVideoFor(restaurant) {
     videoRestaurantName.textContent = restaurant.name;
     
     // Show the modal with a loading indicator
+    console.log('Showing video modal...');
     videoModal.classList.remove('hidden');
+    console.log('Modal classes after removing hidden:', videoModal.className);
     videoContainer.innerHTML = `
         <div class="w-full h-full flex items-center justify-center text-white">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
