@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creator Dashboard - ReelGrub</title>
+    <title>Creator Dashboard v1.620 - ReelGrub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -33,10 +33,21 @@
         body {
             font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
         }
-        
+
         h1, h2, h3, h4, h5, h6 {
             font-family: 'TikTok Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             font-weight: 700;
+        }
+
+        /* Ensure modals appear above all content including Leaflet map */
+        #edit-location-modal,
+        #edit-tiktok-modal {
+            z-index: 1000 !important;
+        }
+
+        #edit-location-modal .bg-white,
+        #edit-tiktok-modal .bg-white {
+            z-index: 1001 !important;
         }
     </style>
 </head>
@@ -71,7 +82,7 @@
         </div>
         
         <!-- Mobile Menu Modal -->
-        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div id="mobile-menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[900] hidden items-center justify-center p-4">
             <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-bold text-gray-900">Menu</h2>
@@ -100,18 +111,107 @@
 
     <main class="dashboard-container">
         <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-4">Creator Dashboard</h1>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Creator Dashboard v1.620</h1>
             <p class="text-xl text-gray-600">Welcome! Here you can manage your restaurants and videos.</p>
         </div>
 
         <section id="management-tools" class="tools-section">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">My Content</h2>
-            <button id="add-restaurant-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors mb-6">
-                Add New Restaurant
-            </button>
-            <hr class="mb-6">
-            <div id="my-restaurants-list" class="space-y-4">
-                <!-- Restaurants will be loaded here -->
+            
+            <!-- Add New Content Section -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Add New Content</h2>
+                <div id="add-reel-flow">
+
+                    <div id="step-1-tiktok-url">
+                        <label for="tiktok-url-input" class="block text-sm font-medium text-gray-700 mb-2">Enter your TikTok Video URL</label>
+                        <input type="text" id="tiktok-url-input" placeholder="https://www.tiktok.com/@user/video/..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3">
+                        <button id="validate-tiktok-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            Next
+                        </button>
+                        <p id="tiktok-validation-error" class="error-message text-red-600 text-sm mt-2 hidden"></p>
+                    </div>
+
+                    <div id="step-2-link-restaurant" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Link to a Restaurant</h3>
+                        <p class="text-gray-600 mb-4">Your video has been validated! Now, search for the restaurant.</p>
+                        
+                        <!-- Editable TikTok URL -->
+                        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                            <label for="editable-tiktok-url" class="block text-sm font-medium text-green-800 mb-1">TikTok Video URL</label>
+                            <input type="text" id="editable-tiktok-url" 
+                                   class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm">
+                            <p class="text-xs text-green-600 mt-1">You can edit this URL if needed</p>
+                        </div>
+                        
+                        <div class="flex gap-2 mb-3">
+                            <input type="text" id="restaurant-search-input" placeholder="Search for restaurant name..." 
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <button id="search-restaurant-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                                Search
+                            </button>
+                        </div>
+                        
+                        <!-- Search Results (Initially Hidden) -->
+                        <div id="restaurant-search-results" class="hidden mb-3">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Search Results (Click to Select):</h4>
+                            <div id="restaurant-search-options" class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
+                                <!-- Search results will appear here -->
+                            </div>
+                        </div>
+                        <button id="show-new-restaurant-form-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            Can't find it? Add a new one
+                        </button>
+                    </div>
+
+                    <div id="step-3-new-restaurant" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add a New Restaurant</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="new-restaurant-name" class="block text-sm font-medium text-gray-700 mb-2">Restaurant Name</label>
+                                <input type="text" id="new-restaurant-name" placeholder="Restaurant Name" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="new-restaurant-address" class="block text-sm font-medium text-gray-700 mb-2">Full Address</label>
+                                <input type="text" id="new-restaurant-address" placeholder="Full Address" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <button id="geocode-address-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors mb-3">
+                            Get Coordinates
+                        </button>
+                        <p id="reel-geocode-status" class="status-message text-sm mb-3 hidden"></p>
+                    </div>
+
+                    <div id="step-4-summary" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Ready to Submit?</h3>
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <p class="text-sm text-gray-600 mb-2"><strong>Video:</strong> <span id="summary-tiktok-url" class="text-blue-600"></span></p>
+                            <p class="text-sm text-gray-600"><strong>Restaurant:</strong> <span id="summary-restaurant-name" class="text-green-600"></span></p>
+                        </div>
+                        <button id="submit-reel-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            Save Reel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="my-content-section" class="my-content-section">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">My Content</h2>
+            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div class="p-6">
+                    <div id="my-tiktoks-loading" class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                        <p class="text-gray-600">Loading your content...</p>
+                    </div>
+                    <div id="my-tiktoks-table" class="hidden">
+                        <!-- TikToks table will be loaded here -->
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -122,10 +222,122 @@
     </main>
 
     <!-- Loading State -->
-    <div id="loading-state" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div id="loading-state" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center">
         <div class="bg-white rounded-lg p-8 text-center">
             <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
             <p class="text-gray-600 text-lg">Loading Dashboard...</p>
+        </div>
+    </div>
+
+    <!-- Edit Restaurant Location Modal -->
+    <div id="edit-location-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[1000] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative" style="z-index: 1001;">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Edit Restaurant Location</h2>
+                <button id="close-edit-location-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="edit-location-form">
+                <div class="mb-4">
+                    <label for="edit-location-name" class="block text-sm font-medium text-gray-700 mb-2">Restaurant Name</label>
+                    <input type="text" id="edit-location-name"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div class="mb-4">
+                    <label for="edit-location-search" class="block text-sm font-medium text-gray-700 mb-2">Search for New Location</label>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="edit-location-search" placeholder="Search for restaurant name or address..."
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button type="button" id="search-edit-location-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            Search
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Results -->
+                <div id="edit-location-search-results" class="mb-4 hidden">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Search Results (Click to Select):</h4>
+                    <div id="edit-location-search-options" class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
+                        <!-- Search results will appear here -->
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="edit-location-city" class="block text-sm font-medium text-gray-700 mb-2">Selected Location</label>
+                    <input type="text" id="edit-location-city" readonly
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                </div>
+
+                <!-- Hidden coordinate fields -->
+                <input type="hidden" id="edit-location-id">
+                <input type="hidden" id="edit-location-lat">
+                <input type="hidden" id="edit-location-lon">
+
+                <!-- Status message -->
+                <div id="edit-location-status" class="mb-4 hidden">
+                    <p class="text-sm"></p>
+                </div>
+
+                <!-- Form actions -->
+                <div class="flex gap-3">
+                    <button type="submit" id="save-location-btn"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Save Location
+                    </button>
+                    <button type="button" id="cancel-location-btn"
+                            class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit TikTok URL Modal -->
+    <div id="edit-tiktok-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[1000] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative" style="z-index: 1001;">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Edit TikTok URL</h2>
+                <button id="close-edit-tiktok-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="edit-tiktok-form">
+                <div class="mb-4">
+                    <label for="edit-tiktok-url" class="block text-sm font-medium text-gray-700 mb-2">TikTok Video URL</label>
+                    <input type="text" id="edit-tiktok-url" placeholder="https://www.tiktok.com/@user/video/..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Hidden fields -->
+                <input type="hidden" id="edit-tiktok-id">
+                <input type="hidden" id="edit-tiktok-restaurant-id">
+
+                <!-- Status message -->
+                <div id="edit-tiktok-status" class="mb-4 hidden">
+                    <p class="text-sm"></p>
+                </div>
+
+                <!-- Form actions -->
+                <div class="flex gap-3">
+                    <button type="submit" id="save-tiktok-btn"
+                            class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Save TikTok
+                    </button>
+                    <button type="button" id="cancel-tiktok-btn"
+                            class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
