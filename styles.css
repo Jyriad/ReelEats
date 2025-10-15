@@ -25,9 +25,10 @@ html, body {
     color: #111827 !important; /* Force dark text */
 }
 
-/* Only prevent body scroll on map pages, not homepage */
+/* Prevent body scroll on map pages only, but preserve flexbox layout */
 body:not(.homepage):not(.dashboard-page) { 
     overflow: hidden; /* Prevent body scroll on map pages only */
+    height: 100vh; /* Ensure full viewport height for flexbox */
 }
 #map { 
     height: 100%; 
