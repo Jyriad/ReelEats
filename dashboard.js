@@ -1073,30 +1073,21 @@ async function handleEditLocationSearch() {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Google Places API response:', result); // Debug log
 
                 if (result.success && result.data && result.data.places && result.data.places.length > 0) {
                     // Convert Google Places format to our format
-                    googlePlaces = result.data.places.map(place => {
-                        console.log('Processing place:', place); // Debug log
-                        return {
-                            id: `google_${place.id}`,
-                            name: place.displayName?.text || place.displayName || 'Unknown',
-                            address: place.formattedAddress || 'No address',
-                            city: place.addressComponents?.find(comp => comp.types?.includes('locality'))?.longText ||
-                                  place.addressComponents?.find(comp => comp.types?.includes('administrative_area_level_2'))?.longText ||
-                                  'Unknown',
-                            lat: place.location?.latitude,
-                            lon: place.location?.longitude,
-                            source: 'google'
-                        };
-                    });
-                    console.log('Converted Google Places:', googlePlaces); // Debug log
-                } else {
-                    console.log('No Google Places results or invalid response structure');
+                    googlePlaces = result.data.places.map(place => ({
+                        id: `google_${place.id}`,
+                        name: place.displayName?.text || place.displayName || 'Unknown',
+                        address: place.formattedAddress || 'No address',
+                        city: place.addressComponents?.find(comp => comp.types?.includes('locality'))?.longText ||
+                              place.addressComponents?.find(comp => comp.types?.includes('administrative_area_level_2'))?.longText ||
+                              'Unknown',
+                        lat: place.location?.latitude,
+                        lon: place.location?.longitude,
+                        source: 'google'
+                    }));
                 }
-            } else {
-                console.error('Google Places API error:', response.status, response.statusText);
             }
         } catch (googleError) {
             console.error('Error searching Google Places:', googleError);
