@@ -75,7 +75,8 @@ body.homepage {
     margin-bottom: 2rem;
 }
 
-#map {
+/* Dashboard-specific map height */
+.dashboard-page #map {
     height: 500px;
     width: 100%;
     border-radius: 8px;
