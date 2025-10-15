@@ -10,9 +10,11 @@ const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KE
 
 // Global variables
 let map = null;
+let previewMap = null;
 let currentUser = null;
 let userRestaurants = [];
 let userContent = []; // Restaurants with TikToks for content display
+let previewRestaurantMarkers = []; // Markers for preview map
 
 // --- REEL SUBMISSION STATE MANAGEMENT ---
 let validatedTiktokUrl = null;
@@ -236,6 +238,27 @@ function setupEventListeners() {
     if (editableTiktokUrl) {
         editableTiktokUrl.addEventListener('input', handleEditableUrlChange);
     }
+    
+    // Video modal close button
+    const closeVideoBtn = document.getElementById('close-video-btn');
+    if (closeVideoBtn) {
+        closeVideoBtn.addEventListener('click', () => {
+            const videoModal = document.getElementById('video-modal');
+            if (videoModal) {
+                videoModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Close video modal when clicking outside
+    const videoModal = document.getElementById('video-modal');
+    if (videoModal) {
+        videoModal.addEventListener('click', (e) => {
+            if (e.target === videoModal) {
+                videoModal.classList.add('hidden');
+            }
+        });
+    }
 }
 
 // Close mobile menu modal
@@ -332,6 +355,9 @@ async function loadDashboard() {
         
         // Initialize map
         await initializeMap();
+        
+        // Initialize preview map
+        await initializePreviewMap();
         
         console.log('Dashboard loaded successfully');
         
@@ -435,6 +461,12 @@ async function loadUserContent() {
 
         // Display content (restaurants with TikToks)
         displayContent();
+        
+        // Update preview map and cards
+        if (previewMap) {
+            addPreviewRestaurantMarkers();
+            displayPreviewRestaurantCards();
+        }
 
     } catch (error) {
         console.error('Error loading content:', error);
@@ -1711,6 +1743,247 @@ function showSuccessMessage(message) {
             }
         }, 300);
     }, 3000);
+}
+
+// Initialize preview map (explore page format)
+async function initializePreviewMap() {
+    console.log('Initializing preview map...');
+    
+    try {
+        // Initialize preview map centered on a default location
+        previewMap = L.map('preview-map').setView([51.505, -0.09], 13);
+        
+        // Add tile layer - using same style as rest of website
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(previewMap);
+        
+        // Add markers for user's restaurants
+        addPreviewRestaurantMarkers();
+        
+        // Display restaurant cards in side panel
+        displayPreviewRestaurantCards();
+        
+        console.log('Preview map initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing preview map:', error);
+    }
+}
+
+// Add restaurant markers to preview map
+function addPreviewRestaurantMarkers() {
+    if (!previewMap) return;
+    
+    // Clear existing markers
+    previewRestaurantMarkers.forEach(marker => {
+        previewMap.removeLayer(marker);
+    });
+    previewRestaurantMarkers = [];
+    
+    // Add markers for each restaurant from content
+    userContent.forEach((restaurant, index) => {
+        if (restaurant.lat && restaurant.lon) {
+            const marker = createPreviewMarker(restaurant, index);
+            previewRestaurantMarkers.push(marker);
+            marker.addTo(previewMap);
+        }
+    });
+    
+    // Fit map to show all markers
+    if (previewRestaurantMarkers.length > 0) {
+        const group = new L.featureGroup(previewRestaurantMarkers);
+        previewMap.fitBounds(group.getBounds().pad(0.1));
+    }
+}
+
+// Create preview marker (similar to explore page)
+function createPreviewMarker(restaurant, index) {
+    const number = index + 1;
+    
+    // Create custom icon with number
+    const icon = L.divIcon({
+        className: 'custom-numbered-marker',
+        html: `<div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">${number}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+    });
+    
+    const marker = L.marker([restaurant.lat, restaurant.lon], { icon })
+        .bindPopup(`
+            <div>
+                <h3 class="font-semibold">${restaurant.name}</h3>
+                <p class="text-sm text-gray-600">${restaurant.city || 'No city'}</p>
+            </div>
+        `);
+    
+    // Add click event to open video
+    marker.on('click', () => {
+        showPreviewVideoFor(restaurant);
+    });
+    
+    return marker;
+}
+
+// Display restaurant cards in preview side panel
+function displayPreviewRestaurantCards() {
+    const previewRestaurantList = document.getElementById('preview-restaurant-list');
+    if (!previewRestaurantList) return;
+    
+    if (userContent.length === 0) {
+        previewRestaurantList.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p class="text-lg mb-2">No content to preview</p>
+                <p class="text-sm">Add some content above to see how it will appear to your followers!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    previewRestaurantList.innerHTML = userContent.map((restaurant, index) => {
+        const number = index + 1;
+        const firstTiktok = restaurant.tiktoks && restaurant.tiktoks[0];
+        
+        return `
+            <div class="bg-white rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 relative touch-manipulation preview-restaurant-card" 
+                 data-restaurant-id="${restaurant.id}">
+                <div class="w-full p-3 md:p-4 flex items-start">
+                    <div class="flex-shrink-0 mr-3">
+                        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            ${number}
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
+                        <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
+                        <div class="mt-2.5">
+                            <span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1 bg-gray-100 text-gray-700">
+                                📍 ${restaurant.city || 'No location'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click event listeners to restaurant cards
+    previewRestaurantList.querySelectorAll('.preview-restaurant-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const restaurantId = parseInt(card.dataset.restaurantId);
+            const restaurant = userContent.find(r => r.id === restaurantId);
+            if (restaurant) {
+                showPreviewVideoFor(restaurant);
+                previewMap.flyTo([restaurant.lat, restaurant.lon], 15);
+            }
+        });
+    });
+}
+
+// Show video for restaurant in preview (similar to explore page)
+async function showPreviewVideoFor(restaurant) {
+    console.log('🎬 showPreviewVideoFor called with restaurant:', restaurant);
+    
+    const videoModal = document.getElementById('video-modal');
+    const videoContainer = document.querySelector('.video-container');
+    const videoRestaurantName = document.getElementById('video-restaurant-name');
+    
+    if (!videoModal || !videoContainer || !videoRestaurantName) {
+        console.error('Video modal elements not found');
+        return;
+    }
+    
+    const firstTiktok = restaurant.tiktoks && restaurant.tiktoks[0];
+    
+    if (!firstTiktok || !firstTiktok.embed_html) {
+        console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
+        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
+        videoModal.classList.remove('hidden');
+        return;
+    }
+    
+    // Populate video header
+    videoRestaurantName.textContent = restaurant.name;
+    
+    // Show the modal with a loading indicator
+    videoModal.classList.remove('hidden');
+    videoContainer.innerHTML = `
+        <div class="w-full h-full flex items-center justify-center text-white">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+    `;
+    
+    try {
+        // Extract video ID from embed HTML
+        const videoId = extractVideoId(firstTiktok.embed_html);
+        
+        if (videoId) {
+            // Try direct iframe first
+            const iframeHtml = createVideoIframe(videoId);
+            videoContainer.innerHTML = iframeHtml;
+            
+            // Handle iframe loading
+            handleIframeLoading(videoContainer, firstTiktok.embed_html, () => {
+                // Fallback to blockquote
+                videoContainer.innerHTML = firstTiktok.embed_html;
+            });
+        } else {
+            // Fallback to blockquote
+            videoContainer.innerHTML = firstTiktok.embed_html;
+        }
+    } catch (error) {
+        console.error('Error loading video:', error);
+        videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">Error loading video for ${restaurant.name}</div>`;
+    }
+}
+
+// Helper functions for video handling (from explore page)
+function extractVideoId(embedHtml) {
+    const videoIdMatch = embedHtml.match(/data-video-id="(\d+)"/);
+    return videoIdMatch ? videoIdMatch[1] : null;
+}
+
+function createVideoIframe(videoId) {
+    return `
+        <iframe 
+            src="https://www.tiktok.com/embed/v2/${videoId}?lang=en-US" 
+            width="330" 
+            height="585" 
+            frameborder="0" 
+            allowfullscreen
+            allow="encrypted-media"
+            style="border: none; background: white;">
+        </iframe>
+    `;
+}
+
+function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
+    setTimeout(() => {
+        const iframe = videoContainer.querySelector('iframe');
+        if (iframe) {
+            iframe.onload = () => {
+                console.log('✅ Direct iframe loaded');
+            };
+            iframe.onerror = () => {
+                console.log('❌ Direct iframe failed, trying blockquote...');
+                fallbackFunction();
+            };
+            
+            setTimeout(() => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (!iframeDoc || iframeDoc.body.children.length === 0) {
+                        console.log('⚠️ Iframe appears empty, trying blockquote...');
+                        fallbackFunction();
+                    }
+                } catch (e) {
+                    console.log('✅ Iframe cross-origin (likely working)');
+                }
+            }, 3000);
+        }
+    }, 100);
 }
 
 // Make functions globally accessible
