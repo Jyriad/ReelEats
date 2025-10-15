@@ -506,7 +506,6 @@ function displayContent() {
                                                 <div class="text-sm font-medium text-gray-900">
                                                     <a href="${extractTiktokUrlFromEmbed(firstTiktok.embed_html)}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">video link</a>
                                                 </div>
-                                                <div class="text-xs text-gray-500">${new Date(firstTiktok.created_at).toLocaleDateString()}</div>
         </div>
                                         </div>
                                     ` : `
@@ -514,7 +513,7 @@ function displayContent() {
                                     `}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    ${createdDate}
+                                    ${firstTiktok ? new Date(firstTiktok.created_at).toLocaleDateString() : createdDate}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex flex-col gap-2">
@@ -1665,7 +1664,7 @@ function generateTikTokEmbed(url) {
     // Generate the embed HTML
     return `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px; position: relative; overflow: hidden;">
         <section>
-            <a target="_blank" title="@username" href="${url}">@username</a>
+            <a target="_blank" title="TikTok Video" href="${url}">TikTok Video</a>
         </section>
     </blockquote>
     <script async src="https://www.tiktok.com/embed.js"></script>`;
