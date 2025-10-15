@@ -33,6 +33,10 @@ let closeMobileMenu = null;
 let editLocationModal = null;
 let closeEditLocationModal = null;
 let editLocationForm = null;
+let editLocationSearch = null;
+let searchEditLocationBtn = null;
+let editLocationSearchResults = null;
+let editLocationSearchOptions = null;
 let editTiktokModal = null;
 let closeEditTiktokModal = null;
 let editTiktokForm = null;
@@ -73,6 +77,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     editLocationModal = document.getElementById('edit-location-modal');
     closeEditLocationModal = document.getElementById('close-edit-location-modal');
     editLocationForm = document.getElementById('edit-location-form');
+    editLocationSearch = document.getElementById('edit-location-search');
+    searchEditLocationBtn = document.getElementById('search-edit-location-btn');
+    editLocationSearchResults = document.getElementById('edit-location-search-results');
+    editLocationSearchOptions = document.getElementById('edit-location-search-options');
     editTiktokModal = document.getElementById('edit-tiktok-modal');
     closeEditTiktokModal = document.getElementById('close-edit-tiktok-modal');
     editTiktokForm = document.getElementById('edit-tiktok-form');
@@ -149,6 +157,20 @@ function setupEventListeners() {
     // Modal form submissions
     if (editLocationForm) {
         editLocationForm.addEventListener('submit', handleEditLocation);
+    }
+
+    // Edit location search functionality
+    if (searchEditLocationBtn) {
+        searchEditLocationBtn.addEventListener('click', handleEditLocationSearch);
+    }
+
+    if (editLocationSearch) {
+        editLocationSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleEditLocationSearch();
+            }
+        });
     }
 
     if (editTiktokForm) {
@@ -958,12 +980,13 @@ function editRestaurantLocation(restaurantId) {
     // Populate modal with restaurant data
     document.getElementById('edit-location-name').value = restaurant.name;
     document.getElementById('edit-location-city').value = restaurant.city || '';
-    document.getElementById('edit-location-address').value = '';
+    document.getElementById('edit-location-search').value = '';
     document.getElementById('edit-location-id').value = restaurant.id;
     document.getElementById('edit-location-lat').value = restaurant.lat || '';
     document.getElementById('edit-location-lon').value = restaurant.lon || '';
 
-    // Clear any previous status messages
+    // Clear search results and status messages
+    hideEditLocationSearchResults();
     hideEditLocationStatus();
 
     // Show modal
@@ -1001,6 +1024,183 @@ function editTiktokUrl(tiktokId, restaurantId) {
 // Delete restaurant with content (alias for deleteRestaurant for backward compatibility)
 function deleteRestaurantWithContent(restaurantId) {
     deleteRestaurant(restaurantId);
+}
+
+// Edit location search functionality
+async function handleEditLocationSearch() {
+    const searchTerm = editLocationSearch?.value?.trim();
+
+    if (!searchTerm || searchTerm.length < 3) {
+        hideEditLocationSearchResults();
+        return;
+    }
+
+    if (!searchEditLocationBtn) return;
+
+    // Show loading state
+    searchEditLocationBtn.disabled = true;
+    searchEditLocationBtn.textContent = 'Searching...';
+
+    try {
+        // Step 1: Search database first
+        const { data: dbRestaurants, error: dbError } = await supabaseClient
+            .from('restaurants')
+            .select('id, name, city, lat, lon')
+            .ilike('name', `%${searchTerm}%`)
+            .limit(5);
+
+        if (dbError) {
+            console.error('Error searching database:', dbError);
+        }
+
+        // Step 2: Search Google Places
+        let googlePlaces = [];
+        try {
+            const response = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/google-places`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    action: 'searchText',
+                    data: {
+                        textQuery: searchTerm + ' restaurant',
+                        maxResultCount: 8
+                    }
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data.places && result.data.places.length > 0) {
+                    // Convert Google Places format to our format
+                    googlePlaces = result.data.places.map(place => ({
+                        id: `google_${place.id}`,
+                        name: place.displayName?.text || place.displayName,
+                        address: place.formattedAddress,
+                        city: place.addressComponents?.find(comp => comp.types.includes('locality'))?.longText || 'Unknown',
+                        lat: place.location?.latitude,
+                        lon: place.location?.longitude,
+                        source: 'google'
+                    }));
+                }
+            }
+        } catch (googleError) {
+            console.error('Error searching Google Places:', googleError);
+        }
+
+        // Step 3: Display combined results
+        displayEditLocationSearchResults(dbRestaurants || [], googlePlaces);
+
+    } catch (error) {
+        console.error('Error in edit location search:', error);
+        showEditLocationSearchError('Search failed. Please try again.');
+    } finally {
+        // Reset button state
+        searchEditLocationBtn.disabled = false;
+        searchEditLocationBtn.textContent = 'Search';
+    }
+}
+
+// Display edit location search results
+function displayEditLocationSearchResults(dbRestaurants, googlePlaces) {
+    if (!editLocationSearchOptions) return;
+
+    let html = '';
+
+    // Show database results first
+    if (dbRestaurants.length > 0) {
+        html += '<div class="mb-3">';
+        html += '<h5 class="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Existing Restaurants</h5>';
+        html += dbRestaurants.map(restaurant => `
+            <div class="location-option p-3 border border-blue-200 rounded-md mb-2 cursor-pointer hover:bg-blue-50 transition-colors bg-blue-25"
+                 data-restaurant-id="${restaurant.id}"
+                 data-name="${restaurant.name}"
+                 data-city="${restaurant.city || 'No city'}"
+                 data-lat="${restaurant.lat}"
+                 data-lon="${restaurant.lon}"
+                 data-source="database">
+                <div class="font-medium text-gray-900">${restaurant.name}</div>
+                <div class="text-sm text-gray-600">${restaurant.city || 'No city'}</div>
+                <div class="text-xs text-blue-600 mt-1">✓ Already in database</div>
+            </div>
+        `).join('');
+        html += '</div>';
+    }
+
+    // Show Google Places results
+    if (googlePlaces.length > 0) {
+        html += '<div>';
+        html += '<h5 class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Google Places Results</h5>';
+        html += googlePlaces.map(place => `
+            <div class="location-option p-3 border border-gray-200 rounded-md mb-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                 data-place-id="${place.id}"
+                 data-name="${place.name}"
+                 data-address="${place.address}"
+                 data-city="${place.city}"
+                 data-lat="${place.lat}"
+                 data-lon="${place.lon}"
+                 data-source="google">
+                <div class="font-medium text-gray-900">${place.name}</div>
+                <div class="text-sm text-gray-600">${place.address || 'No address'}</div>
+                <div class="text-xs text-gray-500">${place.city || 'No city'}</div>
+            </div>
+        `).join('');
+        html += '</div>';
+    }
+
+    // Show no results message
+    if (dbRestaurants.length === 0 && googlePlaces.length === 0) {
+        html = '<p class="text-gray-500 text-sm text-center py-4">No locations found. Try a different search term.</p>';
+    }
+
+    editLocationSearchOptions.innerHTML = html;
+
+    // Show results container
+    if (editLocationSearchResults) {
+        editLocationSearchResults.classList.remove('hidden');
+    }
+
+    // Add click listeners to each result
+    editLocationSearchOptions.querySelectorAll('.location-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const source = option.dataset.source;
+            const name = option.dataset.name;
+            const city = option.dataset.city;
+
+            if (source === 'database') {
+                // Existing restaurant from database
+                document.getElementById('edit-location-lat').value = option.dataset.lat;
+                document.getElementById('edit-location-lon').value = option.dataset.lon;
+                document.getElementById('edit-location-city').value = city;
+            } else if (source === 'google') {
+                // New location from Google Places
+                document.getElementById('edit-location-lat').value = option.dataset.lat;
+                document.getElementById('edit-location-lon').value = option.dataset.lon;
+                document.getElementById('edit-location-city').value = city;
+            }
+
+            // Hide search results
+            hideEditLocationSearchResults();
+        });
+    });
+}
+
+// Helper functions for edit location modal
+function hideEditLocationSearchResults() {
+    if (editLocationSearchResults) {
+        editLocationSearchResults.classList.add('hidden');
+    }
+}
+
+function showEditLocationSearchError(message) {
+    if (editLocationSearchOptions) {
+        editLocationSearchOptions.innerHTML = `<p class="text-red-500 text-sm text-center py-4">${message}</p>`;
+    }
+    if (editLocationSearchResults) {
+        editLocationSearchResults.classList.remove('hidden');
+    }
 }
 
 // Modal handling functions
@@ -1071,65 +1271,50 @@ async function handleEditLocation(event) {
     event.preventDefault();
 
     const restaurantId = document.getElementById('edit-location-id').value;
-    const address = document.getElementById('edit-location-address').value.trim();
+    const lat = document.getElementById('edit-location-lat').value;
+    const lon = document.getElementById('edit-location-lon').value;
+    const city = document.getElementById('edit-location-city').value;
     const saveBtn = document.getElementById('save-location-btn');
-    
-    if (!address) {
-        showEditLocationStatus('Please enter an address', 'error');
+
+    if (!lat || !lon) {
+        showEditLocationStatus('Please select a location first', 'error');
         return;
     }
-    
+
     if (!saveBtn) return;
-    
+
     // Show loading state
     saveBtn.disabled = true;
     saveBtn.textContent = 'Updating...';
     hideEditLocationStatus();
 
     try {
-        // Geocode the address
-        const { data, error } = await supabaseClient.functions.invoke('geocode-address', {
-            body: { address: address }
-        });
-        
-        if (error) {
-            console.error('Geocoding error:', error);
-            showEditLocationStatus('Error looking up address: ' + error.message, 'error');
+        // Update restaurant with new coordinates and city
+        const { error: updateError } = await supabaseClient
+            .from('restaurants')
+            .update({
+                lat: parseFloat(lat),
+                lon: parseFloat(lon),
+                city: city || 'Unknown'
+            })
+            .eq('id', restaurantId)
+            .eq('submitted_by_user_id', currentUser.id);
+
+        if (updateError) {
+            console.error('Error updating restaurant:', updateError);
+            showEditLocationStatus('Error updating restaurant: ' + updateError.message, 'error');
             return;
         }
-        
-        if (data && data.lat && data.lng) {
-            // Update restaurant with new coordinates
-            const { error: updateError } = await supabaseClient
-                .from('restaurants')
-                .update({
-                    lat: data.lat,
-                    lon: data.lng,
-                    google_maps_url: address,
-                    city: data.city || 'Unknown'
-                })
-                .eq('id', restaurantId)
-                .eq('submitted_by_user_id', currentUser.id);
 
-            if (updateError) {
-                console.error('Error updating restaurant:', updateError);
-                showEditLocationStatus('Error updating restaurant: ' + updateError.message, 'error');
-                return;
-            }
+        showEditLocationStatus('Location updated successfully!', 'success');
 
-            showEditLocationStatus('Location updated successfully!', 'success');
+        // Close modal and refresh data
+        setTimeout(() => {
+            closeEditLocationModalFunc();
+            loadUserContent();
+            addRestaurantMarkers();
+        }, 1500);
 
-            // Close modal and refresh data
-            setTimeout(() => {
-                closeEditLocationModalFunc();
-                loadUserContent();
-                addRestaurantMarkers();
-            }, 1500);
-
-        } else {
-            showEditLocationStatus('Could not find coordinates for this address', 'error');
-        }
-        
     } catch (error) {
         console.error('Error updating location:', error);
         showEditLocationStatus('Error updating location: ' + error.message, 'error');
