@@ -503,7 +503,9 @@ function displayContent() {
                                                 ${firstTiktok.embed_html}
             </div>
                                             <div>
-                                                <div class="text-sm font-medium text-gray-900">${firstTiktok.author_handle || 'Unknown creator'}</div>
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    <a href="${extractTiktokUrlFromEmbed(firstTiktok.embed_html)}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">video link</a>
+                                                </div>
                                                 <div class="text-xs text-gray-500">${new Date(firstTiktok.created_at).toLocaleDateString()}</div>
         </div>
                                         </div>
