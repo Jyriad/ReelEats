@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creator Dashboard v1.670 - ReelGrub</title>
+    <title>Creator Dashboard v1.671 - ReelGrub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -50,22 +50,22 @@
             z-index: 1001 !important;
         }
 
-        /* Ensure map container has proper dimensions - dashboard specific */
-        .dashboard-preview-container {
+        /* Ensure map container has proper dimensions - dashboard specific only */
+        .dashboard-page .dashboard-preview-container {
             height: 500px !important;
         }
 
-        .dashboard-preview-map-container {
+        .dashboard-page .dashboard-preview-map-container {
             height: 100% !important;
         }
 
-        #preview-map {
+        .dashboard-page #preview-map {
             min-height: 400px;
             height: 100%;
             width: 100%;
         }
 
-        #preview-map-container {
+        .dashboard-page #preview-map-container {
             min-height: 400px;
         }
 
@@ -76,7 +76,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50">
+<body class="min-h-screen bg-gray-50 dashboard-page">
     <header class="bg-gray-50 text-gray-900 shadow flex-shrink-0 z-20">
         <!-- Main Header Row -->
         <div class="h-[60px] flex items-center justify-between px-2 md:px-4">
@@ -136,7 +136,7 @@
 
     <main class="dashboard-container">
         <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-4">Creator Dashboard v1.670</h1>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Creator Dashboard v1.671</h1>
             <p class="text-xl text-gray-600">Welcome! Here you can manage your restaurants and videos.</p>
         </div>
 
