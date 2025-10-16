@@ -709,16 +709,51 @@ async function handleConfirmDelete() {
     closeDeleteModal();
     
     try {
-        const { error } = await supabaseClient
+        // First, check if the user created this restaurant
+        const { data: restaurant, error: restaurantError } = await supabaseClient
             .from('restaurants')
-            .delete()
+            .select('submitted_by_user_id')
             .eq('id', restaurantId)
-            .eq('submitted_by_user_id', currentUser.id); // Security check
+            .single();
 
-        if (error) {
-            console.error('Error deleting restaurant:', error);
-            alert('Error deleting restaurant. Please try again.');
+        if (restaurantError) {
+            console.error('Error checking restaurant ownership:', restaurantError);
+            alert('Error checking restaurant. Please try again.');
             return;
+        }
+
+        const userCreatedRestaurant = restaurant.submitted_by_user_id === currentUser.id;
+
+        if (userCreatedRestaurant) {
+            // User created the restaurant - delete the entire restaurant and all associated TikToks
+            console.log('User created this restaurant - deleting entire restaurant');
+            
+            const { error: deleteError } = await supabaseClient
+                .from('restaurants')
+                .delete()
+                .eq('id', restaurantId)
+                .eq('submitted_by_user_id', currentUser.id);
+
+            if (deleteError) {
+                console.error('Error deleting restaurant:', deleteError);
+                alert('Error deleting restaurant. Please try again.');
+                return;
+            }
+        } else {
+            // User didn't create the restaurant - only delete their TikTok videos linked to this restaurant
+            console.log('User did not create this restaurant - deleting only their TikTok videos');
+            
+            const { error: deleteTiktokError } = await supabaseClient
+                .from('tiktoks')
+                .delete()
+                .eq('restaurant_id', restaurantId)
+                .eq('submitted_by_user_id', currentUser.id);
+
+            if (deleteTiktokError) {
+                console.error('Error deleting TikTok videos:', deleteTiktokError);
+                alert('Error deleting your videos. Please try again.');
+                return;
+            }
         }
 
         // Remove from local arrays
@@ -751,10 +786,10 @@ async function handleConfirmDelete() {
             console.log('No preview map found, skipping map refresh');
         }
 
-        console.log('Restaurant deleted successfully');
+        console.log(userCreatedRestaurant ? 'Restaurant deleted successfully' : 'Your videos removed from restaurant successfully');
     } catch (error) {
-        console.error('Error deleting restaurant:', error);
-        alert('Error deleting restaurant. Please try again.');
+        console.error('Error in delete operation:', error);
+        alert('Error deleting content. Please try again.');
     }
 }
 
