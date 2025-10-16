@@ -723,12 +723,32 @@ async function handleConfirmDelete() {
 
         // Remove from local arrays
         userContent = userContent.filter(r => r.id !== restaurantId);
+        console.log('Updated userContent after deletion:', userContent.length, 'restaurants remaining');
 
-        // Refresh display
+        // Refresh display immediately
         displayContent();
+        
+        // Also reload from database to ensure we have the latest data
+        console.log('Reloading user content from database...');
+        await loadUserContent();
+        
+        // Refresh map if it exists
         if (previewMap) {
+            console.log('Refreshing map markers and cards...');
+            // Clear all existing markers first
+            previewRestaurantMarkers.forEach(marker => {
+                previewMap.removeLayer(marker);
+            });
+            previewRestaurantMarkers = [];
+            
+            // Add new markers and cards
             addPreviewRestaurantMarkers();
             displayPreviewRestaurantCards();
+            
+            // Force map to refresh its view
+            previewMap.invalidateSize();
+        } else {
+            console.log('No preview map found, skipping map refresh');
         }
 
         console.log('Restaurant deleted successfully');
