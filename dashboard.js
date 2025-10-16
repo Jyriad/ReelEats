@@ -14,6 +14,7 @@ let currentUser = null;
 let userRestaurants = [];
 let userContent = []; // Restaurants with TikToks for content display
 let previewRestaurantMarkers = []; // Markers for preview map
+let allCuisines = []; // Store all available cuisines for selection
 
 // --- REEL SUBMISSION STATE MANAGEMENT ---
 let validatedTiktokUrl = null;
@@ -233,6 +234,12 @@ function setupEventListeners() {
         submitReelBtn.addEventListener('click', handleSubmitReel);
     }
     
+    // Final submission button for step 5
+    const submitReelFinalBtn = document.getElementById('submit-reel-final-btn');
+    if (submitReelFinalBtn) {
+        submitReelFinalBtn.addEventListener('click', handleSubmitReel);
+    }
+    
     // 6. Editable TikTok URL change
     if (editableTiktokUrl) {
         editableTiktokUrl.addEventListener('input', handleEditableUrlChange);
@@ -349,6 +356,9 @@ async function loadDashboard() {
             loadingState.style.display = 'none';
         }
         
+        // Load cuisines for selection
+        await loadCuisines();
+        
         // Load user's content (restaurants with TikToks)
         await loadUserContent();
         
@@ -363,6 +373,86 @@ async function loadDashboard() {
     }
 }
 
+// Load cuisines for selection
+async function loadCuisines() {
+    console.log('Loading cuisines...');
+    
+    try {
+        const { data: categories, error } = await supabaseClient
+            .from('cuisine_categories')
+            .select(`
+                id,
+                name,
+                cuisines ( id, name, icon, color_background, color_text )
+            `)
+            .order('name');
+
+        if (error) {
+            console.error('Error loading cuisines:', error);
+            return;
+        }
+
+        // Flatten all cuisines into a single array
+        allCuisines = [];
+        if (categories) {
+            categories.forEach(category => {
+                if (category.cuisines) {
+                    allCuisines.push(...category.cuisines);
+                }
+            });
+        }
+
+        console.log('Loaded cuisines:', allCuisines.length);
+        
+    } catch (error) {
+        console.error('Error loading cuisines:', error);
+    }
+}
+
+// Helper function to get or create a city
+async function getOrCreateCity(cityName) {
+    if (!cityName || cityName === 'Unknown') {
+        return null;
+    }
+    
+    try {
+        // First, try to find existing city
+        const { data: existingCity, error: findError } = await supabaseClient
+            .from('cities')
+            .select('id')
+            .ilike('name', cityName)
+            .single();
+        
+        if (findError && findError.code !== 'PGRST116') { // PGRST116 = no rows returned
+            console.error('Error finding city:', findError);
+            return null;
+        }
+        
+        if (existingCity) {
+            console.log('Found existing city:', cityName, 'ID:', existingCity.id);
+            return existingCity.id;
+        }
+        
+        // City doesn't exist, create it
+        const { data: newCity, error: createError } = await supabaseClient
+            .from('cities')
+            .insert([{ name: cityName }])
+            .select('id')
+            .single();
+        
+        if (createError) {
+            console.error('Error creating city:', createError);
+            return null;
+        }
+        
+        console.log('Created new city:', cityName, 'ID:', newCity.id);
+        return newCity.id;
+        
+    } catch (error) {
+        console.error('Error in getOrCreateCity:', error);
+        return null;
+    }
+}
 
 // Load user's content (restaurants with TikToks)
 async function loadUserContent() {
@@ -818,7 +908,10 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
             if (source === 'database') {
                 // Existing restaurant from database
                 selectedRestaurantId = option.dataset.restaurantId;
-                newRestaurantData = null; // Clear any new restaurant data
+                newRestaurantData = {
+                    name: restaurantName,
+                    city: option.dataset.city || 'Unknown'
+                };
             } else if (source === 'google') {
                 // New restaurant from Google Places
                 selectedRestaurantId = null; // Clear database selection
@@ -839,8 +932,8 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                 summaryTiktokUrl.textContent = validatedTiktokUrl;
             }
             
-            // Move to step 4
-            showStep(4);
+            // Move to step 5 (cuisine selection)
+            showStep(5);
         });
     });
 }
@@ -1383,7 +1476,7 @@ async function handleGeocodeNewRestaurant() {
                 google_maps_url: address
             };
             
-            showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng, 'success');
+            showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng + (data.city ? ' in ' + data.city : ''), 'success');
             
             // Populate summary
             if (summaryRestaurantName) {
@@ -1393,8 +1486,8 @@ async function handleGeocodeNewRestaurant() {
                 summaryTiktokUrl.textContent = validatedTiktokUrl;
             }
             
-            // Move to step 4
-            showStep(4);
+            // Move to step 5 (cuisine selection)
+            showStep(5);
         } else {
             showReelGeocodeStatus('Could not find coordinates for this address', 'error');
         }
@@ -1422,11 +1515,15 @@ async function handleSubmitReel() {
         
         // A. If newRestaurantData is not null, create the restaurant first
         if (newRestaurantData) {
+            // Get or create city
+            const cityId = await getOrCreateCity(newRestaurantData.city);
+            
             const { data: newRestaurant, error: restaurantError } = await supabaseClient
             .from('restaurants')
                 .insert([{
                     name: newRestaurantData.name,
                     city: newRestaurantData.city,
+                    city_id: cityId,
                     lat: newRestaurantData.lat,
                     lon: newRestaurantData.lon,
                     google_maps_url: newRestaurantData.google_maps_url,
@@ -1467,7 +1564,27 @@ async function handleSubmitReel() {
             return;
         }
         
-        // C. Success!
+        // C. Add cuisine relationships if cuisines were selected
+        const selectedCuisineIds = getSelectedCuisineIds();
+        if (selectedCuisineIds.length > 0) {
+            const cuisineRelationships = selectedCuisineIds.map(cuisineId => ({
+                restaurant_id: finalRestaurantId,
+                cuisine_id: cuisineId
+            }));
+            
+            const { error: cuisineError } = await supabaseClient
+                .from('restaurant_cuisines')
+                .insert(cuisineRelationships);
+            
+            if (cuisineError) {
+                console.error('Error adding cuisine relationships:', cuisineError);
+                // Don't fail the whole operation, just log the error
+            } else {
+                console.log('Successfully added cuisine relationships');
+            }
+        }
+        
+        // D. Success!
         showSuccessMessage('Reel saved successfully!');
         
         // Reset form back to step 1
@@ -1486,18 +1603,67 @@ async function handleSubmitReel() {
     }
 }
 
+// Helper function to get selected cuisine IDs
+function getSelectedCuisineIds() {
+    const selectedCheckboxes = document.querySelectorAll('#cuisine-checkbox-container input[type="checkbox"]:checked');
+    return Array.from(selectedCheckboxes).map(checkbox => parseInt(checkbox.value));
+}
+
+// Populate cuisine selection UI
+function populateCuisineSelection() {
+    const container = document.getElementById('cuisine-checkbox-container');
+    if (!container || !allCuisines || allCuisines.length === 0) {
+        console.log('No cuisines available or container not found');
+        return;
+    }
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create checkboxes for each cuisine
+    allCuisines.forEach(cuisine => {
+        const checkboxDiv = document.createElement('div');
+        checkboxDiv.className = 'flex items-center mb-2';
+        
+        checkboxDiv.innerHTML = `
+            <input type="checkbox" id="cuisine-${cuisine.id}" value="${cuisine.id}" 
+                   class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+            <label for="cuisine-${cuisine.id}" class="text-sm text-gray-700 cursor-pointer">
+                ${cuisine.icon ? cuisine.icon + ' ' : ''}${cuisine.name}
+            </label>
+        `;
+        
+        container.appendChild(checkboxDiv);
+    });
+    
+    // Populate summary in step 5
+    const summaryTiktokUrlCuisine = document.getElementById('summary-tiktok-url-cuisine');
+    const summaryRestaurantNameCuisine = document.getElementById('summary-restaurant-name-cuisine');
+    
+    if (summaryTiktokUrlCuisine && validatedTiktokUrl) {
+        summaryTiktokUrlCuisine.textContent = validatedTiktokUrl;
+    }
+    
+    if (summaryRestaurantNameCuisine && newRestaurantData) {
+        summaryRestaurantNameCuisine.textContent = newRestaurantData.name;
+    }
+    
+    console.log('Populated cuisine selection with', allCuisines.length, 'cuisines');
+}
+
 // Helper functions for UI management
 function showStep(stepNumber) {
     // Hide all steps
-    for (let i = 1; i <= 4; i++) {
-        const step = document.getElementById(`step-${i}-${i === 1 ? 'tiktok-url' : i === 2 ? 'link-restaurant' : i === 3 ? 'new-restaurant' : 'summary'}`);
+    for (let i = 1; i <= 5; i++) {
+        const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary', 'select-cuisines'];
+        const step = document.getElementById(`step-${i}-${stepNames[i]}`);
         if (step) {
             step.style.display = 'none';
         }
     }
     
     // Show the requested step
-    const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary'];
+    const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary', 'select-cuisines'];
     const step = document.getElementById(`step-${stepNumber}-${stepNames[stepNumber]}`);
     if (step) {
         step.style.display = 'block';
@@ -1506,6 +1672,11 @@ function showStep(stepNumber) {
     // Populate editable URL when showing step 2
     if (stepNumber === 2 && editableTiktokUrl && validatedTiktokUrl) {
         editableTiktokUrl.value = validatedTiktokUrl;
+    }
+    
+    // Populate cuisine selection when showing step 5
+    if (stepNumber === 5) {
+        populateCuisineSelection();
     }
 }
 
@@ -1566,6 +1737,10 @@ function resetReelForm() {
     // Clear search results
     hideRestaurantSearchResults();
     if (restaurantSearchOptions) restaurantSearchOptions.innerHTML = '';
+    
+    // Clear cuisine selections
+    const cuisineContainer = document.getElementById('cuisine-checkbox-container');
+    if (cuisineContainer) cuisineContainer.innerHTML = '';
     
     // Hide error messages
     hideTiktokValidationError();
