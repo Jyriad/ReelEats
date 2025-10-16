@@ -1469,6 +1469,8 @@ async function handleGeocodeNewRestaurant() {
         return;
     }
     
+        console.log('Geocode response data:', data);
+        
         if (data && data.lat && data.lng) {
             // Store the new restaurant data
             newRestaurantData = {
@@ -1481,6 +1483,8 @@ async function handleGeocodeNewRestaurant() {
                 google_place_id: data.place_id || null,
                 formatted_address: data.formatted_address || address
             };
+            
+            console.log('New restaurant data:', newRestaurantData);
             
             showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng + (data.city ? ' in ' + data.city : ''), 'success');
             
