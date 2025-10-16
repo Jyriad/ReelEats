@@ -14,11 +14,13 @@ let currentUser = null;
 let userRestaurants = [];
 let userContent = []; // Restaurants with TikToks for content display
 let previewRestaurantMarkers = []; // Markers for preview map
+let allCuisines = []; // Store all available cuisines for selection
 
 // --- REEL SUBMISSION STATE MANAGEMENT ---
 let validatedTiktokUrl = null;
 let selectedRestaurantId = null;
 let newRestaurantData = null;
+let restaurantToDelete = null;
 
 // DOM elements
 let loadingState = null;
@@ -54,8 +56,14 @@ let restaurantSearchOptions = null;
 let showNewRestaurantFormBtn = null;
 let newRestaurantName = null;
 let newRestaurantAddress = null;
+let newRestaurantDescription = null;
 let geocodeAddressBtn = null;
+let restaurantDescription = null;
+let continueToCuisinesBtn = null;
 let submitReelBtn = null;
+let deleteConfirmationModal = null;
+let cancelDeleteBtn = null;
+let confirmDeleteBtn = null;
 let summaryTiktokUrl = null;
 let summaryRestaurantName = null;
 
@@ -98,8 +106,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     showNewRestaurantFormBtn = document.getElementById('show-new-restaurant-form-btn');
     newRestaurantName = document.getElementById('new-restaurant-name');
     newRestaurantAddress = document.getElementById('new-restaurant-address');
+    newRestaurantDescription = document.getElementById('new-restaurant-description');
     geocodeAddressBtn = document.getElementById('geocode-address-btn');
+    restaurantDescription = document.getElementById('restaurant-description');
+    continueToCuisinesBtn = document.getElementById('continue-to-cuisines-btn');
     submitReelBtn = document.getElementById('submit-reel-btn');
+    deleteConfirmationModal = document.getElementById('delete-confirmation-modal');
+    cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    confirmDeleteBtn = document.getElementById('confirm-delete-btn');
     summaryTiktokUrl = document.getElementById('summary-tiktok-url');
     summaryRestaurantName = document.getElementById('summary-restaurant-name');
     
@@ -233,6 +247,32 @@ function setupEventListeners() {
         submitReelBtn.addEventListener('click', handleSubmitReel);
     }
     
+    // Final submission button for step 5
+    // Event listener for continue to cuisines button
+    if (continueToCuisinesBtn) {
+        continueToCuisinesBtn.addEventListener('click', handleContinueToCuisines);
+    }
+
+    const submitReelFinalBtn = document.getElementById('submit-reel-final-btn');
+    if (submitReelFinalBtn) {
+        submitReelFinalBtn.addEventListener('click', handleSubmitReel);
+    }
+
+    // Event listeners for delete confirmation modal
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+    }
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
+    }
+    if (deleteConfirmationModal) {
+        deleteConfirmationModal.addEventListener('click', (e) => {
+            if (e.target === deleteConfirmationModal) {
+                closeDeleteModal();
+            }
+        });
+    }
+    
     // 6. Editable TikTok URL change
     if (editableTiktokUrl) {
         editableTiktokUrl.addEventListener('input', handleEditableUrlChange);
@@ -349,6 +389,9 @@ async function loadDashboard() {
             loadingState.style.display = 'none';
         }
         
+        // Load cuisines for selection
+        await loadCuisines();
+        
         // Load user's content (restaurants with TikToks)
         await loadUserContent();
         
@@ -363,6 +406,86 @@ async function loadDashboard() {
     }
 }
 
+// Load cuisines for selection
+async function loadCuisines() {
+    console.log('Loading cuisines...');
+    
+    try {
+        const { data: categories, error } = await supabaseClient
+            .from('cuisine_categories')
+            .select(`
+                id,
+                name,
+                cuisines ( id, name, icon, color_background, color_text )
+            `)
+            .order('name');
+
+        if (error) {
+            console.error('Error loading cuisines:', error);
+            return;
+        }
+
+        // Flatten all cuisines into a single array
+        allCuisines = [];
+        if (categories) {
+            categories.forEach(category => {
+                if (category.cuisines) {
+                    allCuisines.push(...category.cuisines);
+                }
+            });
+        }
+
+        console.log('Loaded cuisines:', allCuisines.length);
+        
+    } catch (error) {
+        console.error('Error loading cuisines:', error);
+    }
+}
+
+// Helper function to get or create a city
+async function getOrCreateCity(cityName) {
+    if (!cityName || cityName === 'Unknown') {
+        return null;
+    }
+    
+    try {
+        // First, try to find existing city
+        const { data: existingCity, error: findError } = await supabaseClient
+            .from('cities')
+            .select('id')
+            .ilike('name', cityName)
+            .single();
+        
+        if (findError && findError.code !== 'PGRST116') { // PGRST116 = no rows returned
+            console.error('Error finding city:', findError);
+            return null;
+        }
+        
+        if (existingCity) {
+            console.log('Found existing city:', cityName, 'ID:', existingCity.id);
+            return existingCity.id;
+        }
+        
+        // City doesn't exist, create it
+        const { data: newCity, error: createError } = await supabaseClient
+            .from('cities')
+            .insert([{ name: cityName }])
+            .select('id')
+            .single();
+        
+        if (createError) {
+            console.error('Error creating city:', createError);
+            return null;
+        }
+        
+        console.log('Created new city:', cityName, 'ID:', newCity.id);
+        return newCity.id;
+        
+    } catch (error) {
+        console.error('Error in getOrCreateCity:', error);
+        return null;
+    }
+}
 
 // Load user's content (restaurants with TikToks)
 async function loadUserContent() {
@@ -558,10 +681,33 @@ function editRestaurant(restaurantId) {
 
 // Delete restaurant function
 async function deleteRestaurant(restaurantId) {
-    if (!confirm('Are you sure you want to delete this restaurant? This will also delete all associated TikToks.')) {
-        return;
-    }
+    restaurantToDelete = restaurantId;
+    showDeleteModal();
+}
 
+// Show delete confirmation modal
+function showDeleteModal() {
+    if (deleteConfirmationModal) {
+        deleteConfirmationModal.classList.remove('hidden');
+    }
+}
+
+// Close delete confirmation modal
+function closeDeleteModal() {
+    if (deleteConfirmationModal) {
+        deleteConfirmationModal.classList.add('hidden');
+    }
+    restaurantToDelete = null;
+}
+
+// Handle confirmed delete
+async function handleConfirmDelete() {
+    if (!restaurantToDelete) return;
+    
+    // Store the ID before closing the modal (which sets it to null)
+    const restaurantId = restaurantToDelete;
+    closeDeleteModal();
+    
     try {
         const { error } = await supabaseClient
             .from('restaurants')
@@ -577,16 +723,35 @@ async function deleteRestaurant(restaurantId) {
 
         // Remove from local arrays
         userContent = userContent.filter(r => r.id !== restaurantId);
+        console.log('Updated userContent after deletion:', userContent.length, 'restaurants remaining');
 
-        // Refresh display
+        // Refresh display immediately
         displayContent();
+        
+        // Also reload from database to ensure we have the latest data
+        console.log('Reloading user content from database...');
+        await loadUserContent();
+        
+        // Refresh map if it exists
         if (previewMap) {
+            console.log('Refreshing map markers and cards...');
+            // Clear all existing markers first
+            previewRestaurantMarkers.forEach(marker => {
+                previewMap.removeLayer(marker);
+            });
+            previewRestaurantMarkers = [];
+            
+            // Add new markers and cards
             addPreviewRestaurantMarkers();
             displayPreviewRestaurantCards();
+            
+            // Force map to refresh its view
+            previewMap.invalidateSize();
+        } else {
+            console.log('No preview map found, skipping map refresh');
         }
 
         console.log('Restaurant deleted successfully');
-
     } catch (error) {
         console.error('Error deleting restaurant:', error);
         alert('Error deleting restaurant. Please try again.');
@@ -723,6 +888,7 @@ async function handleRestaurantSearch() {
             
             if (response.ok) {
                 const result = await response.json();
+                console.log('Google Places API response:', result);
                 if (result.success && result.data.places && result.data.places.length > 0) {
                     // Convert Google Places format to our format
                     googlePlaces = result.data.places.map(place => ({
@@ -732,6 +898,8 @@ async function handleRestaurantSearch() {
                         city: place.addressComponents?.find(comp => comp.types.includes('locality'))?.longText || 'Unknown',
                         lat: place.location?.latitude,
                         lon: place.location?.longitude,
+                        google_maps_url: place.googleMapsUri || `https://www.google.com/maps/place/?q=place_id:${place.id}`,
+                        place_id: place.id,
                         source: 'google'
                     }));
                 }
@@ -788,6 +956,8 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                  data-city="${place.city}"
                  data-lat="${place.lat}"
                  data-lon="${place.lon}"
+                 data-google-maps-url="${place.google_maps_url}"
+                 data-google-place-id="${place.place_id}"
                  data-source="google">
                 <div class="font-medium text-gray-900">${place.name}</div>
                 <div class="text-sm text-gray-600">${place.address || 'No address'}</div>
@@ -818,7 +988,10 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
             if (source === 'database') {
                 // Existing restaurant from database
                 selectedRestaurantId = option.dataset.restaurantId;
-                newRestaurantData = null; // Clear any new restaurant data
+                newRestaurantData = {
+                    name: restaurantName,
+                    city: option.dataset.city || 'Unknown'
+                };
             } else if (source === 'google') {
                 // New restaurant from Google Places
                 selectedRestaurantId = null; // Clear database selection
@@ -827,8 +1000,17 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                     city: option.dataset.city,
                     lat: parseFloat(option.dataset.lat),
                     lon: parseFloat(option.dataset.lon),
-                    google_maps_url: option.dataset.address
+                    google_maps_url: option.dataset.googleMapsUrl,
+                    google_place_id: option.dataset.googlePlaceId
                 };
+                console.log('Google Places selection data:', {
+                    name: restaurantName,
+                    city: option.dataset.city,
+                    lat: option.dataset.lat,
+                    lon: option.dataset.lon,
+                    google_maps_url: option.dataset.googleMapsUrl,
+                    google_place_id: option.dataset.googlePlaceId
+                });
             }
             
             // Populate summary
@@ -839,8 +1021,8 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                 summaryTiktokUrl.textContent = validatedTiktokUrl;
             }
             
-            // Move to step 4
-            showStep(4);
+            // Move to step 3 (description)
+            showStep('step-3-description');
         });
     });
 }
@@ -1344,10 +1526,37 @@ function showNewRestaurantForm() {
     showStep(3);
 }
 
-// 4. Geocode new restaurant address
+// 4. Handle continue to cuisines
+function handleContinueToCuisines() {
+    const description = restaurantDescription?.value?.trim();
+    
+    if (!description) {
+        alert('Please enter a description for this restaurant.');
+        return;
+    }
+    
+    // Store description in newRestaurantData
+    if (newRestaurantData) {
+        newRestaurantData.description = description;
+    }
+    
+    // Move to step 5 (cuisine selection)
+    showStep(5);
+    populateCuisineSelection();
+}
+
+// 5. Geocode new restaurant address
 async function handleGeocodeNewRestaurant() {
     const name = newRestaurantName?.value?.trim();
     const address = newRestaurantAddress?.value?.trim();
+    const description = newRestaurantDescription?.value?.trim();
+    
+    console.log('Form data:', { name, address, description });
+    console.log('Elements found:', { 
+        nameElement: !!newRestaurantName, 
+        addressElement: !!newRestaurantAddress, 
+        descriptionElement: !!newRestaurantDescription 
+    });
     
     if (!name || !address) {
         showReelGeocodeStatus('Please fill in both restaurant name and address', 'error');
@@ -1362,10 +1571,13 @@ async function handleGeocodeNewRestaurant() {
     showReelGeocodeStatus('Looking up address...', 'info');
     
     try {
+        console.log('Calling geocode-address function with address:', address);
         // Call the geocode-address Supabase Edge Function
         const { data, error } = await supabaseClient.functions.invoke('geocode-address', {
             body: { address: address }
         });
+        
+        console.log('Geocode function response:', { data, error });
         
         if (error) {
             console.error('Geocoding error:', error);
@@ -1373,17 +1585,24 @@ async function handleGeocodeNewRestaurant() {
         return;
     }
     
+        console.log('Geocode response data:', data);
+        
         if (data && data.lat && data.lng) {
             // Store the new restaurant data
             newRestaurantData = {
                 name: name,
+                description: description || '',
                 city: data.city || 'Unknown',
                 lat: data.lat,
                 lon: data.lng,
-                google_maps_url: address
+                google_maps_url: data.google_maps_url || `https://www.google.com/maps/place/?q=place_id:${data.place_id}`,
+                google_place_id: data.place_id || null,
+                formatted_address: data.formatted_address || address
             };
             
-            showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng, 'success');
+            console.log('New restaurant data:', newRestaurantData);
+            
+            showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng + (data.city ? ' in ' + data.city : ''), 'success');
             
             // Populate summary
             if (summaryRestaurantName) {
@@ -1393,8 +1612,8 @@ async function handleGeocodeNewRestaurant() {
                 summaryTiktokUrl.textContent = validatedTiktokUrl;
             }
             
-            // Move to step 4
-            showStep(4);
+            // Move to step 3 (description)
+            showStep('step-3-description');
         } else {
             showReelGeocodeStatus('Could not find coordinates for this address', 'error');
         }
@@ -1422,16 +1641,23 @@ async function handleSubmitReel() {
         
         // A. If newRestaurantData is not null, create the restaurant first
         if (newRestaurantData) {
+            // Get or create city
+            const cityId = await getOrCreateCity(newRestaurantData.city);
+            
             const { data: newRestaurant, error: restaurantError } = await supabaseClient
             .from('restaurants')
                 .insert([{
                     name: newRestaurantData.name,
+                    description: newRestaurantData.description,
                     city: newRestaurantData.city,
+                    city_id: cityId,
                     lat: newRestaurantData.lat,
                     lon: newRestaurantData.lon,
                     google_maps_url: newRestaurantData.google_maps_url,
+                    google_place_id: newRestaurantData.google_place_id,
                     submitted_by_user_id: currentUser.id,
-                    is_publicly_approved: false
+                    is_publicly_approved: false,
+                    created_at: new Date().toISOString()
                 }])
                 .select()
                 .single();
@@ -1467,7 +1693,27 @@ async function handleSubmitReel() {
             return;
         }
         
-        // C. Success!
+        // C. Add cuisine relationships if cuisines were selected
+        const selectedCuisineIds = getSelectedCuisineIds();
+        if (selectedCuisineIds.length > 0) {
+            const cuisineRelationships = selectedCuisineIds.map(cuisineId => ({
+                restaurant_id: finalRestaurantId,
+                cuisine_id: cuisineId
+            }));
+            
+            const { error: cuisineError } = await supabaseClient
+                .from('restaurant_cuisines')
+                .insert(cuisineRelationships);
+            
+            if (cuisineError) {
+                console.error('Error adding cuisine relationships:', cuisineError);
+                // Don't fail the whole operation, just log the error
+            } else {
+                console.log('Successfully added cuisine relationships');
+            }
+        }
+        
+        // D. Success!
         showSuccessMessage('Reel saved successfully!');
         
         // Reset form back to step 1
@@ -1486,26 +1732,95 @@ async function handleSubmitReel() {
     }
 }
 
+// Helper function to get selected cuisine IDs
+function getSelectedCuisineIds() {
+    const selectedCheckboxes = document.querySelectorAll('#cuisine-checkbox-container input[type="checkbox"]:checked');
+    return Array.from(selectedCheckboxes).map(checkbox => parseInt(checkbox.value));
+}
+
+// Populate cuisine selection UI
+function populateCuisineSelection() {
+    const container = document.getElementById('cuisine-checkbox-container');
+    if (!container || !allCuisines || allCuisines.length === 0) {
+        console.log('No cuisines available or container not found');
+        return;
+    }
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create checkboxes for each cuisine
+    allCuisines.forEach(cuisine => {
+        const checkboxDiv = document.createElement('div');
+        checkboxDiv.className = 'flex items-center mb-2';
+        
+        checkboxDiv.innerHTML = `
+            <input type="checkbox" id="cuisine-${cuisine.id}" value="${cuisine.id}" 
+                   class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+            <label for="cuisine-${cuisine.id}" class="text-sm text-gray-700 cursor-pointer flex items-center">
+                ${cuisine.icon ? `<span class="cuisine-icon inline-block w-4 h-4 mr-1 flex-shrink-0">${cuisine.icon}</span>` : ''}${cuisine.name}
+            </label>
+        `;
+        
+        container.appendChild(checkboxDiv);
+    });
+    
+    // Populate summary in step 5
+    const summaryTiktokUrlCuisine = document.getElementById('summary-tiktok-url-cuisine');
+    const summaryRestaurantNameCuisine = document.getElementById('summary-restaurant-name-cuisine');
+    
+    if (summaryTiktokUrlCuisine && validatedTiktokUrl) {
+        summaryTiktokUrlCuisine.textContent = validatedTiktokUrl;
+    }
+    
+    if (summaryRestaurantNameCuisine && newRestaurantData) {
+        summaryRestaurantNameCuisine.textContent = newRestaurantData.name;
+    }
+    
+    console.log('Populated cuisine selection with', allCuisines.length, 'cuisines');
+}
+
 // Helper functions for UI management
 function showStep(stepNumber) {
     // Hide all steps
-    for (let i = 1; i <= 4; i++) {
-        const step = document.getElementById(`step-${i}-${i === 1 ? 'tiktok-url' : i === 2 ? 'link-restaurant' : i === 3 ? 'new-restaurant' : 'summary'}`);
+    for (let i = 1; i <= 5; i++) {
+        const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary', 'select-cuisines'];
+        const step = document.getElementById(`step-${i}-${stepNames[i]}`);
         if (step) {
             step.style.display = 'none';
         }
     }
     
+    // Also hide the description step
+    const descriptionStep = document.getElementById('step-3-description');
+    if (descriptionStep) {
+        descriptionStep.style.display = 'none';
+    }
+    
     // Show the requested step
-    const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary'];
-    const step = document.getElementById(`step-${stepNumber}-${stepNames[stepNumber]}`);
-    if (step) {
-        step.style.display = 'block';
+    if (typeof stepNumber === 'string') {
+        // Handle string step names like 'step-3-description'
+        const step = document.getElementById(stepNumber);
+        if (step) {
+            step.style.display = 'block';
+        }
+    } else {
+        // Handle numeric step numbers
+        const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary', 'select-cuisines'];
+        const step = document.getElementById(`step-${stepNumber}-${stepNames[stepNumber]}`);
+        if (step) {
+            step.style.display = 'block';
+        }
     }
     
     // Populate editable URL when showing step 2
     if (stepNumber === 2 && editableTiktokUrl && validatedTiktokUrl) {
         editableTiktokUrl.value = validatedTiktokUrl;
+    }
+    
+    // Populate cuisine selection when showing step 5
+    if (stepNumber === 5) {
+        populateCuisineSelection();
     }
 }
 
@@ -1562,10 +1877,16 @@ function resetReelForm() {
     if (restaurantSearchInput) restaurantSearchInput.value = '';
     if (newRestaurantName) newRestaurantName.value = '';
     if (newRestaurantAddress) newRestaurantAddress.value = '';
+    if (newRestaurantDescription) newRestaurantDescription.value = '';
+    if (restaurantDescription) restaurantDescription.value = '';
     
     // Clear search results
     hideRestaurantSearchResults();
     if (restaurantSearchOptions) restaurantSearchOptions.innerHTML = '';
+    
+    // Clear cuisine selections
+    const cuisineContainer = document.getElementById('cuisine-checkbox-container');
+    if (cuisineContainer) cuisineContainer.innerHTML = '';
     
     // Hide error messages
     hideTiktokValidationError();
