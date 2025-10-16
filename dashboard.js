@@ -20,6 +20,7 @@ let allCuisines = []; // Store all available cuisines for selection
 let validatedTiktokUrl = null;
 let selectedRestaurantId = null;
 let newRestaurantData = null;
+let restaurantToDelete = null;
 
 // DOM elements
 let loadingState = null;
@@ -60,6 +61,9 @@ let geocodeAddressBtn = null;
 let restaurantDescription = null;
 let continueToCuisinesBtn = null;
 let submitReelBtn = null;
+let deleteConfirmationModal = null;
+let cancelDeleteBtn = null;
+let confirmDeleteBtn = null;
 let summaryTiktokUrl = null;
 let summaryRestaurantName = null;
 
@@ -107,6 +111,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     restaurantDescription = document.getElementById('restaurant-description');
     continueToCuisinesBtn = document.getElementById('continue-to-cuisines-btn');
     submitReelBtn = document.getElementById('submit-reel-btn');
+    deleteConfirmationModal = document.getElementById('delete-confirmation-modal');
+    cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    confirmDeleteBtn = document.getElementById('confirm-delete-btn');
     summaryTiktokUrl = document.getElementById('summary-tiktok-url');
     summaryRestaurantName = document.getElementById('summary-restaurant-name');
     
@@ -249,6 +256,21 @@ function setupEventListeners() {
     const submitReelFinalBtn = document.getElementById('submit-reel-final-btn');
     if (submitReelFinalBtn) {
         submitReelFinalBtn.addEventListener('click', handleSubmitReel);
+    }
+
+    // Event listeners for delete confirmation modal
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+    }
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
+    }
+    if (deleteConfirmationModal) {
+        deleteConfirmationModal.addEventListener('click', (e) => {
+            if (e.target === deleteConfirmationModal) {
+                closeDeleteModal();
+            }
+        });
     }
     
     // 6. Editable TikTok URL change
@@ -659,15 +681,36 @@ function editRestaurant(restaurantId) {
 
 // Delete restaurant function
 async function deleteRestaurant(restaurantId) {
-    if (!confirm('Are you sure you want to delete this restaurant? This will also delete all associated TikToks.')) {
-        return;
-    }
+    restaurantToDelete = restaurantId;
+    showDeleteModal();
+}
 
+// Show delete confirmation modal
+function showDeleteModal() {
+    if (deleteConfirmationModal) {
+        deleteConfirmationModal.classList.remove('hidden');
+    }
+}
+
+// Close delete confirmation modal
+function closeDeleteModal() {
+    if (deleteConfirmationModal) {
+        deleteConfirmationModal.classList.add('hidden');
+    }
+    restaurantToDelete = null;
+}
+
+// Handle confirmed delete
+async function handleConfirmDelete() {
+    if (!restaurantToDelete) return;
+    
+    closeDeleteModal();
+    
     try {
         const { error } = await supabaseClient
             .from('restaurants')
             .delete()
-            .eq('id', restaurantId)
+            .eq('id', restaurantToDelete)
             .eq('submitted_by_user_id', currentUser.id); // Security check
 
         if (error) {
@@ -677,7 +720,7 @@ async function deleteRestaurant(restaurantId) {
         }
 
         // Remove from local arrays
-        userContent = userContent.filter(r => r.id !== restaurantId);
+        userContent = userContent.filter(r => r.id !== restaurantToDelete);
 
         // Refresh display
         displayContent();
@@ -687,11 +730,12 @@ async function deleteRestaurant(restaurantId) {
         }
 
         console.log('Restaurant deleted successfully');
-
     } catch (error) {
         console.error('Error deleting restaurant:', error);
         alert('Error deleting restaurant. Please try again.');
     }
+    
+    restaurantToDelete = null;
 }
 
 // --- REEL SUBMISSION HANDLER FUNCTIONS ---
