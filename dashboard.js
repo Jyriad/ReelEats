@@ -1628,8 +1628,8 @@ function populateCuisineSelection() {
         checkboxDiv.innerHTML = `
             <input type="checkbox" id="cuisine-${cuisine.id}" value="${cuisine.id}" 
                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-            <label for="cuisine-${cuisine.id}" class="text-sm text-gray-700 cursor-pointer">
-                ${cuisine.icon ? cuisine.icon + ' ' : ''}${cuisine.name}
+            <label for="cuisine-${cuisine.id}" class="text-sm text-gray-700 cursor-pointer flex items-center">
+                ${cuisine.icon ? `<span class="cuisine-icon inline-block w-4 h-4 mr-1 flex-shrink-0">${cuisine.icon}</span>` : ''}${cuisine.name}
             </label>
         `;
         
