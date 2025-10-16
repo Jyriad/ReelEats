@@ -57,6 +57,8 @@ let newRestaurantName = null;
 let newRestaurantAddress = null;
 let newRestaurantDescription = null;
 let geocodeAddressBtn = null;
+let restaurantDescription = null;
+let continueToCuisinesBtn = null;
 let submitReelBtn = null;
 let summaryTiktokUrl = null;
 let summaryRestaurantName = null;
@@ -102,6 +104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     newRestaurantAddress = document.getElementById('new-restaurant-address');
     newRestaurantDescription = document.getElementById('new-restaurant-description');
     geocodeAddressBtn = document.getElementById('geocode-address-btn');
+    restaurantDescription = document.getElementById('restaurant-description');
+    continueToCuisinesBtn = document.getElementById('continue-to-cuisines-btn');
     submitReelBtn = document.getElementById('submit-reel-btn');
     summaryTiktokUrl = document.getElementById('summary-tiktok-url');
     summaryRestaurantName = document.getElementById('summary-restaurant-name');
@@ -237,6 +241,11 @@ function setupEventListeners() {
     }
     
     // Final submission button for step 5
+    // Event listener for continue to cuisines button
+    if (continueToCuisinesBtn) {
+        continueToCuisinesBtn.addEventListener('click', handleContinueToCuisines);
+    }
+
     const submitReelFinalBtn = document.getElementById('submit-reel-final-btn');
     if (submitReelFinalBtn) {
         submitReelFinalBtn.addEventListener('click', handleSubmitReel);
@@ -934,8 +943,8 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                 summaryTiktokUrl.textContent = validatedTiktokUrl;
             }
             
-            // Move to step 5 (cuisine selection)
-            showStep(5);
+            // Move to step 3 (description)
+            showStep('step-3-description');
         });
     });
 }
@@ -1439,7 +1448,26 @@ function showNewRestaurantForm() {
     showStep(3);
 }
 
-// 4. Geocode new restaurant address
+// 4. Handle continue to cuisines
+function handleContinueToCuisines() {
+    const description = restaurantDescription?.value?.trim();
+    
+    if (!description) {
+        alert('Please enter a description for this restaurant.');
+        return;
+    }
+    
+    // Store description in newRestaurantData
+    if (newRestaurantData) {
+        newRestaurantData.description = description;
+    }
+    
+    // Move to step 5 (cuisine selection)
+    showStep(5);
+    populateCuisineSelection();
+}
+
+// 5. Geocode new restaurant address
 async function handleGeocodeNewRestaurant() {
     const name = newRestaurantName?.value?.trim();
     const address = newRestaurantAddress?.value?.trim();
@@ -1506,8 +1534,8 @@ async function handleGeocodeNewRestaurant() {
                 summaryTiktokUrl.textContent = validatedTiktokUrl;
             }
             
-            // Move to step 5 (cuisine selection)
-            showStep(5);
+            // Move to step 3 (description)
+            showStep('step-3-description');
         } else {
             showReelGeocodeStatus('Could not find coordinates for this address', 'error');
         }
@@ -1685,11 +1713,26 @@ function showStep(stepNumber) {
         }
     }
     
+    // Also hide the description step
+    const descriptionStep = document.getElementById('step-3-description');
+    if (descriptionStep) {
+        descriptionStep.style.display = 'none';
+    }
+    
     // Show the requested step
-    const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary', 'select-cuisines'];
-    const step = document.getElementById(`step-${stepNumber}-${stepNames[stepNumber]}`);
-    if (step) {
-        step.style.display = 'block';
+    if (typeof stepNumber === 'string') {
+        // Handle string step names like 'step-3-description'
+        const step = document.getElementById(stepNumber);
+        if (step) {
+            step.style.display = 'block';
+        }
+    } else {
+        // Handle numeric step numbers
+        const stepNames = ['', 'tiktok-url', 'link-restaurant', 'new-restaurant', 'summary', 'select-cuisines'];
+        const step = document.getElementById(`step-${stepNumber}-${stepNames[stepNumber]}`);
+        if (step) {
+            step.style.display = 'block';
+        }
     }
     
     // Populate editable URL when showing step 2
@@ -1757,6 +1800,7 @@ function resetReelForm() {
     if (newRestaurantName) newRestaurantName.value = '';
     if (newRestaurantAddress) newRestaurantAddress.value = '';
     if (newRestaurantDescription) newRestaurantDescription.value = '';
+    if (restaurantDescription) restaurantDescription.value = '';
     
     // Clear search results
     hideRestaurantSearchResults();
