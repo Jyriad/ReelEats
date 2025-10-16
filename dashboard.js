@@ -824,6 +824,7 @@ async function handleRestaurantSearch() {
             
             if (response.ok) {
                 const result = await response.json();
+                console.log('Google Places API response:', result);
                 if (result.success && result.data.places && result.data.places.length > 0) {
                     // Convert Google Places format to our format
                     googlePlaces = result.data.places.map(place => ({
@@ -833,6 +834,8 @@ async function handleRestaurantSearch() {
                         city: place.addressComponents?.find(comp => comp.types.includes('locality'))?.longText || 'Unknown',
                         lat: place.location?.latitude,
                         lon: place.location?.longitude,
+                        google_maps_url: place.googleMapsUri || `https://www.google.com/maps/place/?q=place_id:${place.id}`,
+                        place_id: place.id,
                         source: 'google'
                     }));
                 }
@@ -889,6 +892,8 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                  data-city="${place.city}"
                  data-lat="${place.lat}"
                  data-lon="${place.lon}"
+                 data-google-maps-url="${place.google_maps_url}"
+                 data-google-place-id="${place.place_id}"
                  data-source="google">
                 <div class="font-medium text-gray-900">${place.name}</div>
                 <div class="text-sm text-gray-600">${place.address || 'No address'}</div>
@@ -931,8 +936,17 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                     city: option.dataset.city,
                     lat: parseFloat(option.dataset.lat),
                     lon: parseFloat(option.dataset.lon),
-                    google_maps_url: option.dataset.address
+                    google_maps_url: option.dataset.googleMapsUrl,
+                    google_place_id: option.dataset.googlePlaceId
                 };
+                console.log('Google Places selection data:', {
+                    name: restaurantName,
+                    city: option.dataset.city,
+                    lat: option.dataset.lat,
+                    lon: option.dataset.lon,
+                    google_maps_url: option.dataset.googleMapsUrl,
+                    google_place_id: option.dataset.googlePlaceId
+                });
             }
             
             // Populate summary
