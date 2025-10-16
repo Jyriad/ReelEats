@@ -1445,6 +1445,13 @@ async function handleGeocodeNewRestaurant() {
     const address = newRestaurantAddress?.value?.trim();
     const description = newRestaurantDescription?.value?.trim();
     
+    console.log('Form data:', { name, address, description });
+    console.log('Elements found:', { 
+        nameElement: !!newRestaurantName, 
+        addressElement: !!newRestaurantAddress, 
+        descriptionElement: !!newRestaurantDescription 
+    });
+    
     if (!name || !address) {
         showReelGeocodeStatus('Please fill in both restaurant name and address', 'error');
         return;
@@ -1458,10 +1465,13 @@ async function handleGeocodeNewRestaurant() {
     showReelGeocodeStatus('Looking up address...', 'info');
     
     try {
+        console.log('Calling geocode-address function with address:', address);
         // Call the geocode-address Supabase Edge Function
         const { data, error } = await supabaseClient.functions.invoke('geocode-address', {
             body: { address: address }
         });
+        
+        console.log('Geocode function response:', { data, error });
         
         if (error) {
             console.error('Geocoding error:', error);
