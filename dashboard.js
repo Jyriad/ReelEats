@@ -55,6 +55,7 @@ let restaurantSearchOptions = null;
 let showNewRestaurantFormBtn = null;
 let newRestaurantName = null;
 let newRestaurantAddress = null;
+let newRestaurantDescription = null;
 let geocodeAddressBtn = null;
 let submitReelBtn = null;
 let summaryTiktokUrl = null;
@@ -99,6 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showNewRestaurantFormBtn = document.getElementById('show-new-restaurant-form-btn');
     newRestaurantName = document.getElementById('new-restaurant-name');
     newRestaurantAddress = document.getElementById('new-restaurant-address');
+    newRestaurantDescription = document.getElementById('new-restaurant-description');
     geocodeAddressBtn = document.getElementById('geocode-address-btn');
     submitReelBtn = document.getElementById('submit-reel-btn');
     summaryTiktokUrl = document.getElementById('summary-tiktok-url');
@@ -1441,6 +1443,7 @@ function showNewRestaurantForm() {
 async function handleGeocodeNewRestaurant() {
     const name = newRestaurantName?.value?.trim();
     const address = newRestaurantAddress?.value?.trim();
+    const description = newRestaurantDescription?.value?.trim();
     
     if (!name || !address) {
         showReelGeocodeStatus('Please fill in both restaurant name and address', 'error');
@@ -1470,10 +1473,13 @@ async function handleGeocodeNewRestaurant() {
             // Store the new restaurant data
             newRestaurantData = {
                 name: name,
+                description: description || '',
                 city: data.city || 'Unknown',
                 lat: data.lat,
                 lon: data.lng,
-                google_maps_url: address
+                google_maps_url: data.google_maps_url || `https://www.google.com/maps/place/?q=place_id:${data.place_id}`,
+                google_place_id: data.place_id || null,
+                formatted_address: data.formatted_address || address
             };
             
             showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng + (data.city ? ' in ' + data.city : ''), 'success');
@@ -1522,13 +1528,17 @@ async function handleSubmitReel() {
             .from('restaurants')
                 .insert([{
                     name: newRestaurantData.name,
+                    description: newRestaurantData.description,
                     city: newRestaurantData.city,
                     city_id: cityId,
                     lat: newRestaurantData.lat,
                     lon: newRestaurantData.lon,
                     google_maps_url: newRestaurantData.google_maps_url,
+                    google_place_id: newRestaurantData.google_place_id,
+                    formatted_address: newRestaurantData.formatted_address,
                     submitted_by_user_id: currentUser.id,
-                    is_publicly_approved: false
+                    is_publicly_approved: false,
+                    created_at: new Date().toISOString()
                 }])
                 .select()
                 .single();
@@ -1733,6 +1743,7 @@ function resetReelForm() {
     if (restaurantSearchInput) restaurantSearchInput.value = '';
     if (newRestaurantName) newRestaurantName.value = '';
     if (newRestaurantAddress) newRestaurantAddress.value = '';
+    if (newRestaurantDescription) newRestaurantDescription.value = '';
     
     // Clear search results
     hideRestaurantSearchResults();
