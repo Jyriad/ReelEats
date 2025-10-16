@@ -21,9 +21,16 @@ h1, h2, h3, h4, h5, h6 {
 html, body { 
     margin: 0; 
     padding: 0; 
-    overflow: hidden; /* Prevent body scroll */
+    overflow: hidden; /* Prevent body scroll - this was working fine originally */
     background-color: #f3f4f6 !important; /* Force light background */
     color: #111827 !important; /* Force dark text */
+}
+
+/* Allow scrolling on homepage only */
+body.homepage {
+    overflow: auto;
+    height: auto;
+    min-height: 100vh;
 }
 #map { 
     height: 100%; 
@@ -68,7 +75,8 @@ html, body {
     margin-bottom: 2rem;
 }
 
-#map {
+/* Dashboard-specific map height */
+.dashboard-page #map {
     height: 500px;
     width: 100%;
     border-radius: 8px;
@@ -1847,3 +1855,138 @@ html {
 .city-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
 .city-card:hover img { transform: scale(1.05); }
 .city-card span { position: absolute; bottom: 1rem; left: 1rem; font-size: 1.5rem; font-weight: 700; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); }
+
+/* --- Creators Section Styles --- */
+.creators-section {
+  padding: 4rem 5% 6rem 5%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: center;
+}
+
+.creators-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.creators-section h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.creators-description {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  margin-bottom: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.95;
+}
+
+.creators-benefits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.benefit-item {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.benefit-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.benefit-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.benefit-item h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.benefit-item p {
+  font-size: 1rem;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.creators-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: white;
+  color: #667eea;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.125rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.creators-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  background: #f8fafc;
+}
+
+.creators-cta svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Mobile responsive creators section */
+@media (max-width: 768px) {
+  .creators-section {
+    padding: 3rem 4% 4rem 4%;
+  }
+  
+  .creators-section h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .creators-description {
+    font-size: 1.125rem;
+    margin-bottom: 2rem;
+  }
+  
+  .creators-benefits {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .benefit-item {
+    padding: 1.5rem;
+  }
+  
+  .benefit-icon {
+    font-size: 2.5rem;
+  }
+  
+  .benefit-item h3 {
+    font-size: 1.25rem;
+  }
+  
+  .creators-cta {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
