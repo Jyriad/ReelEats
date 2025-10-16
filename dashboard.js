@@ -704,13 +704,15 @@ function closeDeleteModal() {
 async function handleConfirmDelete() {
     if (!restaurantToDelete) return;
     
+    // Store the ID before closing the modal (which sets it to null)
+    const restaurantId = restaurantToDelete;
     closeDeleteModal();
     
     try {
         const { error } = await supabaseClient
             .from('restaurants')
             .delete()
-            .eq('id', restaurantToDelete)
+            .eq('id', restaurantId)
             .eq('submitted_by_user_id', currentUser.id); // Security check
 
         if (error) {
@@ -720,7 +722,7 @@ async function handleConfirmDelete() {
         }
 
         // Remove from local arrays
-        userContent = userContent.filter(r => r.id !== restaurantToDelete);
+        userContent = userContent.filter(r => r.id !== restaurantId);
 
         // Refresh display
         displayContent();
@@ -734,8 +736,6 @@ async function handleConfirmDelete() {
         console.error('Error deleting restaurant:', error);
         alert('Error deleting restaurant. Please try again.');
     }
-    
-    restaurantToDelete = null;
 }
 
 // --- REEL SUBMISSION HANDLER FUNCTIONS ---
