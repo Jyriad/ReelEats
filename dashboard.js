@@ -1535,7 +1535,6 @@ async function handleSubmitReel() {
                     lon: newRestaurantData.lon,
                     google_maps_url: newRestaurantData.google_maps_url,
                     google_place_id: newRestaurantData.google_place_id,
-                    formatted_address: newRestaurantData.formatted_address,
                     submitted_by_user_id: currentUser.id,
                     is_publicly_approved: false,
                     created_at: new Date().toISOString()
