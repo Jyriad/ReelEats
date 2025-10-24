@@ -112,6 +112,9 @@
                 <button id="logout-button" class="hidden md:block bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors">
                     Logout
                 </button>
+                <a id="public-page-link" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm rounded px-2 py-1 md:px-3 md:py-2 transition-colors" style="display: none;">
+                    View Public Page
+                </a>
                 
                 <!-- Mobile Menu Button -->
                 <button id="mobile-menu-btn" class="md:hidden bg-gray-700 hover:bg-gray-800 text-white rounded px-2 py-1 transition-colors" title="Menu">
@@ -290,6 +293,14 @@
 
         <section id="map-section" class="map-section">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">What your followers will see</h2>
+            <div class="flex items-center gap-2 mb-4">
+                <a id="public-page-link-secondary" href="#" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm rounded px-3 py-2 transition-colors" style="display: none;">
+                    View Public Page
+                </a>
+                <button id="copy-public-link-btn" class="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs md:text-sm rounded px-3 py-2 transition-colors" style="display: none;">
+                    Copy Link
+                </button>
+            </div>
             <div class="flex-grow flex flex-col md:flex-row min-h-0 dashboard-preview-container">
                 <div class="w-full h-2/3 md:w-2/3 md:h-full relative dashboard-preview-map-container" id="preview-map-container">
                     <div id="preview-map"></div>

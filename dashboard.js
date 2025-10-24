@@ -31,6 +31,9 @@ let mobileLogoutBtn = null;
 let mobileMenuBtn = null;
 let mobileMenuModal = null;
 let closeMobileMenu = null;
+let publicPageLink = null;
+let publicPageLinkSecondary = null;
+let copyPublicLinkBtn = null;
 
 // Modal elements
 let editLocationModal = null;
@@ -81,6 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileMenuBtn = document.getElementById('mobile-menu-btn');
     mobileMenuModal = document.getElementById('mobile-menu-modal');
     closeMobileMenu = document.getElementById('close-mobile-menu');
+    publicPageLink = document.getElementById('public-page-link');
+    publicPageLinkSecondary = document.getElementById('public-page-link-secondary');
+    copyPublicLinkBtn = document.getElementById('copy-public-link-btn');
     
     // Modal elements
     editLocationModal = document.getElementById('edit-location-modal');
@@ -125,6 +131,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // If we get here, user is authenticated and has creator role
     await loadDashboard();
+
+    // After loading, set public page link if available
+    try {
+        const { data: userRole, error } = await supabaseClient
+            .from('user_roles')
+            .select('tiktok_handle')
+            .eq('user_id', currentUser.id)
+            .single();
+        if (!error && userRole && userRole.tiktok_handle && publicPageLink) {
+            const handle = userRole.tiktok_handle.toLowerCase();
+            publicPageLink.href = `/@${handle}`;
+            publicPageLink.style.display = 'inline-flex';
+            if (publicPageLinkSecondary) {
+                publicPageLinkSecondary.href = `/@${handle}`;
+                publicPageLinkSecondary.style.display = 'inline-flex';
+            }
+            if (copyPublicLinkBtn) {
+                copyPublicLinkBtn.style.display = 'inline-flex';
+                copyPublicLinkBtn.addEventListener('click', async () => {
+                    const url = `${window.location.origin}/@${handle}`;
+                    try {
+                        await navigator.clipboard.writeText(url);
+                        showSuccessMessage('Link copied!');
+                    } catch (e) {
+                        console.error('Copy failed:', e);
+                        alert('Could not copy link');
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.error('Error setting public page link:', e);
+    }
 });
 
 // Setup event listeners

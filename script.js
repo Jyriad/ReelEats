@@ -160,44 +160,47 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // --- Router Function ---
         async function initializeApp() {
-            // Get the URL path and extract city name
+            // Determine route: explore all, city, or creator handle (/@handle)
             const path = window.location.pathname;
-            const pathSegment = path.split('/')[1]; // Get the first segment after the domain
-            
-            // Handle special routes
+            const firstSegment = path.split('/')[1] || '';
+
             let city = null;
-            let formattedCityName = 'Explore All';
-            
-            if (pathSegment === 'explore' || pathSegment === '') {
-                // This is the explore all page or homepage
-                city = null;
-                formattedCityName = 'Explore All';
+            let creatorHandle = null; // lowercase without leading @
+            let formattedHeading = 'Explore All';
+
+            if (firstSegment === '' || firstSegment === 'explore') {
+                formattedHeading = 'Explore All';
                 document.title = 'ReelGrub - Discover Your Next Spot';
                 console.log('🌍 Loading all restaurants (explore all)');
-            } else if (pathSegment) {
-                // This is a specific city page
-                city = pathSegment;
-                formattedCityName = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
-                document.title = `ReelGrub - ${formattedCityName}`;
-                console.log(`🏙️ Loading restaurants for city: ${formattedCityName}`);
+            } else if (firstSegment === 'city') {
+                // New city route: /city/:city
+                const cityParam = (path.split('/')[2] || '').trim();
+                if (cityParam) {
+                    city = cityParam;
+                    formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+                    document.title = `ReelGrub - ${formattedHeading}`;
+                    console.log(`🏙️ Loading restaurants for city: ${formattedHeading}`);
+                }
+            } else if (firstSegment.startsWith('@')) {
+                // Creator route: /@handle
+                creatorHandle = firstSegment.substring(1).toLowerCase();
+                formattedHeading = `@${creatorHandle}`;
+                document.title = `ReelGrub - ${formattedHeading}`;
+                console.log(`👤 Loading restaurants for creator: ${formattedHeading}`);
             } else {
-                // Fallback for homepage
-                city = null;
-                formattedCityName = 'Explore All';
-                document.title = 'ReelGrub - Discover Your Next Spot';
-                console.log('🌍 Loading all restaurants (homepage)');
+                // Back-compat: treat bare /:city as city until old links fade
+                city = firstSegment;
+                formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+                document.title = `ReelGrub - ${formattedHeading}`;
+                console.log(`🏙️ Loading restaurants for city (legacy): ${formattedHeading}`);
             }
             
             // Display the current city name in the new UI elements
             const currentCityHeading = document.getElementById('current-city-heading');
             const currentCityMobile = document.getElementById('current-city-mobile');
             
-            if (currentCityHeading) {
-                currentCityHeading.textContent = formattedCityName;
-            }
-            if (currentCityMobile) {
-                currentCityMobile.textContent = formattedCityName;
-            }
+            if (currentCityHeading) currentCityHeading.textContent = formattedHeading;
+            if (currentCityMobile) currentCityMobile.textContent = formattedHeading;
             
             // Fetch ALL unique cities to populate the switcher modal
             try {
@@ -215,8 +218,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.error('Error fetching cities for switcher:', error);
             }
             
-            // Load restaurants with optional city filtering
-            await loadRestaurantsForCity(city);
+            // Load restaurants filtered by city OR creator
+            if (creatorHandle) {
+                await loadRestaurantsForCreator(creatorHandle);
+            } else {
+                await loadRestaurantsForCity(city);
+            }
         }
         
         // Populate city switcher modal with all available cities
@@ -2095,6 +2102,126 @@ document.addEventListener('DOMContentLoaded', async function() {
             setTimeout(async () => {
             await applyAllFiltersAndDisplay();
             }, 100);
+        }
+
+        // Load restaurants that have TikToks by a specific creator handle (case-insensitive)
+        async function loadRestaurantsForCreator(handleLower) {
+            try {
+                // 1) Validate that the handle exists for a creator
+                const handleWithAt = '@' + handleLower;
+                let { data: roleRow, error: roleErr } = await supabaseClient
+                    .from('user_roles')
+                    .select('tiktok_handle, role')
+                    .ilike('tiktok_handle', handleWithAt)
+                    .single();
+
+                if ((roleErr && roleErr.code === 'PGRST116') || !roleRow) {
+                    // Try without leading '@'
+                    const fallback = await supabaseClient
+                        .from('user_roles')
+                        .select('tiktok_handle, role')
+                        .ilike('tiktok_handle', handleLower)
+                        .single();
+                    roleRow = fallback.data;
+                    roleErr = fallback.error;
+                }
+
+                if (roleErr || !roleRow || (roleRow.role && roleRow.role !== 'creator')) {
+                    console.warn('Creator not found for handle:', handleLower, roleErr);
+                    displayRestaurants([], false, false);
+                    const list = document.getElementById('restaurant-list');
+                    if (list) {
+                        list.innerHTML = '<p class="text-gray-500 text-center">Creator not found.</p>';
+                    }
+                    return;
+                }
+
+                // 2) Find all TikToks authored by this handle
+                let { data: tiktoks, error: tErr } = await supabaseClient
+                    .from('tiktoks')
+                    .select('restaurant_id, embed_html, author_handle')
+                    .ilike('author_handle', handleWithAt);
+
+                if (!tErr && tiktoks && tiktoks.length === 0) {
+                    const fallbackTik = await supabaseClient
+                        .from('tiktoks')
+                        .select('restaurant_id, embed_html, author_handle')
+                        .ilike('author_handle', handleLower);
+                    tiktoks = fallbackTik.data;
+                    tErr = fallbackTik.error;
+                }
+
+                if (tErr) {
+                    console.error('Error fetching creator tiktoks:', tErr);
+                    displayRestaurants([], false, false);
+                    return;
+                }
+
+                if (!tiktoks || tiktoks.length === 0) {
+                    displayRestaurants([], false, false);
+                    const list = document.getElementById('restaurant-list');
+                    if (list) {
+                        list.innerHTML = '<p class="text-gray-500 text-center">No content yet for this creator.</p>';
+                    }
+                    return;
+                }
+
+                // 3) Fetch the restaurants for those TikToks
+                const restaurantIds = [...new Set(tiktoks.map(t => t.restaurant_id))];
+                const { data: restaurants, error: rErr } = await supabaseClient
+                    .from('restaurants')
+                    .select('*')
+                    .in('id', restaurantIds);
+
+                if (rErr) {
+                    console.error('Error fetching restaurants:', rErr);
+                    displayRestaurants([], false, false);
+                    return;
+                }
+
+                // 4) Fetch cuisines for those restaurants
+                const { data: restaurantCuisines } = await supabaseClient
+                    .from('restaurant_cuisines')
+                    .select('\n                    restaurant_id,\n                    cuisines (name, icon, color_background, color_text)\n                ')
+                    .in('restaurant_id', restaurantIds);
+
+                const tiktokMap = new Map();
+                tiktoks.forEach(t => {
+                    // map only one embed per restaurant (any by this creator)
+                    if (!tiktokMap.has(t.restaurant_id)) tiktokMap.set(t.restaurant_id, t.embed_html);
+                });
+
+                const cuisineMap = new Map();
+                if (restaurantCuisines) {
+                    restaurantCuisines.forEach(rc => {
+                        if (!cuisineMap.has(rc.restaurant_id)) cuisineMap.set(rc.restaurant_id, []);
+                        if (rc.cuisines) cuisineMap.get(rc.restaurant_id).push(rc.cuisines);
+                    });
+                }
+
+                window.currentRestaurants = (restaurants || []).map(r => ({
+                    ...r,
+                    tiktok_embed_html: tiktokMap.get(r.id) || null,
+                    cuisines: cuisineMap.get(r.id) || []
+                }));
+                currentRestaurants = window.currentRestaurants;
+
+                // Order like explore behavior
+                if (window.userLocation) {
+                    currentRestaurants.sort((a, b) => {
+                        const distanceA = calculateDistance(window.userLocation.lat, window.userLocation.lon, a.lat, a.lon);
+                        const distanceB = calculateDistance(window.userLocation.lat, window.userLocation.lon, b.lat, b.lon);
+                        return distanceA - distanceB;
+                    });
+                } else {
+                    currentRestaurants.sort(() => Math.random() - 0.5);
+                }
+
+                setTimeout(async () => { await applyAllFiltersAndDisplay(); }, 100);
+            } catch (e) {
+                console.error('Error loading creator restaurants:', e);
+                displayRestaurants([], false, false);
+            }
         }
 
         // Setup cuisine filter functionality

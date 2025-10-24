@@ -4,6 +4,8 @@
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/creators", "destination": "/creator-application.html" },
     { "source": "/explore", "destination": "/explore.html" },
+    { "source": "/@:handle", "destination": "/explore.html" },
+    { "source": "/city/:city", "destination": "/explore.html" },
     { "source": "/collections/:id", "destination": "/collection.html" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/:city", "destination": "/explore.html" }
