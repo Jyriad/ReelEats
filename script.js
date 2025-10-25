@@ -4515,8 +4515,10 @@ async function showVideoFor(restaurant) {
             const aside = document.querySelector('aside');
             let isDragging = false;
             let startY = 0;
-            let startHeight = 0;
+            let startTranslateY = 0;
+            let currentTranslateY = 0;
             let lastTap = 0;
+            let rafId = null;
 
             if (!drawerHandle || !aside) {
                 console.log('Drawer handle or aside not found');
@@ -4525,72 +4527,134 @@ async function showVideoFor(restaurant) {
 
             console.log('Setting up mobile drawer functionality');
 
-            // Set initial height on mobile - check localStorage first
+            // Calculate translateY from height value
+            function heightToTranslateY(height) {
+                const maxHeight = window.innerHeight - 60; // 60px for header
+                return maxHeight - height;
+            }
+
+            // Calculate height from translateY value
+            function translateYToHeight(translateY) {
+                const maxHeight = window.innerHeight - 60;
+                return maxHeight - translateY;
+            }
+
+            // Set initial position on mobile - check localStorage first
             if (window.innerWidth <= 768) {
                 const savedHeight = localStorage.getItem('drawer-height');
                 let initialHeight;
                 
-                if (savedHeight) {
-                    // Use saved height if available
-                    initialHeight = `${savedHeight}px`;
+                if (savedHeight && !isNaN(parseInt(savedHeight))) {
+                    initialHeight = parseInt(savedHeight);
                     console.log('Restoring drawer height from localStorage:', savedHeight, 'px');
                 } else {
-                    // Use default height
-                    initialHeight = '33vh';
-                    console.log('Using default drawer height: 33vh');
+                    // Use default height (33vh)
+                    initialHeight = Math.floor(window.innerHeight * 0.33);
+                    console.log('Using default drawer height: 33vh =', initialHeight, 'px');
                 }
                 
-                aside.style.setProperty('height', initialHeight, 'important');
-                document.documentElement.style.setProperty('--drawer-height', initialHeight);
+                // Ensure height is within valid bounds
+                const maxHeight = window.innerHeight - 60;
+                const minDrawerHeight = 50; // Just the handle visible
+                const maxDrawerHeight = maxHeight - 80; // Leave small sliver of map
+                initialHeight = Math.max(minDrawerHeight, Math.min(maxDrawerHeight, initialHeight));
+                
+                currentTranslateY = heightToTranslateY(initialHeight);
+                const heightPx = `${initialHeight}px`;
+                
+                console.log('Window height:', window.innerHeight);
+                console.log('Max drawer height:', maxHeight);
+                console.log('Initial drawer height:', initialHeight);
+                console.log('Calculated translateY:', currentTranslateY);
+                
+                // Disable transition for initial positioning
+                aside.style.transition = 'none';
+                
+                // Set the CSS variable and transform
+                document.documentElement.style.setProperty('--drawer-height', heightPx);
+                aside.style.transform = `translateY(${currentTranslateY}px)`;
+                
+                // Force a reflow to ensure the transform is applied
+                void aside.offsetHeight;
+                
+                // Re-enable transitions after a brief moment
+                setTimeout(() => {
+                    aside.style.transition = '';
+                }, 50);
+                
+                console.log('Drawer transform applied:', aside.style.transform);
+                console.log('Drawer computed height:', getComputedStyle(aside).height);
             }
 
-            // Unified event handler for both touch and mouse
-            function startDrag(e) {
-                console.log('Start drag event');
-                isDragging = true;
+            // Update drawer position with RAF for smooth 60fps
+            function updateDrawerPosition(translateY) {
+                if (rafId !== null) {
+                    cancelAnimationFrame(rafId);
+                }
                 
-                // Get coordinates from either touch or mouse event
+                rafId = requestAnimationFrame(() => {
+                    aside.style.transform = `translateY(${translateY}px)`;
+                    rafId = null;
+                });
+            }
+
+            // Start dragging
+            function startDrag(e) {
+                isDragging = true;
+                aside.classList.add('dragging');
+                
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 startY = clientY;
-                startHeight = parseInt(getComputedStyle(aside).height);
+                startTranslateY = currentTranslateY;
                 
                 e.preventDefault();
-                e.stopPropagation();
                 
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#e5e7eb';
             }
 
+            // Handle drag movement
             function drag(e) {
                 if (!isDragging) return;
                 
-                e.preventDefault();
-                e.stopPropagation();
-                
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const deltaY = startY - clientY; // Positive when dragging up (expanding), negative when dragging down
-                const newHeight = Math.max(150, Math.min(window.innerHeight - 100, startHeight + deltaY));
+                const deltaY = clientY - startY;
                 
-                // Direct height update with touch-action optimization
-                aside.style.setProperty('height', `${newHeight}px`, 'important');
-                document.documentElement.style.setProperty('--drawer-height', `${newHeight}px`);
+                // Calculate new translateY (positive deltaY = dragging down = more translateY)
+                let newTranslateY = startTranslateY + deltaY;
+                
+                // Clamp values: allow drawer from just handle visible to nearly full screen
+                const maxHeight = window.innerHeight - 60;
+                const minDrawerHeight = 50; // Just the handle visible
+                const maxDrawerHeight = maxHeight - 80; // Leave small sliver of map
+                const minTranslateY = heightToTranslateY(maxDrawerHeight); // Max drawer height
+                const maxTranslateY = heightToTranslateY(minDrawerHeight); // Min drawer height
+                
+                newTranslateY = Math.max(minTranslateY, Math.min(maxTranslateY, newTranslateY));
+                currentTranslateY = newTranslateY;
+                
+                // Schedule RAF update
+                updateDrawerPosition(newTranslateY);
             }
 
+            // End dragging
             function endDrag(e) {
                 if (!isDragging) return;
                 
-                console.log('End drag event');
                 isDragging = false;
+                aside.classList.remove('dragging');
+                
+                // Cancel any pending RAF
+                if (rafId !== null) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
                 
                 // Visual feedback
                 drawerHandle.style.backgroundColor = '#f8fafc';
                 
-                // Get and persist final height
-                const finalHeight = parseInt(getComputedStyle(aside).height);
-                console.log('Final height:', finalHeight, 'px');
-                
-                // Lock in the height
-                aside.style.setProperty('height', `${finalHeight}px`, 'important');
+                // Save final position
+                const finalHeight = translateYToHeight(currentTranslateY);
                 document.documentElement.style.setProperty('--drawer-height', `${finalHeight}px`);
                 localStorage.setItem('drawer-height', finalHeight.toString());
                 
@@ -4598,75 +4662,57 @@ async function showVideoFor(restaurant) {
                 const currentTime = new Date().getTime();
                 const tapLength = currentTime - lastTap;
                 if (tapLength < 500 && tapLength > 0) {
-                    console.log('Double tap detected');
-                    const currentHeight = parseInt(getComputedStyle(aside).height);
-                    const collapsedHeight = 150;
-                    const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
+                    const currentHeight = translateYToHeight(currentTranslateY);
+                    const maxHeight = window.innerHeight - 60;
+                    const collapsedHeight = 50; // Just handle visible
+                    const expandedHeight = maxHeight - 80; // Nearly full screen
                     
+                    let targetHeight;
                     if (currentHeight < expandedHeight / 2) {
-                        aside.style.setProperty('height', `${expandedHeight}px`, 'important');
-                        document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
+                        targetHeight = expandedHeight;
                     } else {
-                        aside.style.setProperty('height', `${collapsedHeight}px`, 'important');
-                        document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
+                        targetHeight = collapsedHeight;
                     }
+                    
+                    currentTranslateY = heightToTranslateY(targetHeight);
+                    aside.style.transform = `translateY(${currentTranslateY}px)`;
+                    document.documentElement.style.setProperty('--drawer-height', `${targetHeight}px`);
+                    localStorage.setItem('drawer-height', targetHeight.toString());
                 }
                 lastTap = currentTime;
             }
 
-            // Add all event listeners
+            // Handle document-level touch move (passive where possible)
+            function handleDocumentTouchMove(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    drag(e);
+                }
+            }
+
+            // Add event listeners
             drawerHandle.addEventListener('touchstart', startDrag, { passive: false });
             drawerHandle.addEventListener('mousedown', startDrag);
             
-            document.addEventListener('touchmove', drag, { passive: false });
+            // Use non-passive only when actually dragging
+            document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false });
             document.addEventListener('mousemove', drag);
             
             document.addEventListener('touchend', endDrag);
             document.addEventListener('mouseup', endDrag);
 
-            // Debug: Log all touch events on the handle
-            drawerHandle.addEventListener('touchstart', (e) => {
-                console.log('Touch start detected on handle');
-            });
-
-            // Handle window resize to maintain drawer height
+            // Handle window resize
             window.addEventListener('resize', () => {
                 if (window.innerWidth <= 768) {
                     const savedHeight = localStorage.getItem('drawer-height');
                     if (savedHeight) {
-                        console.log('Maintaining drawer height on resize:', savedHeight, 'px');
-                        aside.style.setProperty('height', `${savedHeight}px`, 'important');
-                        document.documentElement.style.setProperty('--drawer-height', `${savedHeight}px`);
+                        const height = parseInt(savedHeight);
+                        currentTranslateY = heightToTranslateY(height);
+                        aside.style.transform = `translateY(${currentTranslateY}px)`;
+                        document.documentElement.style.setProperty('--drawer-height', `${height}px`);
                     }
                 }
             });
-            drawerHandle.addEventListener('touchmove', (e) => {
-                console.log('Touch move detected on handle');
-            });
-            drawerHandle.addEventListener('touchend', (e) => {
-                console.log('Touch end detected on handle');
-            });
-
-            // Add click event as fallback
-            drawerHandle.addEventListener('click', (e) => {
-                console.log('Click on drawer handle');
-                const currentHeight = parseInt(getComputedStyle(aside).height);
-                const collapsedHeight = 150;
-                const expandedHeight = Math.min(window.innerHeight * 0.7, window.innerHeight - 100);
-                
-                if (currentHeight < expandedHeight / 2) {
-                    aside.style.setProperty('height', `${expandedHeight}px`, 'important');
-                    document.documentElement.style.setProperty('--drawer-height', `${expandedHeight}px`);
-                } else {
-                    aside.style.setProperty('height', `${collapsedHeight}px`, 'important');
-                    document.documentElement.style.setProperty('--drawer-height', `${collapsedHeight}px`);
-                }
-            });
-
-            // Prevent default touch behavior on the handle
-            drawerHandle.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-            }, { passive: false });
         }
 
         // --- Event Listeners ---

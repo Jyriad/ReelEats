@@ -596,13 +596,19 @@ body.homepage {
         left: 0; 
         right: 0; 
         bottom: 0; 
-        height: var(--drawer-height); 
+        height: calc(100vh - 60px) !important;
         z-index: 200; 
         border-top: 3px solid #e5e7eb;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
         padding: 0 !important;
         display: flex;
         flex-direction: column;
+        will-change: transform;
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    
+    aside.dragging {
+        transition: none !important;
     }
 /* Mobile drawer handle - clean rebuild */
 #drawer-handle {
@@ -1415,7 +1421,6 @@ html {
   
   /* Mobile drawer optimization for smooth dragging */
   aside {
-    will-change: height;
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
