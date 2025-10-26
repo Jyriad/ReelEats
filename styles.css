@@ -1447,11 +1447,17 @@ html {
   }
 }
 
-.logo { 
-  font-weight: 700; 
-  font-size: 1.25rem; 
-  color: #111827; 
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #111827;
   flex-shrink: 0;
+  text-decoration: none;
+}
+
+.logo:hover {
+  color: #6b7280;
+  text-decoration: none;
 }
 
 .nav {

@@ -50,8 +50,8 @@
         </svg>
         Explore
       </a>
-      <a href="#" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="login-link">Log-in</a>
-      <a href="#" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-link">Sign-up</a>
+      <a href="#" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="login-link">Sign In</a>
+      <a href="#" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-link">Sign Up</a>
       <a href="#" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="logout-link" style="display: none;">Logout</a>
     </nav>
     </header>
@@ -172,7 +172,7 @@
                 </div>
                 
                 <div class="mt-4 text-center">
-                    <a href="#" id="switch-auth-mode" class="text-indigo-600 hover:text-indigo-800 text-sm">Don't have an account? Sign up</a>
+                    <a href="#" id="switch-auth-mode" class="text-indigo-600 hover:text-indigo-800 text-sm">Don't have an account? Sign Up</a>
                 </div>
             </div>
         </div>
@@ -384,11 +384,11 @@
                 if (isSignupMode) {
                     loginForm.classList.add('hidden');
                     signupForm.classList.remove('hidden');
-                    switchAuthMode.textContent = 'Already have an account? Sign in';
+                    switchAuthMode.textContent = 'Already have an account? Sign In';
                 } else {
                     loginForm.classList.remove('hidden');
                     signupForm.classList.add('hidden');
-                    switchAuthMode.textContent = 'Don\'t have an account? Sign up';
+                    switchAuthMode.textContent = 'Don\'t have an account? Sign Up';
                 }
             }
             
