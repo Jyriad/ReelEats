@@ -710,11 +710,17 @@ body.homepage {
         padding: 8px 2px;
         min-height: 60px;
     }
-    
+
     .skeleton-number {
         width: 20px;
         height: 20px;
         margin-right: 6px;
+    }
+
+    .skeleton-thumbnail {
+        width: 3rem;
+        height: 3rem;
+        margin-right: 0.5rem;
     }
     
     .skeleton-title {
@@ -877,8 +883,8 @@ body.homepage {
 }
 
 .skeleton-thumbnail {
-    width: 3rem;
-    height: 3rem;
+    width: 4rem;
+    height: 4rem;
     background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
     background-size: 200% 100%;
     border-radius: 0.5rem;
@@ -1408,6 +1414,13 @@ html {
   min-height: 60px;
 }
 
+/* Homepage specific header adjustments */
+body.homepage .header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 /* Mobile header styles */
 @media (max-width: 768px) {
   .header {
@@ -1429,7 +1442,29 @@ html {
     width: 1rem !important;
     height: 1rem !important;
   }
-  
+
+
+  /* Apply consistent mobile header styling to all pages */
+  header {
+    padding: 0.75rem 3%;
+    min-height: 56px;
+  }
+
+  header nav {
+    gap: 0.5rem !important;
+  }
+
+  header nav a {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    flex-shrink: 0;
+  }
+
+  header nav a svg {
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+
   /* Mobile drawer optimization for smooth dragging */
   aside {
     transform: translateZ(0);
@@ -1437,7 +1472,7 @@ html {
     -webkit-backface-visibility: hidden;
     contain: layout style;
   }
-  
+
   /* Prevent browser interference with dragging */
   #drawer-handle {
     touch-action: none;
@@ -1449,10 +1484,16 @@ html {
 
 .logo {
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   color: #111827;
   flex-shrink: 0;
   text-decoration: none;
+}
+
+@media (min-width: 768px) {
+  .logo {
+    font-size: 1.5rem;
+  }
 }
 
 .logo:hover {

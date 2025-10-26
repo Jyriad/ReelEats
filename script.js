@@ -3871,7 +3871,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <div class="flex-shrink-0 mr-3">
                         <img src="${restaurant.tiktok_thumbnail_url}"
                              alt="${restaurant.name} TikTok thumbnail"
-                             class="restaurant-thumbnail w-12 h-12 rounded-lg object-cover border border-gray-200"
+                             class="restaurant-thumbnail w-16 h-16 rounded-lg object-cover border border-gray-200"
                              loading="lazy"
                              onerror="this.style.display='none'">
                     </div>`;
