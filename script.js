@@ -2032,7 +2032,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .from('tiktoks')
                 .select('restaurant_id, embed_html, thumbnail_url, is_featured')
                 .in('restaurant_id', restaurantIds)
-                .eq('is_publicly_approved', true);
+                .eq('is_featured', true);
 
             if (tiktoksError) {
                 // Log the error but don't stop execution, so restaurants still display.
@@ -2158,14 +2158,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .from('tiktoks')
                     .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
                     .ilike('author_handle', handleWithAt)
-                    .eq('is_publicly_approved', true);
+                    .eq('is_featured', true);
 
                 if (!tErr && tiktoks && tiktoks.length === 0) {
                     const fallbackTik = await supabaseClient
                         .from('tiktoks')
                         .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
                         .ilike('author_handle', handleLower)
-                        .eq('is_publicly_approved', true);
+                        .eq('is_featured', true);
                     tiktoks = fallbackTik.data;
                     tErr = fallbackTik.error;
                 }
