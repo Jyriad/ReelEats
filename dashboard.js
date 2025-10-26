@@ -897,17 +897,17 @@ async function handleValidateTiktok() {
                 // Store the validated URL (use the cleaned URL)
                 validatedTiktokUrl = cleanUrl;
 
-                // Fetch thumbnail for the validated TikTok video
+                // Fetch and cache thumbnail for the validated TikTok video
                 try {
-                    const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('get-tiktok-thumbnail', {
+                    const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('cache-tiktok-thumbnail', {
                         body: { url: cleanUrl }
                     });
 
                     if (thumbnailError) {
                         console.warn('Could not fetch TikTok thumbnail:', thumbnailError);
                         validatedTiktokThumbnail = null;
-                    } else if (thumbnailData && thumbnailData.thumbnail_url) {
-                        validatedTiktokThumbnail = thumbnailData.thumbnail_url;
+                    } else if (thumbnailData && (thumbnailData.public_url || thumbnailData.thumbnail_url)) {
+                        validatedTiktokThumbnail = thumbnailData.public_url || thumbnailData.thumbnail_url;
                         console.log('Successfully fetched TikTok thumbnail:', validatedTiktokThumbnail);
                     } else {
                         console.warn('No thumbnail URL returned from function');

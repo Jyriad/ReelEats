@@ -769,17 +769,17 @@ async function handleAddRestaurant(e) {
                     console.warn('⚠️ Could not extract video ID from TikTok URL, skipping video creation');
                     showStatus('Restaurant added, but TikTok URL was invalid. You can add the video manually.', 'warning');
                 } else {
-                    // Fetch thumbnail for the TikTok video
+        // Fetch and cache thumbnail for the TikTok video
                     let thumbnailUrl = null;
                     try {
-                        const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('get-tiktok-thumbnail', {
+            const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('cache-tiktok-thumbnail', {
                             body: { url: tiktokUrl }
                         });
 
                         if (thumbnailError) {
                             console.warn('Could not fetch TikTok thumbnail:', thumbnailError);
-                        } else if (thumbnailData && thumbnailData.thumbnail_url) {
-                            thumbnailUrl = thumbnailData.thumbnail_url;
+            } else if (thumbnailData && (thumbnailData.public_url || thumbnailData.thumbnail_url)) {
+                thumbnailUrl = thumbnailData.public_url || thumbnailData.thumbnail_url;
                             console.log('Successfully fetched TikTok thumbnail:', thumbnailUrl);
                         }
                     } catch (thumbnailError) {
@@ -1447,17 +1447,17 @@ async function handleAddTikTok(e) {
             return;
         }
 
-        // Fetch thumbnail for the TikTok video
+        // Fetch and cache thumbnail for the TikTok video
         let thumbnailUrl = null;
         try {
-            const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('get-tiktok-thumbnail', {
+            const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('cache-tiktok-thumbnail', {
                 body: { url: tiktokUrl }
             });
 
             if (thumbnailError) {
                 console.warn('Could not fetch TikTok thumbnail:', thumbnailError);
-            } else if (thumbnailData && thumbnailData.thumbnail_url) {
-                thumbnailUrl = thumbnailData.thumbnail_url;
+            } else if (thumbnailData && (thumbnailData.public_url || thumbnailData.thumbnail_url)) {
+                thumbnailUrl = thumbnailData.public_url || thumbnailData.thumbnail_url;
                 console.log('Successfully fetched TikTok thumbnail:', thumbnailUrl);
             }
         } catch (thumbnailError) {
