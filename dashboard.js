@@ -18,6 +18,7 @@ let allCuisines = []; // Store all available cuisines for selection
 
 // --- REEL SUBMISSION STATE MANAGEMENT ---
 let validatedTiktokUrl = null;
+let validatedTiktokThumbnail = null;
 let selectedRestaurantId = null;
 let newRestaurantData = null;
 let restaurantToDelete = null;
@@ -895,7 +896,28 @@ async function handleValidateTiktok() {
             if (data.handle && userRole.tiktok_handle && data.handle.toLowerCase() === userRole.tiktok_handle.toLowerCase()) {
                 // Store the validated URL (use the cleaned URL)
                 validatedTiktokUrl = cleanUrl;
-                
+
+                // Fetch thumbnail for the validated TikTok video
+                try {
+                    const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('get-tiktok-thumbnail', {
+                        body: { url: cleanUrl }
+                    });
+
+                    if (thumbnailError) {
+                        console.warn('Could not fetch TikTok thumbnail:', thumbnailError);
+                        validatedTiktokThumbnail = null;
+                    } else if (thumbnailData && thumbnailData.thumbnail_url) {
+                        validatedTiktokThumbnail = thumbnailData.thumbnail_url;
+                        console.log('Successfully fetched TikTok thumbnail:', validatedTiktokThumbnail);
+                    } else {
+                        console.warn('No thumbnail URL returned from function');
+                        validatedTiktokThumbnail = null;
+                    }
+                } catch (thumbnailError) {
+                    console.warn('Error fetching TikTok thumbnail:', thumbnailError);
+                    validatedTiktokThumbnail = null;
+                }
+
                 // Move to step 2
                 showStep(2);
             } else {
@@ -1755,6 +1777,7 @@ async function handleSubmitReel() {
                 restaurant_id: finalRestaurantId,
                 submitted_by_user_id: currentUser.id,
                 author_handle: authorHandle,
+                thumbnail_url: validatedTiktokThumbnail,
                 is_featured: false,
                 is_publicly_approved: false
             }])
@@ -1942,6 +1965,7 @@ function handleEditableUrlChange() {
 function resetReelForm() {
     // Reset state
     validatedTiktokUrl = null;
+    validatedTiktokThumbnail = null;
     selectedRestaurantId = null;
     newRestaurantData = null;
     

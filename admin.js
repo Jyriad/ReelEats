@@ -769,9 +769,26 @@ async function handleAddRestaurant(e) {
                     console.warn('⚠️ Could not extract video ID from TikTok URL, skipping video creation');
                     showStatus('Restaurant added, but TikTok URL was invalid. You can add the video manually.', 'warning');
                 } else {
+                    // Fetch thumbnail for the TikTok video
+                    let thumbnailUrl = null;
+                    try {
+                        const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('get-tiktok-thumbnail', {
+                            body: { url: tiktokUrl }
+                        });
+
+                        if (thumbnailError) {
+                            console.warn('Could not fetch TikTok thumbnail:', thumbnailError);
+                        } else if (thumbnailData && thumbnailData.thumbnail_url) {
+                            thumbnailUrl = thumbnailData.thumbnail_url;
+                            console.log('Successfully fetched TikTok thumbnail:', thumbnailUrl);
+                        }
+                    } catch (thumbnailError) {
+                        console.warn('Error fetching TikTok thumbnail:', thumbnailError);
+                    }
+
                     // Create embed HTML
                     const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden; position: absolute; top: -9999px; left: -9999px;"><section></section></blockquote>`;
-                    
+
                     // Insert TikTok video
                     const { error: tiktokError } = await supabaseClient
                         .from('tiktoks')
@@ -779,7 +796,8 @@ async function handleAddRestaurant(e) {
                             restaurant_id: restaurant.id,
                             embed_html: embedHtml,
                             is_featured: true, // Always featured when added via restaurant form
-                            author_handle: authorHandle
+                            author_handle: authorHandle,
+                            thumbnail_url: thumbnailUrl
                         }]);
                     
                     if (tiktokError) {
@@ -1423,19 +1441,37 @@ async function handleAddTikTok(e) {
     try {
         const videoId = extractTikTokVideoId(tiktokUrl);
         const authorHandle = extractTikTokCreatorHandle(tiktokUrl);
-        
+
         if (!videoId) {
             showStatus('Invalid TikTok URL - could not extract video ID', 'error');
             return;
         }
-        
+
+        // Fetch thumbnail for the TikTok video
+        let thumbnailUrl = null;
+        try {
+            const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('get-tiktok-thumbnail', {
+                body: { url: tiktokUrl }
+            });
+
+            if (thumbnailError) {
+                console.warn('Could not fetch TikTok thumbnail:', thumbnailError);
+            } else if (thumbnailData && thumbnailData.thumbnail_url) {
+                thumbnailUrl = thumbnailData.thumbnail_url;
+                console.log('Successfully fetched TikTok thumbnail:', thumbnailUrl);
+            }
+        } catch (thumbnailError) {
+            console.warn('Error fetching TikTok thumbnail:', thumbnailError);
+        }
+
         const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden; position: absolute; top: -9999px; left: -9999px;"><section></section></blockquote>`;
-        
+
         console.log('🎬 Attempting to insert TikTok with data:', {
             restaurant_id: parseInt(restaurantId),
             embed_html: embedHtml,
             is_featured: isFeatured,
-            author_handle: authorHandle
+            author_handle: authorHandle,
+            thumbnail_url: thumbnailUrl
         });
 
         const { error } = await supabaseClient
@@ -1444,7 +1480,8 @@ async function handleAddTikTok(e) {
                 restaurant_id: parseInt(restaurantId),
                 embed_html: embedHtml,
                 is_featured: isFeatured,
-                author_handle: authorHandle
+                author_handle: authorHandle,
+                thumbnail_url: thumbnailUrl
             }]);
         
         if (error) throw error;

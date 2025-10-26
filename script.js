@@ -70,20 +70,28 @@ function showNoVideoMessage(videoContainer, restaurantName, additionalInfo = '')
 // --- Skeleton Loader Functions ---
 function createSkeletonCard() {
     const skeletonCard = document.createElement('div');
-    skeletonCard.className = 'skeleton-card';
+    skeletonCard.className = 'bg-white rounded-lg border border-gray-200 p-3 md:p-4 relative touch-manipulation';
     skeletonCard.innerHTML = `
-        <div class="skeleton-avatar"></div>
-        <div class="skeleton-content">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-description"></div>
-            <div class="skeleton-description"></div>
-            <div class="skeleton-tags">
-                <div class="skeleton-tag"></div>
-                <div class="skeleton-tag"></div>
-                <div class="skeleton-tag"></div>
+        <div class="w-full flex items-start">
+            <div class="flex-shrink-0 mr-3">
+                <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center"></div>
+            </div>
+            <div class="skeleton-thumbnail"></div>
+            <div class="flex-1 min-w-0 pr-16">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-description"></div>
+                <div class="skeleton-description"></div>
+                <div class="skeleton-tags">
+                    <div class="skeleton-tag"></div>
+                    <div class="skeleton-tag"></div>
+                    <div class="skeleton-tag"></div>
+                </div>
             </div>
         </div>
-        <div class="skeleton-favorite"></div>
+        <div class="absolute top-2 right-2 flex items-center space-x-1">
+            <div class="w-8 h-8 bg-gray-200 rounded"></div>
+            <div class="w-8 h-8 bg-gray-200 rounded"></div>
+        </div>
     `;
     return skeletonCard;
 }
@@ -2017,18 +2025,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            // 2. Fetch only the featured TikToks for those specific restaurants.
+            // 2. Fetch TikToks for those specific restaurants (including thumbnails).
             const restaurantIds = restaurants.map(r => r.id);
             console.log('🔍 Fetching TikToks for restaurant IDs:', restaurantIds);
             const { data: tiktoks, error: tiktoksError } = await supabaseClient
                 .from('tiktoks')
-                .select('restaurant_id, embed_html')
+                .select('restaurant_id, embed_html, thumbnail_url, is_featured')
                 .in('restaurant_id', restaurantIds)
-                .eq('is_featured', true);
+                .eq('is_publicly_approved', true);
 
             if (tiktoksError) {
                 // Log the error but don't stop execution, so restaurants still display.
                 console.error("Error fetching tiktoks:", tiktoksError);
+                tiktoks = [];
             } else {
                 console.log('✅ Fetched TikToks:', tiktoks);
             }
@@ -2051,8 +2060,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (tiktoks) {
                 console.log('📝 Processing TikToks:', tiktoks);
                 tiktoks.forEach(t => {
-                    console.log('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html);
-                    tiktokMap.set(t.restaurant_id, t.embed_html);
+                    console.log('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html, 'thumbnail:', t.thumbnail_url);
+                    // Store the entire TikTok object, not just embed_html
+                    tiktokMap.set(t.restaurant_id, {
+                        embed_html: t.embed_html,
+                        thumbnail_url: t.thumbnail_url,
+                        is_featured: t.is_featured
+                    });
                 });
             }
             console.log('🗺️ TikTok Map size:', tiktokMap.size);
@@ -2072,16 +2086,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
 
             window.currentRestaurants = restaurants.map(r => {
-                const tiktokHtml = tiktokMap.get(r.id) || null;
-                console.log('🏗️ Creating restaurant object:', r.id, 'tiktok_html:', tiktokHtml ? 'EXISTS' : 'NULL');
+                const tiktokData = tiktokMap.get(r.id) || null;
+                console.log('🏗️ Creating restaurant object:', r.id, 'tiktok_data:', tiktokData ? 'EXISTS' : 'NULL');
                 return {
                     ...r,
-                    tiktok_embed_html: tiktokHtml,
+                    tiktok_embed_html: tiktokData?.embed_html || null,
+                    tiktok_thumbnail_url: tiktokData?.thumbnail_url || null,
+                    tiktok_is_featured: tiktokData?.is_featured || false,
                     cuisines: cuisineMap.get(r.id) || []
                 };
             });
             currentRestaurants = window.currentRestaurants;
             console.log('📊 Total restaurants with TikTok data:', currentRestaurants.filter(r => r.tiktok_embed_html).length);
+            console.log('📊 Total restaurants with thumbnails:', currentRestaurants.filter(r => r.tiktok_thumbnail_url).length);
             
             // Order restaurants based on geolocation availability
             if (window.userLocation) {
@@ -2136,17 +2153,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return;
                 }
 
-                // 2) Find all TikToks authored by this handle
+                // 2) Find all TikToks authored by this handle (including thumbnails)
                 let { data: tiktoks, error: tErr } = await supabaseClient
                     .from('tiktoks')
-                    .select('restaurant_id, embed_html, author_handle')
-                    .ilike('author_handle', handleWithAt);
+                    .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
+                    .ilike('author_handle', handleWithAt)
+                    .eq('is_publicly_approved', true);
 
                 if (!tErr && tiktoks && tiktoks.length === 0) {
                     const fallbackTik = await supabaseClient
                         .from('tiktoks')
-                        .select('restaurant_id, embed_html, author_handle')
-                        .ilike('author_handle', handleLower);
+                        .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
+                        .ilike('author_handle', handleLower)
+                        .eq('is_publicly_approved', true);
                     tiktoks = fallbackTik.data;
                     tErr = fallbackTik.error;
                 }
@@ -2188,7 +2207,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const tiktokMap = new Map();
                 tiktoks.forEach(t => {
                     // map only one embed per restaurant (any by this creator)
-                    if (!tiktokMap.has(t.restaurant_id)) tiktokMap.set(t.restaurant_id, t.embed_html);
+                    if (!tiktokMap.has(t.restaurant_id)) {
+                        tiktokMap.set(t.restaurant_id, {
+                            embed_html: t.embed_html,
+                            thumbnail_url: t.thumbnail_url,
+                            is_featured: t.is_featured
+                        });
+                    }
                 });
 
                 const cuisineMap = new Map();
@@ -2199,11 +2224,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                     });
                 }
 
-                window.currentRestaurants = (restaurants || []).map(r => ({
-                    ...r,
-                    tiktok_embed_html: tiktokMap.get(r.id) || null,
-                    cuisines: cuisineMap.get(r.id) || []
-                }));
+                window.currentRestaurants = (restaurants || []).map(r => {
+                    const tiktokData = tiktokMap.get(r.id) || null;
+                    return {
+                        ...r,
+                        tiktok_embed_html: tiktokData?.embed_html || null,
+                        tiktok_thumbnail_url: tiktokData?.thumbnail_url || null,
+                        tiktok_is_featured: tiktokData?.is_featured || false,
+                        cuisines: cuisineMap.get(r.id) || []
+                    };
+                });
                 currentRestaurants = window.currentRestaurants;
 
                 // Order like explore behavior
@@ -3834,6 +3864,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Distance will be added by updateRestaurantCardsWithDistance() when user location is available
             let distanceHtml = '';
             
+            // Create thumbnail HTML
+            let thumbnailHtml = '';
+            if (restaurant.tiktok_thumbnail_url) {
+                thumbnailHtml = `
+                    <div class="flex-shrink-0 mr-3">
+                        <img src="${restaurant.tiktok_thumbnail_url}"
+                             alt="${restaurant.name} TikTok thumbnail"
+                             class="restaurant-thumbnail w-12 h-12 rounded-lg object-cover border border-gray-200"
+                             loading="lazy"
+                             onerror="this.style.display='none'">
+                    </div>`;
+            }
+
             listItem.innerHTML = `
                 <div class="w-full p-3 md:p-4 flex items-start">
                 <div class="flex-shrink-0 mr-3">
@@ -3841,6 +3884,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         ${number}
                     </div>
                 </div>
+                ${thumbnailHtml}
                     <div class="flex-1 min-w-0 pr-16">
                         <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
                         <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
