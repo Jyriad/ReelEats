@@ -718,9 +718,8 @@ body.homepage {
     }
 
     .skeleton-thumbnail {
-        width: 3rem;
-        height: 3rem;
-        margin-right: 0.5rem;
+        width: 4rem;
+        height: 4rem;
     }
     
     .skeleton-title {
@@ -883,12 +882,11 @@ body.homepage {
 }
 
 .skeleton-thumbnail {
-    width: 4rem;
-    height: 4rem;
+    width: 5rem;
+    height: 5rem;
     background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
     background-size: 200% 100%;
     border-radius: 0.5rem;
-    margin-right: 0.75rem;
     flex-shrink: 0;
     animation: skeleton-loading 1.5s infinite;
 }

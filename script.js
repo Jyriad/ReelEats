@@ -72,19 +72,21 @@ function createSkeletonCard() {
     const skeletonCard = document.createElement('div');
     skeletonCard.className = 'bg-white rounded-lg border border-gray-200 p-3 md:p-4 relative touch-manipulation';
     skeletonCard.innerHTML = `
-        <div class="w-full flex items-start">
-            <div class="flex-shrink-0 mr-3">
-                <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center"></div>
-            </div>
-            <div class="skeleton-thumbnail"></div>
-            <div class="flex-1 min-w-0 pr-16">
-                <div class="skeleton-title"></div>
-                <div class="skeleton-description"></div>
-                <div class="skeleton-description"></div>
-                <div class="skeleton-tags">
-                    <div class="skeleton-tag"></div>
-                    <div class="skeleton-tag"></div>
-                    <div class="skeleton-tag"></div>
+        <div class="w-full">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 mr-3 flex flex-col items-center">
+                    <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mb-2"></div>
+                    <div class="skeleton-thumbnail"></div>
+                </div>
+                <div class="flex-1 min-w-0 pr-16">
+                    <div class="skeleton-title"></div>
+                    <div class="skeleton-description"></div>
+                    <div class="skeleton-description"></div>
+                    <div class="skeleton-tags">
+                        <div class="skeleton-tag"></div>
+                        <div class="skeleton-tag"></div>
+                        <div class="skeleton-tag"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3868,28 +3870,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             let thumbnailHtml = '';
             if (restaurant.tiktok_thumbnail_url) {
                 thumbnailHtml = `
-                    <div class="flex-shrink-0 mr-3">
-                        <img src="${restaurant.tiktok_thumbnail_url}"
-                             alt="${restaurant.name} TikTok thumbnail"
-                             class="restaurant-thumbnail w-16 h-16 rounded-lg object-cover border border-gray-200"
-                             loading="lazy"
-                             onerror="this.style.display='none'">
-                    </div>`;
+                    <img src="${restaurant.tiktok_thumbnail_url}"
+                         alt="${restaurant.name} TikTok thumbnail"
+                         class="restaurant-thumbnail w-20 h-20 rounded-lg object-cover border border-gray-200"
+                         loading="lazy"
+                         onerror="this.style.display='none'">`;
             }
 
             listItem.innerHTML = `
-                <div class="w-full p-3 md:p-4 flex items-start">
-                <div class="flex-shrink-0 mr-3">
-                    <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                        ${number}
-                    </div>
-                </div>
-                ${thumbnailHtml}
-                    <div class="flex-1 min-w-0 pr-16">
-                        <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
-                        <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
-                        <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
-                    ${distanceHtml}
+                <div class="w-full p-3 md:p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3 flex flex-col items-center">
+                            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mb-2">
+                                ${number}
+                            </div>
+                            ${thumbnailHtml}
+                        </div>
+                        <div class="flex-1 min-w-0 pr-16">
+                            <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
+                            <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
+                            <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
+                        ${distanceHtml}
+                        </div>
                     </div>
                 </div>
                 <div class="absolute top-2 right-2 flex items-center space-x-1">
