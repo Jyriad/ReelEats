@@ -4020,42 +4020,46 @@ document.addEventListener('DOMContentLoaded', async function() {
             let iconAnchor = [25, 25];
 
             if (useThumbnails && restaurant.tiktok_thumbnail_url) {
-                // Use thumbnail as marker - 50px circle from 70px image
-                markerHtml = `<div class="thumbnail-marker-container ${favoritedClass}" style="
-                    width: 50px;
-                    height: 50px;
-                    background: white;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 50%;
-                    overflow: hidden;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                ">
-                    <img src="${restaurant.tiktok_thumbnail_url}"
-                         alt="${restaurant.name}"
-                         style="
-                             width: 70px;
-                             height: 70px;
-                             object-fit: cover;
-                             margin-left: -10px;
-                             margin-top: -10px;
-                         ">
+                // Use thumbnail as marker - 50px circle from 70px image with scale wrapper
+                markerHtml = `<div class="marker-wrapper" style="width: 50px; height: 50px;">
+                    <div class="thumbnail-marker-container ${favoritedClass}" style="
+                        width: 50px;
+                        height: 50px;
+                        background: white;
+                        border: 2px solid #e5e7eb;
+                        border-radius: 50%;
+                        overflow: hidden;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    ">
+                        <img src="${restaurant.tiktok_thumbnail_url}"
+                             alt="${restaurant.name}"
+                             style="
+                                 width: 70px;
+                                 height: 70px;
+                                 object-fit: cover;
+                                 margin-left: -10px;
+                                 margin-top: -10px;
+                             ">
+                    </div>
                 </div>`;
             } else {
-                // Fallback to cuisine icon or number
+                // Fallback to cuisine icon or number with scale wrapper
                 const displayContent = getMarkerContent(restaurant, index);
-                markerHtml = `<div class="svg-marker-container ${favoritedClass}" style="
-                    width: 50px; 
-                    height: 50px; 
-                    background: white;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    font-size: 18px;
-                    font-weight: bold;
-                ">${displayContent}</div>`;
+                markerHtml = `<div class="marker-wrapper" style="width: 50px; height: 50px;">
+                    <div class="svg-marker-container ${favoritedClass}" style="
+                        width: 50px; 
+                        height: 50px; 
+                        background: white;
+                        border: 2px solid #e5e7eb;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                        font-size: 18px;
+                        font-weight: bold;
+                    ">${displayContent}</div>
+                </div>`;
             }
 
             const icon = L.divIcon({
@@ -4111,12 +4115,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             if (marker) {
-                // Scale up the marker by 20% using CSS transform
+                // Scale up the marker by 20% using CSS transform on the inner wrapper
                 const iconElement = marker.getElement();
                 if (iconElement) {
-                    iconElement.style.transform = 'scale(1.2)';
-                    iconElement.style.transformOrigin = 'center center';
-                    iconElement.classList.add('highlighted');
+                    const wrapper = iconElement.querySelector('.marker-wrapper');
+                    if (wrapper) {
+                        wrapper.style.transform = 'scale(1.2)';
+                        wrapper.style.transformOrigin = 'center center';
+                        wrapper.classList.add('highlighted');
+                    }
                 }
             }
         }
@@ -4138,8 +4145,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Reset the marker scale to normal
                 const iconElement = marker.getElement();
                 if (iconElement) {
-                    iconElement.style.transform = 'scale(1)';
-                    iconElement.classList.remove('highlighted');
+                    const wrapper = iconElement.querySelector('.marker-wrapper');
+                    if (wrapper) {
+                        wrapper.style.transform = 'scale(1)';
+                        wrapper.classList.remove('highlighted');
+                    }
                 }
             }
         }

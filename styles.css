@@ -2048,14 +2048,17 @@ body.homepage .header {
     cursor: pointer;
 }
 
-.restaurant-marker > div {
+.marker-wrapper {
     transition: transform 0.2s ease;
     transform-origin: center center;
 }
 
+.restaurant-marker:hover .marker-wrapper {
+    transform: scale(1.1);
+}
+
 .restaurant-marker:hover .thumbnail-marker-container,
 .restaurant-marker:hover .svg-marker-container {
-    transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
 }
 
