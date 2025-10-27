@@ -4113,8 +4113,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const iconElement = marker.getElement();
                 if (iconElement) {
                     iconElement.classList.add('highlighted');
-                    // Scale up the marker by 20%
-                    iconElement.style.transform = 'scale(1.2)';
                 }
             }
         }
@@ -4137,8 +4135,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const iconElement = marker.getElement();
                 if (iconElement) {
                     iconElement.classList.remove('highlighted');
-                    // Reset the scale to normal
-                    iconElement.style.transform = 'scale(1)';
                 }
             }
         }

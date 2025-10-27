@@ -2046,11 +2046,16 @@ body.homepage .header {
 /* Enhanced marker interactions */
 .restaurant-marker {
     cursor: pointer;
-    transition: transform 0.2s ease;
 }
 
+/* Scale the entire icon element when highlighted */
 .restaurant-marker.highlighted {
     transform: scale(1.2);
+    transition: transform 0.2s ease;
+    transform-origin: 20px 20px; /* Match iconAnchor [20, 20] */
+}
+
+.restaurant-marker > div {
     transition: transform 0.2s ease;
 }
 
