@@ -4,6 +4,16 @@
 // Import Supabase configuration
 import { CONFIG } from './config.js';
 
+// --- Conditional Logger (Dev Mode Only) ---
+const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const logger = {
+  info: (...args) => isDev && console.log('[INFO]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args), // Always log errors
+  warn: (...args) => isDev && console.warn('[WARN]', ...args),
+  debug: (...args) => isDev && console.log('[DEBUG]', ...args),
+  log: (...args) => isDev && console.log(...args)
+};
+
 // Initialize Supabase client using global supabase object
 const { createClient } = supabase;
 const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
@@ -74,7 +84,7 @@ let summaryRestaurantName = null;
 
 // Initialize the dashboard
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Dashboard page loaded');
+    logger.info('Dashboard page loaded');
     
     // Get DOM elements
     loadingState = document.getElementById('loading-state');
@@ -364,7 +374,7 @@ async function handleLogout() {
 
 // Security checks - this is the "security guard"
 async function performSecurityChecks() {
-    console.log('Performing security checks...');
+    logger.info('Performing security checks...');
     
     try {
         // Check 1: Is the user logged in?
@@ -377,12 +387,12 @@ async function performSecurityChecks() {
         }
         
         if (!user) {
-            console.log('No user found, redirecting to homepage');
+            logger.info('No user found, redirecting to homepage');
             redirectToHomepage();
             return;
         }
         
-        console.log('User is logged in:', user.email);
+        logger.info('User is logged in:', user.email);
         currentUser = user;
         
         // Check 2: Does the user have the 'creator' role?
@@ -399,13 +409,13 @@ async function performSecurityChecks() {
         }
         
         if (!userRole || userRole.role !== 'creator') {
-            console.log('User does not have creator role, redirecting to homepage');
-            console.log('User role found:', userRole);
+            logger.info('User does not have creator role, redirecting to homepage');
+            logger.info('User role found:', userRole);
             redirectToHomepage();
             return;
         }
         
-        console.log('User has creator role, proceeding with dashboard');
+        logger.info('User has creator role, proceeding with dashboard');
         
     } catch (error) {
         console.error('Error in security checks:', error);
@@ -415,13 +425,13 @@ async function performSecurityChecks() {
 
 // Redirect to homepage
 function redirectToHomepage() {
-    console.log('Redirecting to homepage...');
+    logger.info('Redirecting to homepage...');
     window.location.href = '/';
 }
 
 // Load dashboard content
 async function loadDashboard() {
-    console.log('Loading dashboard content...');
+    logger.info('Loading dashboard content...');
     
     try {
         // Hide loading state
@@ -438,7 +448,7 @@ async function loadDashboard() {
         // Initialize preview map (explore page format)
         await initializePreviewMap();
         
-        console.log('Dashboard loaded successfully');
+        logger.info('Dashboard loaded successfully');
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -448,7 +458,7 @@ async function loadDashboard() {
 
 // Load cuisines for selection
 async function loadCuisines() {
-    console.log('Loading cuisines...');
+    logger.info('Loading cuisines...');
     
     try {
         const { data: categories, error } = await supabaseClient
@@ -475,7 +485,7 @@ async function loadCuisines() {
             });
         }
 
-        console.log('Loaded cuisines:', allCuisines.length);
+        logger.info('Loaded cuisines:', allCuisines.length);
         
     } catch (error) {
         console.error('Error loading cuisines:', error);
@@ -502,7 +512,7 @@ async function getOrCreateCity(cityName) {
         }
         
         if (existingCity) {
-            console.log('Found existing city:', cityName, 'ID:', existingCity.id);
+            logger.info('Found existing city:', cityName, 'ID:', existingCity.id);
             return existingCity.id;
         }
         
@@ -518,7 +528,7 @@ async function getOrCreateCity(cityName) {
             return null;
         }
         
-        console.log('Created new city:', cityName, 'ID:', newCity.id);
+        logger.info('Created new city:', cityName, 'ID:', newCity.id);
         return newCity.id;
         
     } catch (error) {
@@ -529,7 +539,7 @@ async function getOrCreateCity(cityName) {
 
 // Load user's content (restaurants with TikToks)
 async function loadUserContent() {
-    console.log('Loading user content...');
+    logger.info('Loading user content...');
 
     if (!myContentLoading || !myContentTable) return;
 
@@ -590,7 +600,7 @@ async function loadUserContent() {
         }
 
         userContent = Array.from(restaurantMap.values());
-        console.log('Loaded restaurants with TikToks:', userContent.length);
+        logger.info('Loaded restaurants with TikToks:', userContent.length);
 
         // Display content (restaurants with TikToks)
         displayContent();
@@ -766,7 +776,7 @@ async function handleConfirmDelete() {
 
         if (userCreatedRestaurant) {
             // User created the restaurant - delete the entire restaurant and all associated TikToks
-            console.log('User created this restaurant - deleting entire restaurant');
+            logger.info('User created this restaurant - deleting entire restaurant');
             
             const { error: deleteError } = await supabaseClient
                 .from('restaurants')
@@ -781,7 +791,7 @@ async function handleConfirmDelete() {
             }
         } else {
             // User didn't create the restaurant - only delete their TikTok videos linked to this restaurant
-            console.log('User did not create this restaurant - deleting only their TikTok videos');
+            logger.info('User did not create this restaurant - deleting only their TikTok videos');
             
             const { error: deleteTiktokError } = await supabaseClient
                 .from('tiktoks')
@@ -798,18 +808,18 @@ async function handleConfirmDelete() {
 
         // Remove from local arrays
         userContent = userContent.filter(r => r.id !== restaurantId);
-        console.log('Updated userContent after deletion:', userContent.length, 'restaurants remaining');
+        logger.info('Updated userContent after deletion:', userContent.length, 'restaurants remaining');
 
         // Refresh display immediately
         displayContent();
         
         // Also reload from database to ensure we have the latest data
-        console.log('Reloading user content from database...');
+        logger.info('Reloading user content from database...');
         await loadUserContent();
         
         // Refresh map if it exists
         if (previewMap) {
-            console.log('Refreshing map markers and cards...');
+            logger.info('Refreshing map markers and cards...');
             // Clear all existing markers first
             previewRestaurantMarkers.forEach(marker => {
                 previewMap.removeLayer(marker);
@@ -823,10 +833,10 @@ async function handleConfirmDelete() {
             // Force map to refresh its view
             previewMap.invalidateSize();
         } else {
-            console.log('No preview map found, skipping map refresh');
+            logger.info('No preview map found, skipping map refresh');
         }
 
-        console.log(userCreatedRestaurant ? 'Restaurant deleted successfully' : 'Your videos removed from restaurant successfully');
+        logger.info(userCreatedRestaurant ? 'Restaurant deleted successfully' : 'Your videos removed from restaurant successfully');
     } catch (error) {
         console.error('Error in delete operation:', error);
         alert('Error deleting content. Please try again.');
@@ -904,17 +914,17 @@ async function handleValidateTiktok() {
                     });
 
                     if (thumbnailError) {
-                        console.warn('Could not fetch TikTok thumbnail:', thumbnailError);
+                        logger.warn('Could not fetch TikTok thumbnail:', thumbnailError);
                         validatedTiktokThumbnail = null;
                     } else if (thumbnailData && (thumbnailData.public_url || thumbnailData.thumbnail_url)) {
                         validatedTiktokThumbnail = thumbnailData.public_url || thumbnailData.thumbnail_url;
-                        console.log('Successfully fetched TikTok thumbnail:', validatedTiktokThumbnail);
+                        logger.info('Successfully fetched TikTok thumbnail:', validatedTiktokThumbnail);
                     } else {
-                        console.warn('No thumbnail URL returned from function');
+                        logger.warn('No thumbnail URL returned from function');
                         validatedTiktokThumbnail = null;
                     }
                 } catch (thumbnailError) {
-                    console.warn('Error fetching TikTok thumbnail:', thumbnailError);
+                    logger.warn('Error fetching TikTok thumbnail:', thumbnailError);
                     validatedTiktokThumbnail = null;
                 }
 
@@ -984,7 +994,7 @@ async function handleRestaurantSearch() {
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('Google Places API response:', result);
+                logger.info('Google Places API response:', result);
                 if (result.success && result.data.places && result.data.places.length > 0) {
                     // Convert Google Places format to our format
                     googlePlaces = result.data.places.map(place => ({
@@ -1099,7 +1109,7 @@ function displayCombinedSearchResults(dbRestaurants, googlePlaces) {
                     google_maps_url: option.dataset.googleMapsUrl,
                     google_place_id: option.dataset.googlePlaceId
                 };
-                console.log('Google Places selection data:', {
+                logger.info('Google Places selection data:', {
                     name: restaurantName,
                     city: option.dataset.city,
                     lat: option.dataset.lat,
@@ -1647,8 +1657,8 @@ async function handleGeocodeNewRestaurant() {
     const address = newRestaurantAddress?.value?.trim();
     const description = newRestaurantDescription?.value?.trim();
     
-    console.log('Form data:', { name, address, description });
-    console.log('Elements found:', { 
+    logger.info('Form data:', { name, address, description });
+    logger.info('Elements found:', { 
         nameElement: !!newRestaurantName, 
         addressElement: !!newRestaurantAddress, 
         descriptionElement: !!newRestaurantDescription 
@@ -1667,13 +1677,13 @@ async function handleGeocodeNewRestaurant() {
     showReelGeocodeStatus('Looking up address...', 'info');
     
     try {
-        console.log('Calling geocode-address function with address:', address);
+        logger.info('Calling geocode-address function with address:', address);
         // Call the geocode-address Supabase Edge Function
         const { data, error } = await supabaseClient.functions.invoke('geocode-address', {
             body: { address: address }
         });
         
-        console.log('Geocode function response:', { data, error });
+        logger.info('Geocode function response:', { data, error });
         
         if (error) {
             console.error('Geocoding error:', error);
@@ -1681,7 +1691,7 @@ async function handleGeocodeNewRestaurant() {
         return;
     }
     
-        console.log('Geocode response data:', data);
+        logger.info('Geocode response data:', data);
         
         if (data && data.lat && data.lng) {
             // Store the new restaurant data
@@ -1696,7 +1706,7 @@ async function handleGeocodeNewRestaurant() {
                 formatted_address: data.formatted_address || address
             };
             
-            console.log('New restaurant data:', newRestaurantData);
+            logger.info('New restaurant data:', newRestaurantData);
             
             showReelGeocodeStatus('Address found! Coordinates: ' + data.lat + ', ' + data.lng + (data.city ? ' in ' + data.city : ''), 'success');
             
@@ -1806,7 +1816,7 @@ async function handleSubmitReel() {
                 console.error('Error adding cuisine relationships:', cuisineError);
                 // Don't fail the whole operation, just log the error
             } else {
-                console.log('Successfully added cuisine relationships');
+                logger.info('Successfully added cuisine relationships');
             }
         }
         
@@ -1839,7 +1849,7 @@ function getSelectedCuisineIds() {
 function populateCuisineSelection() {
     const container = document.getElementById('cuisine-checkbox-container');
     if (!container || !allCuisines || allCuisines.length === 0) {
-        console.log('No cuisines available or container not found');
+        logger.info('No cuisines available or container not found');
         return;
     }
     
@@ -1874,7 +1884,7 @@ function populateCuisineSelection() {
         summaryRestaurantNameCuisine.textContent = newRestaurantData.name;
     }
     
-    console.log('Populated cuisine selection with', allCuisines.length, 'cuisines');
+    logger.info('Populated cuisine selection with', allCuisines.length, 'cuisines');
 }
 
 // Helper functions for UI management
@@ -2069,7 +2079,7 @@ function showSuccessMessage(message) {
 
 // Initialize preview map (explore page format)
 async function initializePreviewMap() {
-    console.log('Initializing preview map...');
+    logger.info('Initializing preview map...');
     
     try {
         // Wait a bit to ensure DOM is ready
@@ -2082,7 +2092,7 @@ async function initializePreviewMap() {
             return;
         }
         
-        console.log('Map container found:', mapContainer);
+        logger.info('Map container found:', mapContainer);
         
         // Initialize preview map centered on a default location
         previewMap = L.map('preview-map').setView([51.505, -0.09], 13);
@@ -2098,7 +2108,7 @@ async function initializePreviewMap() {
         setTimeout(() => {
             if (previewMap) {
                 previewMap.invalidateSize();
-                console.log('Map size invalidated');
+                logger.info('Map size invalidated');
             }
         }, 200);
         
@@ -2108,7 +2118,7 @@ async function initializePreviewMap() {
         // Display restaurant cards in side panel
         displayPreviewRestaurantCards();
         
-        console.log('Preview map initialized successfully');
+        logger.info('Preview map initialized successfully');
         
     } catch (error) {
         console.error('Error initializing preview map:', error);
@@ -2117,12 +2127,12 @@ async function initializePreviewMap() {
 
 // Add restaurant markers to preview map
 function addPreviewRestaurantMarkers() {
-    console.log('Adding preview restaurant markers...');
-    console.log('Preview map exists:', !!previewMap);
-    console.log('User content length:', userContent.length);
+    logger.info('Adding preview restaurant markers...');
+    logger.info('Preview map exists:', !!previewMap);
+    logger.info('User content length:', userContent.length);
     
     if (!previewMap) {
-        console.log('No preview map available');
+        logger.info('No preview map available');
         return;
     }
     
@@ -2134,7 +2144,7 @@ function addPreviewRestaurantMarkers() {
     
     // Add markers for each restaurant from content
     userContent.forEach((restaurant, index) => {
-        console.log(`Adding marker for restaurant ${index + 1}:`, restaurant.name, 'at', restaurant.lat, restaurant.lon);
+        logger.info(`Adding marker for restaurant ${index + 1}:`, restaurant.name, 'at', restaurant.lat, restaurant.lon);
         if (restaurant.lat && restaurant.lon) {
             const marker = createPreviewMarker(restaurant, index);
             previewRestaurantMarkers.push(marker);
@@ -2142,15 +2152,15 @@ function addPreviewRestaurantMarkers() {
         }
     });
     
-    console.log('Total markers added:', previewRestaurantMarkers.length);
+    logger.info('Total markers added:', previewRestaurantMarkers.length);
     
     // Fit map to show all markers
     if (previewRestaurantMarkers.length > 0) {
         const group = new L.featureGroup(previewRestaurantMarkers);
         previewMap.fitBounds(group.getBounds().pad(0.1));
-        console.log('Map fitted to bounds');
+        logger.info('Map fitted to bounds');
     } else {
-        console.log('No markers to fit map to');
+        logger.info('No markers to fit map to');
     }
 }
 
@@ -2211,7 +2221,7 @@ function createPreviewMarker(restaurant, index) {
     
     // Add click event to open video
     marker.on('click', () => {
-        console.log('Map marker clicked for restaurant:', restaurant.name);
+        logger.info('Map marker clicked for restaurant:', restaurant.name);
         showPreviewVideoFor(restaurant);
     });
     
@@ -2263,13 +2273,13 @@ function displayPreviewRestaurantCards() {
     // Add click event listeners to restaurant cards
     previewRestaurantList.querySelectorAll('.preview-restaurant-card').forEach(card => {
         card.addEventListener('click', () => {
-            console.log('Restaurant card clicked!');
+            logger.info('Restaurant card clicked!');
             const restaurantId = parseInt(card.dataset.restaurantId);
-            console.log('Restaurant ID:', restaurantId);
+            logger.info('Restaurant ID:', restaurantId);
             const restaurant = userContent.find(r => r.id === restaurantId);
-            console.log('Found restaurant:', restaurant);
+            logger.info('Found restaurant:', restaurant);
             if (restaurant) {
-                console.log('Calling showPreviewVideoFor...');
+                logger.info('Calling showPreviewVideoFor...');
                 showPreviewVideoFor(restaurant);
                 previewMap.flyTo([restaurant.lat, restaurant.lon], 15);
             }
@@ -2279,15 +2289,15 @@ function displayPreviewRestaurantCards() {
 
 // Show video for restaurant in preview (similar to explore page)
 async function showPreviewVideoFor(restaurant) {
-    console.log('🎬 showPreviewVideoFor called with restaurant:', restaurant);
+    logger.info('🎬 showPreviewVideoFor called with restaurant:', restaurant);
     
     const videoModal = document.getElementById('video-modal');
     const videoContainer = document.querySelector('.video-container');
     const videoRestaurantName = document.getElementById('video-restaurant-name');
     
-    console.log('Video modal element:', videoModal);
-    console.log('Video container element:', videoContainer);
-    console.log('Video restaurant name element:', videoRestaurantName);
+    logger.info('Video modal element:', videoModal);
+    logger.info('Video container element:', videoContainer);
+    logger.info('Video restaurant name element:', videoRestaurantName);
     
     if (!videoModal || !videoContainer || !videoRestaurantName) {
         console.error('Video modal elements not found');
@@ -2300,7 +2310,7 @@ async function showPreviewVideoFor(restaurant) {
     const firstTiktok = restaurant.tiktoks && restaurant.tiktoks[0];
     
     if (!firstTiktok || !firstTiktok.embed_html) {
-        console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
+        logger.info('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
         videoContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white p-4">No video available for ${restaurant.name}</div>`;
         videoModal.classList.remove('hidden');
         return;
@@ -2310,9 +2320,9 @@ async function showPreviewVideoFor(restaurant) {
     videoRestaurantName.textContent = restaurant.name;
     
     // Show the modal with a loading indicator
-    console.log('Showing video modal...');
+    logger.info('Showing video modal...');
     videoModal.classList.remove('hidden');
-    console.log('Modal classes after removing hidden:', videoModal.className);
+    logger.info('Modal classes after removing hidden:', videoModal.className);
     videoContainer.innerHTML = `
         <div class="w-full h-full flex items-center justify-center text-white">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
@@ -2368,10 +2378,10 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
         const iframe = videoContainer.querySelector('iframe');
         if (iframe) {
             iframe.onload = () => {
-                console.log('✅ Direct iframe loaded');
+                logger.info('✅ Direct iframe loaded');
             };
             iframe.onerror = () => {
-                console.log('❌ Direct iframe failed, trying blockquote...');
+                logger.info('❌ Direct iframe failed, trying blockquote...');
                 fallbackFunction();
             };
             
@@ -2379,11 +2389,11 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
                 try {
                     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
                     if (!iframeDoc || iframeDoc.body.children.length === 0) {
-                        console.log('⚠️ Iframe appears empty, trying blockquote...');
+                        logger.info('⚠️ Iframe appears empty, trying blockquote...');
                         fallbackFunction();
                     }
                 } catch (e) {
-                    console.log('✅ Iframe cross-origin (likely working)');
+                    logger.info('✅ Iframe cross-origin (likely working)');
                 }
             }, 3000);
         }
@@ -2393,3 +2403,4 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
 // Make functions globally accessible
 window.editRestaurant = editRestaurant;
 window.deleteRestaurant = deleteRestaurant;
+
