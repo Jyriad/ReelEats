@@ -138,11 +138,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         const closeVideoBtn = document.getElementById('close-video-btn');
         // City select removed - now using city switcher modal
         
-        // Check if essential elements exist
+        // Check if essential elements exist (skip for homepage)
+        const isHomepage = window.location.pathname.includes('index.html') || window.location.pathname === '/';
+
         if (!mapElement) {
+            if (isHomepage) {
+                console.log('Homepage detected - no map element needed');
+                return; // Exit early for homepage
+            }
             throw new Error('Map element not found');
         }
         if (!restaurantList) {
+            if (isHomepage) {
+                console.log('Homepage detected - no restaurant list needed');
+                return; // Exit early for homepage
+            }
             throw new Error('Restaurant list element not found');
         }
         // Video modal is optional - don't throw error if not found
