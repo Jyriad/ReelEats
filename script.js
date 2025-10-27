@@ -12,6 +12,10 @@ const CONFIG = {
     VIDEO_CONFIG: {
         IFRAME_TIMEOUT: 3000,
         FALLBACK_DELAY: 100
+    },
+    FEATURE_FLAGS: {
+        THUMBNAIL_MARKERS: true,
+        CITY_COLLAGES: true
     }
 };
 
@@ -79,15 +83,15 @@ function createSkeletonCard() {
                     <div class="skeleton-thumbnail"></div>
                 </div>
                 <div class="flex-1 min-w-0 pr-16">
-                    <div class="skeleton-title"></div>
-                    <div class="skeleton-description"></div>
-                    <div class="skeleton-description"></div>
-                    <div class="skeleton-tags">
-                        <div class="skeleton-tag"></div>
-                        <div class="skeleton-tag"></div>
-                        <div class="skeleton-tag"></div>
-                    </div>
-                </div>
+            <div class="skeleton-title"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-tags">
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+            </div>
+        </div>
             </div>
         </div>
         <div class="absolute top-2 right-2 flex items-center space-x-1">
@@ -200,9 +204,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.title = `ReelGrub - ${formattedHeading}`;
                     console.log(`🏙️ Loading restaurants for city (query): ${formattedHeading}`);
                 } else {
-                    formattedHeading = 'Explore All';
-                    document.title = 'ReelGrub - Discover Your Next Spot';
-                    console.log('🌍 Loading all restaurants (explore all)');
+                formattedHeading = 'Explore All';
+                document.title = 'ReelGrub - Discover Your Next Spot';
+                console.log('🌍 Loading all restaurants (explore all)');
                 }
             } else if (firstSegment === 'city') {
                 // New city route: /city/:city
@@ -2269,11 +2273,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 window.currentRestaurants = (restaurants || []).map(r => {
                     const tiktokData = tiktokMap.get(r.id) || null;
                     return {
-                        ...r,
+                    ...r,
                         tiktok_embed_html: tiktokData?.embed_html || null,
                         tiktok_thumbnail_url: tiktokData?.thumbnail_url || null,
                         tiktok_is_featured: tiktokData?.is_featured || false,
-                        cuisines: cuisineMap.get(r.id) || []
+                    cuisines: cuisineMap.get(r.id) || []
                     };
                 });
                 currentRestaurants = window.currentRestaurants;
@@ -3916,21 +3920,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                          loading="lazy"
                          onerror="this.style.display='none'">`;
             }
-
+            
             listItem.innerHTML = `
                 <div class="w-full p-3 md:p-4">
                     <div class="flex items-start">
                         <div class="flex-shrink-0 mr-3 flex flex-col items-center">
                             <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mb-2">
-                                ${number}
-                            </div>
+                        ${number}
+                    </div>
                             ${thumbnailHtml}
-                        </div>
-                        <div class="flex-1 min-w-0 pr-16">
-                            <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
-                            <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
-                            <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
-                        ${distanceHtml}
+                </div>
+                    <div class="flex-1 min-w-0 pr-16">
+                        <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
+                        <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
+                        <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
+                    ${distanceHtml}
                         </div>
                     </div>
                 </div>
@@ -4025,8 +4029,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
                 const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
                 markerHtml = `<div class="svg-marker-container ${favoritedClass}" style="
-                    width: 32px;
-                    height: 32px;
+                    width: 32px; 
+                    height: 32px; 
                     background: white;
                     border: 2px solid #e5e7eb;
                     border-radius: 50%;
