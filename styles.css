@@ -2046,13 +2046,10 @@ body.homepage .header {
 /* Enhanced marker interactions */
 .restaurant-marker {
     cursor: pointer;
-    transform-origin: 50% 50%;
 }
 
-.restaurant-marker.highlighted {
-    transform: scale(1.2) !important;
-    transition: transform 0.2s ease !important;
-    z-index: 999 !important;
+.restaurant-marker > div {
+    transition: width 0.2s ease, height 0.2s ease, transform 0.2s ease;
 }
 
 .restaurant-marker:hover .thumbnail-marker-container,
