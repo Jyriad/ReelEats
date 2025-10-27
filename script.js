@@ -1752,9 +1752,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // If fewer than 4 locations, show individual icons bunched together
                         if (childCount < 4) {
                             const children = cluster.getAllChildMarkers();
-                            const iconSize = 26; // Same as individual markers (20% smaller)
-                            const containerSize = 40; // Container to hold bunched icons
-                            const offset = 8; // How much icons overlap
+                            const iconSize = 32; // Same as individual markers (20% smaller than 40px)
+                            const containerSize = 48; // Container to hold bunched icons
+                            const offset = 10; // How much icons overlap
                             
                             // Create bunched individual icons
                             let bunchedIconsHtml = '';
@@ -4016,14 +4016,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // Check if restaurant has a TikTok thumbnail
             let markerHtml = '';
-            let iconSize = [32, 32];
-            let iconAnchor = [16, 16];
+            let iconSize = [40, 40];
+            let iconAnchor = [20, 20];
 
             if (useThumbnails && restaurant.tiktok_thumbnail_url) {
                 // Use thumbnail as marker
                 markerHtml = `<div class="thumbnail-marker-container ${favoritedClass}" style="
-                    width: 32px;
-                    height: 32px;
+                    width: 40px;
+                    height: 40px;
                     background: white;
                     border: 2px solid #e5e7eb;
                     border-radius: 50%;
@@ -4042,8 +4042,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Fallback to cuisine icon or number
                 const displayContent = getMarkerContent(restaurant, index);
                 markerHtml = `<div class="svg-marker-container ${favoritedClass}" style="
-                    width: 32px; 
-                    height: 32px; 
+                    width: 40px; 
+                    height: 40px; 
                     background: white;
                     border: 2px solid #e5e7eb;
                     border-radius: 50%;
@@ -4051,7 +4051,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     align-items: center;
                     justify-content: center;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    font-size: 13px;
+                    font-size: 15px;
                     font-weight: bold;
                 ">${displayContent}</div>`;
             }
@@ -4113,6 +4113,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const iconElement = marker.getElement();
                 if (iconElement) {
                     iconElement.classList.add('highlighted');
+                    // Scale up the marker by 20%
+                    iconElement.style.transform = 'scale(1.2)';
                 }
             }
         }
@@ -4135,6 +4137,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const iconElement = marker.getElement();
                 if (iconElement) {
                     iconElement.classList.remove('highlighted');
+                    // Reset the scale to normal
+                    iconElement.style.transform = 'scale(1)';
                 }
             }
         }

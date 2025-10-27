@@ -2046,6 +2046,12 @@ body.homepage .header {
 /* Enhanced marker interactions */
 .restaurant-marker {
     cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.restaurant-marker.highlighted {
+    transform: scale(1.2);
+    transition: transform 0.2s ease;
 }
 
 .restaurant-marker:hover .thumbnail-marker-container,
