@@ -12,6 +12,10 @@ const CONFIG = {
     VIDEO_CONFIG: {
         IFRAME_TIMEOUT: 3000,
         FALLBACK_DELAY: 100
+    },
+    FEATURE_FLAGS: {
+        THUMBNAIL_MARKERS: true,
+        CITY_COLLAGES: true
     }
 };
 
@@ -72,20 +76,22 @@ function createSkeletonCard() {
     const skeletonCard = document.createElement('div');
     skeletonCard.className = 'bg-white rounded-lg border border-gray-200 p-3 md:p-4 relative touch-manipulation';
     skeletonCard.innerHTML = `
-        <div class="w-full flex items-start">
-            <div class="flex-shrink-0 mr-3">
-                <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center"></div>
-            </div>
-            <div class="skeleton-thumbnail"></div>
-            <div class="flex-1 min-w-0 pr-16">
-                <div class="skeleton-title"></div>
-                <div class="skeleton-description"></div>
-                <div class="skeleton-description"></div>
-                <div class="skeleton-tags">
-                    <div class="skeleton-tag"></div>
-                    <div class="skeleton-tag"></div>
-                    <div class="skeleton-tag"></div>
+        <div class="w-full">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 mr-3 flex flex-col items-center">
+                    <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mb-2"></div>
+                    <div class="skeleton-thumbnail"></div>
                 </div>
+                <div class="flex-1 min-w-0 pr-16">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-description"></div>
+            <div class="skeleton-tags">
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+                <div class="skeleton-tag"></div>
+            </div>
+        </div>
             </div>
         </div>
         <div class="absolute top-2 right-2 flex items-center space-x-1">
@@ -136,11 +142,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         const closeVideoBtn = document.getElementById('close-video-btn');
         // City select removed - now using city switcher modal
         
-        // Check if essential elements exist
+        // Check if essential elements exist (skip for homepage)
+        const isHomepage = window.location.pathname.includes('index.html') || window.location.pathname === '/';
+
         if (!mapElement) {
+            if (isHomepage) {
+                console.log('Homepage detected - no map element needed');
+                return; // Exit early for homepage
+            }
             throw new Error('Map element not found');
         }
         if (!restaurantList) {
+            if (isHomepage) {
+                console.log('Homepage detected - no restaurant list needed');
+                return; // Exit early for homepage
+            }
             throw new Error('Restaurant list element not found');
         }
         // Video modal is optional - don't throw error if not found
@@ -172,14 +188,26 @@ document.addEventListener('DOMContentLoaded', async function() {
             const path = window.location.pathname;
             const firstSegment = path.split('/')[1] || '';
 
+            // Check for URL query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryCity = urlParams.get('city');
+
             let city = null;
             let creatorHandle = null; // lowercase without leading @
             let formattedHeading = 'Explore All';
 
             if (firstSegment === '' || firstSegment === 'explore') {
+                // Check for city query parameter first
+                if (queryCity) {
+                    city = queryCity;
+                    formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+                    document.title = `ReelGrub - ${formattedHeading}`;
+                    console.log(`🏙️ Loading restaurants for city (query): ${formattedHeading}`);
+                } else {
                 formattedHeading = 'Explore All';
                 document.title = 'ReelGrub - Discover Your Next Spot';
                 console.log('🌍 Loading all restaurants (explore all)');
+                }
             } else if (firstSegment === 'city') {
                 // New city route: /city/:city
                 const cityParam = (path.split('/')[2] || '').trim();
@@ -201,6 +229,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                 document.title = `ReelGrub - ${formattedHeading}`;
                 console.log(`🏙️ Loading restaurants for city (legacy): ${formattedHeading}`);
+                // Redirect to new query parameter format
+                window.location.href = `/explore?city=${encodeURIComponent(city)}`;
+                return; // Exit early since we're redirecting
             }
             
             // Display the current city name in the new UI elements
@@ -1721,20 +1752,35 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // If fewer than 4 locations, show individual icons bunched together
                         if (childCount < 4) {
                             const children = cluster.getAllChildMarkers();
-                            const iconSize = 26; // Same as individual markers (20% smaller)
-                            const containerSize = 40; // Container to hold bunched icons
-                            const offset = 8; // How much icons overlap
+                            const iconSize = 40; // Same as individual markers (20% smaller than 50px)
+                            const containerSize = 60; // Container to hold bunched icons
+                            const offset = 12; // How much icons overlap
                             
                             // Create bunched individual icons
                             let bunchedIconsHtml = '';
+                            const useThumbnails = CONFIG.FEATURE_FLAGS.THUMBNAIL_MARKERS;
+                            
                             children.forEach((marker, index) => {
                                 const x = (index * offset) - (childCount - 1) * offset / 2;
                                 const y = (index * offset) - (childCount - 1) * offset / 2;
                                 
                                 // Get the marker's restaurant data to determine content
                                 const restaurant = marker.options.restaurant;
-                                const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
-                                const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
+                                
+                                // Use thumbnail if available and feature is enabled
+                                let displayContent = '';
+                                if (useThumbnails && restaurant.tiktok_thumbnail_url) {
+                                    displayContent = `<img src="${restaurant.tiktok_thumbnail_url}"
+                                         alt="${restaurant.name}"
+                                         style="
+                                             width: ${iconSize}px;
+                                             height: ${iconSize}px;
+                                             object-fit: cover;
+                                         "
+                                         loading="lazy">`;
+                                } else {
+                                    displayContent = getMarkerContent(restaurant, index);
+                                }
                                 
                                 bunchedIconsHtml += `
                                     <div style="
@@ -1751,8 +1797,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                         align-items: center;
                                         justify-content: center;
                                         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                                        font-size: 13px;
-                                        font-weight: bold;
+                                        overflow: hidden;
                                         z-index: ${10 + index};
                                     ">${displayContent}</div>
                                 `;
@@ -2001,13 +2046,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         async function loadRestaurantsForCity(city = null) {
             // --- Load restaurants with optional city filtering ---
+            console.log('loadRestaurantsForCity called with city:', city);
 
             let query = supabaseClient
                 .from('restaurants')
                 .select('*');
 
-            // If a city is provided, filter by city name
+            // If a city is provided, filter by city name (try multiple approaches)
             if (city) {
+                // Try exact match first
                 query = query.ilike('city', city);
             }
 
@@ -2017,6 +2064,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (restaurantsError) {
                 console.error("Error fetching restaurants:", restaurantsError);
                 throw restaurantsError;
+            }
+
+            // If city filtering returned very few results, try a broader search
+            if (city && restaurants && restaurants.length < 5) {
+                const { data: broaderRestaurants, error: broaderError } = await supabaseClient
+                    .from('restaurants')
+                    .select('*')
+                    .ilike('city', `%${city}%`); // Contains search
+
+                if (!broaderError && broaderRestaurants && broaderRestaurants.length > restaurants.length) {
+                    restaurants.length = 0; // Clear array
+                    restaurants.push(...broaderRestaurants); // Add broader results
+                }
             }
 
             if (!restaurants || restaurants.length === 0) {
@@ -2227,11 +2287,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 window.currentRestaurants = (restaurants || []).map(r => {
                     const tiktokData = tiktokMap.get(r.id) || null;
                     return {
-                        ...r,
+                    ...r,
                         tiktok_embed_html: tiktokData?.embed_html || null,
                         tiktok_thumbnail_url: tiktokData?.thumbnail_url || null,
                         tiktok_is_featured: tiktokData?.is_featured || false,
-                        cuisines: cuisineMap.get(r.id) || []
+                    cuisines: cuisineMap.get(r.id) || []
                     };
                 });
                 currentRestaurants = window.currentRestaurants;
@@ -3868,28 +3928,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             let thumbnailHtml = '';
             if (restaurant.tiktok_thumbnail_url) {
                 thumbnailHtml = `
-                    <div class="flex-shrink-0 mr-3">
-                        <img src="${restaurant.tiktok_thumbnail_url}"
-                             alt="${restaurant.name} TikTok thumbnail"
-                             class="restaurant-thumbnail w-12 h-12 rounded-lg object-cover border border-gray-200"
-                             loading="lazy"
-                             onerror="this.style.display='none'">
-                    </div>`;
+                    <img src="${restaurant.tiktok_thumbnail_url}"
+                         alt="${restaurant.name} TikTok thumbnail"
+                         class="restaurant-thumbnail w-20 h-20 rounded-lg object-cover border border-gray-200"
+                         loading="lazy"
+                         onerror="this.style.display='none'">`;
             }
-
+            
             listItem.innerHTML = `
-                <div class="w-full p-3 md:p-4 flex items-start">
-                <div class="flex-shrink-0 mr-3">
-                    <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                <div class="w-full p-3 md:p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3 flex flex-col items-center">
+                            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mb-2">
                         ${number}
                     </div>
+                            ${thumbnailHtml}
                 </div>
-                ${thumbnailHtml}
                     <div class="flex-1 min-w-0 pr-16">
                         <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
                         <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
                         <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
                     ${distanceHtml}
+                        </div>
                     </div>
                 </div>
                 <div class="absolute top-2 right-2 flex items-center space-x-1">
@@ -3941,29 +4001,72 @@ document.addEventListener('DOMContentLoaded', async function() {
             return listItem;
         }
 
-        function createNumberedMarker(restaurant, index) {
-            // Get the first cuisine icon, fallback to number if no cuisines
+        // Helper function to get marker content (cuisine icon or number)
+        function getMarkerContent(restaurant, index) {
             const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
-            const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
+            return firstCuisine ? firstCuisine.icon : (index + 1);
+        }
+
+        function createNumberedMarker(restaurant, index) {
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const favoritedClass = isFavorited ? 'favorited' : '';
+
+            // Check if thumbnail markers feature is enabled
+            const useThumbnails = CONFIG.FEATURE_FLAGS.THUMBNAIL_MARKERS;
+
+            // Check if restaurant has a TikTok thumbnail
+            let markerHtml = '';
+            let iconSize = [50, 50];
+            let iconAnchor = [25, 25];
+
+            if (useThumbnails && restaurant.tiktok_thumbnail_url) {
+                // Use thumbnail as marker - 50px circle from 70px image with scale wrapper
+                markerHtml = `<div class="marker-wrapper" style="width: 50px; height: 50px;">
+                    <div class="thumbnail-marker-container ${favoritedClass}" style="
+                        width: 50px;
+                        height: 50px;
+                        background: white;
+                        border: 2px solid #e5e7eb;
+                        border-radius: 50%;
+                        overflow: hidden;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    ">
+                        <img src="${restaurant.tiktok_thumbnail_url}"
+                             alt="${restaurant.name}"
+                             style="
+                                 width: 70px;
+                                 height: 70px;
+                                 object-fit: cover;
+                                 margin-left: -10px;
+                                 margin-top: -10px;
+                             ">
+                    </div>
+                </div>`;
+            } else {
+                // Fallback to cuisine icon or number with scale wrapper
+                const displayContent = getMarkerContent(restaurant, index);
+                markerHtml = `<div class="marker-wrapper" style="width: 50px; height: 50px;">
+                    <div class="svg-marker-container ${favoritedClass}" style="
+                        width: 50px; 
+                        height: 50px; 
+                        background: white;
+                        border: 2px solid #e5e7eb;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                        font-size: 18px;
+                        font-weight: bold;
+                    ">${displayContent}</div>
+                </div>`;
+            }
+
             const icon = L.divIcon({
-                className: 'svg-marker',
-                html: `<div class="svg-marker-container ${favoritedClass}" style="
-                    width: 32px; 
-                    height: 32px; 
-                    background: white;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    font-size: 13px;
-                    font-weight: bold;
-                ">${displayContent}</div>`,
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
+                className: 'restaurant-marker',
+                html: markerHtml,
+                iconSize: iconSize,
+                iconAnchor: iconAnchor
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
@@ -4012,10 +4115,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             if (marker) {
-                // Add highlight class to the marker's icon
+                // Scale up the marker by 20% using CSS transform on the inner wrapper
                 const iconElement = marker.getElement();
                 if (iconElement) {
-                    iconElement.classList.add('highlighted');
+                    const wrapper = iconElement.querySelector('.marker-wrapper');
+                    if (wrapper) {
+                        wrapper.style.transform = 'scale(1.2)';
+                        wrapper.style.transformOrigin = 'center center';
+                        wrapper.classList.add('highlighted');
+                    }
                 }
             }
         }
@@ -4034,10 +4142,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             if (marker) {
-                // Remove highlight class from the marker's icon
+                // Reset the marker scale to normal
                 const iconElement = marker.getElement();
                 if (iconElement) {
-                    iconElement.classList.remove('highlighted');
+                    const wrapper = iconElement.querySelector('.marker-wrapper');
+                    if (wrapper) {
+                        wrapper.style.transform = 'scale(1)';
+                        wrapper.classList.remove('highlighted');
+                    }
                 }
             }
         }
@@ -4825,7 +4937,7 @@ async function showVideoFor(restaurant) {
                     if (selectedCity === '') {
                         window.location.href = '/explore';
                     } else {
-                        window.location.href = `/${selectedCity}`;
+                        window.location.href = `/explore?city=${encodeURIComponent(selectedCity)}`;
                     }
                 }
             });
@@ -5173,6 +5285,7 @@ async function showVideoFor(restaurant) {
         console.error("An error occurred during initialization:", error);
         document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
     }
+
 });
 
 // ========================================
@@ -5191,6 +5304,135 @@ function testPass(testName) {
     testResults.passed++;
     testResults.total++;
     console.log(`✅ ${testName}`);
+}
+
+// City collage functions
+async function loadCityCollages() {
+    // Only run on homepage and if feature is enabled
+    if (!CONFIG.FEATURE_FLAGS.CITY_COLLAGES) {
+        console.log('City collages feature disabled');
+        return;
+    }
+
+    if (!window.location.pathname.includes('index.html') && window.location.pathname !== '/') {
+        console.log('Not on homepage, skipping city collages');
+        return;
+    }
+
+    const cityGrid = document.getElementById('city-grid');
+    if (!cityGrid) {
+        console.log('City grid element not found');
+        return;
+    }
+
+        console.log('Starting city collages load...');
+
+    try {
+        // Fetch all cities
+        const { data: cities, error: citiesError } = await supabaseClient
+            .from('cities')
+            .select('name')
+            .order('name', { ascending: true });
+
+        if (citiesError) {
+            console.error('Error fetching cities for collages:', citiesError);
+            return;
+        }
+
+        if (!cities || cities.length === 0) {
+            console.log('No cities found for collages');
+            return;
+        }
+
+        // For each city, fetch up to 12 random featured TikToks
+        for (const cityObj of cities) {
+            const cityName = cityObj.name;
+            console.log(`Processing city: ${cityName}`);
+
+            // Fetch restaurants for this city (try exact match first, then case-insensitive)
+            let { data: restaurants, error: restaurantsError } = await supabaseClient
+                .from('restaurants')
+                .select('id')
+                .ilike('city', cityName);
+
+            // If no exact match, try case-insensitive search
+            if (!restaurantsError && (!restaurants || restaurants.length === 0)) {
+                const { data: fallbackRestaurants, error: fallbackError } = await supabaseClient
+                    .from('restaurants')
+                    .select('id')
+                    .ilike('city', cityName.toLowerCase());
+
+                restaurants = fallbackRestaurants;
+                restaurantsError = fallbackError;
+            }
+
+            if (restaurantsError || !restaurants || restaurants.length === 0) {
+                console.log(`No restaurants found for ${cityName}, skipping collage`);
+                continue;
+            }
+
+            const restaurantIds = restaurants.map(r => r.id);
+
+            // Fetch up to 12 random featured TikToks for this city
+            const { data: tiktoks, error: tiktoksError } = await supabaseClient
+                .from('tiktoks')
+                .select('restaurant_id, embed_html, thumbnail_url, is_featured')
+                .in('restaurant_id', restaurantIds)
+                .eq('is_featured', true)
+                .limit(12);
+
+            if (tiktoksError || !tiktoks || tiktoks.length === 0) {
+                console.log(`No TikToks found for ${cityName}, skipping collage`);
+                continue;
+            }
+
+            // Shuffle and take up to 12 thumbnails
+            const shuffledTiktoks = tiktoks.sort(() => Math.random() - 0.5);
+            const selectedTiktoks = shuffledTiktoks.slice(0, 12);
+
+            // Create collage HTML
+            const collageHtml = createCityCollage(cityName, selectedTiktoks);
+            cityGrid.appendChild(collageHtml);
+        }
+
+        console.log('✅ City collages loaded successfully');
+
+    } catch (error) {
+        console.error('Error loading city collages:', error);
+    }
+}
+
+function createCityCollage(cityName, tiktoks) {
+    const collageCard = document.createElement('a');
+    collageCard.href = `/explore?city=${encodeURIComponent(cityName.toLowerCase())}`;
+    collageCard.className = 'city-collage-card';
+
+    const thumbnailsHtml = tiktoks.map(tiktok => {
+        const videoId = tiktok.embed_html.match(/data-video-id="([^"]+)"/)?.[1] || '';
+        const thumbnailUrl = tiktok.thumbnail_url || 'https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬';
+
+        return `
+            <div class="city-collage-thumbnail">
+                <img src="${thumbnailUrl}"
+                     alt="${cityName} TikTok"
+                     loading="lazy"
+                     onerror="this.src='https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬'">
+            </div>
+        `;
+    }).join('');
+
+    collageCard.innerHTML = `
+        <div class="city-collage-container">
+            <div class="city-collage-grid">
+                ${thumbnailsHtml}
+            </div>
+            <div class="city-collage-overlay">
+                <h3 class="city-collage-title">${cityName}</h3>
+            </div>
+        </div>
+    `;
+
+    return collageCard;
 }
 
 function testFail(testName, error = '') {

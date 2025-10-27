@@ -788,7 +788,7 @@ async function handleAddRestaurant(e) {
 
                     // Create embed HTML
                     const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden; position: absolute; top: -9999px; left: -9999px;"><section></section></blockquote>`;
-
+                    
                     // Insert TikTok video
                     const { error: tiktokError } = await supabaseClient
                         .from('tiktoks')
@@ -1441,7 +1441,7 @@ async function handleAddTikTok(e) {
     try {
         const videoId = extractTikTokVideoId(tiktokUrl);
         const authorHandle = extractTikTokCreatorHandle(tiktokUrl);
-
+        
         if (!videoId) {
             showStatus('Invalid TikTok URL - could not extract video ID', 'error');
             return;
@@ -1463,9 +1463,9 @@ async function handleAddTikTok(e) {
         } catch (thumbnailError) {
             console.warn('Error fetching TikTok thumbnail:', thumbnailError);
         }
-
+        
         const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="width: 330px; height: 585px; margin: 0; visibility: hidden; position: absolute; top: -9999px; left: -9999px;"><section></section></blockquote>`;
-
+        
         console.log('🎬 Attempting to insert TikTok with data:', {
             restaurant_id: parseInt(restaurantId),
             embed_html: embedHtml,

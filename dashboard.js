@@ -2157,13 +2157,48 @@ function addPreviewRestaurantMarkers() {
 // Create preview marker (similar to explore page)
 function createPreviewMarker(restaurant, index) {
     const number = index + 1;
-    
-    // Create custom icon with number
+
+    // Check if thumbnail markers feature is enabled and restaurant has TikTok thumbnail
+    let markerHtml = '';
+    let iconSize = [32, 32];
+    let iconAnchor = [16, 16];
+
+    if (CONFIG?.FEATURE_FLAGS?.THUMBNAIL_MARKERS && restaurant.tiktok_thumbnail_url) {
+        // Use thumbnail as marker
+        markerHtml = `<div class="thumbnail-marker-container" style="
+            width: 32px;
+            height: 32px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        ">
+            <img src="${restaurant.tiktok_thumbnail_url}"
+                 alt="${restaurant.name}"
+                 style="
+                     width: 28px;
+                     height: 28px;
+                     border-radius: 50%;
+                     object-fit: cover;
+                 "
+                 loading="lazy"
+                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"width: 20px; height: 20px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;\">🍽️</div>'">
+        </div>`;
+    } else {
+        // Fallback to number
+        markerHtml = `<div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">${number}</div>`;
+    }
+
+    // Create custom icon
     const icon = L.divIcon({
         className: 'custom-numbered-marker',
-        html: `<div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">${number}</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        html: markerHtml,
+        iconSize: iconSize,
+        iconAnchor: iconAnchor
     });
     
     const marker = L.marker([restaurant.lat, restaurant.lon], { icon })

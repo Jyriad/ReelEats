@@ -710,11 +710,16 @@ body.homepage {
         padding: 8px 2px;
         min-height: 60px;
     }
-    
+
     .skeleton-number {
         width: 20px;
         height: 20px;
         margin-right: 6px;
+    }
+
+    .skeleton-thumbnail {
+        width: 4rem;
+        height: 4rem;
     }
     
     .skeleton-title {
@@ -877,12 +882,11 @@ body.homepage {
 }
 
 .skeleton-thumbnail {
-    width: 3rem;
-    height: 3rem;
+    width: 5rem;
+    height: 5rem;
     background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
     background-size: 200% 100%;
     border-radius: 0.5rem;
-    margin-right: 0.75rem;
     flex-shrink: 0;
     animation: skeleton-loading 1.5s infinite;
 }
@@ -1408,6 +1412,13 @@ html {
   min-height: 60px;
 }
 
+/* Homepage specific header adjustments */
+body.homepage .header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 /* Mobile header styles */
 @media (max-width: 768px) {
   .header {
@@ -1429,7 +1440,29 @@ html {
     width: 1rem !important;
     height: 1rem !important;
   }
-  
+
+
+  /* Apply consistent mobile header styling to all pages */
+  header {
+    padding: 0.75rem 3%;
+    min-height: 56px;
+  }
+
+  header nav {
+    gap: 0.5rem !important;
+  }
+
+  header nav a {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    flex-shrink: 0;
+  }
+
+  header nav a svg {
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+
   /* Mobile drawer optimization for smooth dragging */
   aside {
     transform: translateZ(0);
@@ -1437,7 +1470,7 @@ html {
     -webkit-backface-visibility: hidden;
     contain: layout style;
   }
-  
+
   /* Prevent browser interference with dragging */
   #drawer-handle {
     touch-action: none;
@@ -1447,11 +1480,23 @@ html {
   }
 }
 
-.logo { 
-  font-weight: 700; 
-  font-size: 1.25rem; 
-  color: #111827; 
+.logo {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #111827;
   flex-shrink: 0;
+  text-decoration: none;
+}
+
+@media (min-width: 768px) {
+  .logo {
+    font-size: 1.5rem;
+  }
+}
+
+.logo:hover {
+  color: #6b7280;
+  text-decoration: none;
 }
 
 .nav {
@@ -1871,6 +1916,155 @@ html {
 .city-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
 .city-card:hover img { transform: scale(1.05); }
 .city-card span { position: absolute; bottom: 1rem; left: 1rem; font-size: 1.5rem; font-weight: 700; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); }
+
+/* City Collage Styles */
+.city-collage-card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    display: block;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 300px;
+    background: #f9fafb;
+}
+
+.city-collage-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.city-collage-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.city-collage-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 2px;
+    padding: 8px;
+    height: 100%;
+}
+
+.city-collage-thumbnail {
+    overflow: hidden;
+    border-radius: 4px;
+}
+
+.city-collage-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+}
+
+.city-collage-card:hover .city-collage-thumbnail img {
+    transform: scale(1.05);
+}
+
+.city-collage-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(0, 0, 0, 0.1) 50%,
+        rgba(0, 0, 0, 0.4) 100%
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.city-collage-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+    text-align: center;
+    padding: 1rem;
+}
+
+/* Responsive city collages */
+@media (max-width: 768px) {
+    .city-collage-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        padding: 6px;
+    }
+
+    .city-collage-title {
+        font-size: 1.5rem;
+        padding: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .city-collage-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 4px;
+    }
+
+    .city-collage-title {
+        font-size: 1.25rem;
+        padding: 0.5rem;
+    }
+}
+
+/* Thumbnail Map Markers */
+.thumbnail-marker-container {
+    transition: all 0.2s ease;
+}
+
+.thumbnail-marker-container:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+.thumbnail-marker-container.favorited {
+    border-color: #ef4444 !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+}
+
+.thumbnail-marker-container img {
+    border-radius: 50%;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+}
+
+.thumbnail-marker-container:hover img {
+    transform: scale(1.05);
+}
+
+/* Enhanced marker interactions */
+.restaurant-marker {
+    cursor: pointer;
+}
+
+.marker-wrapper {
+    transition: transform 0.2s ease;
+    transform-origin: center center;
+}
+
+.restaurant-marker:hover .marker-wrapper {
+    transform: scale(1.1);
+}
+
+.restaurant-marker:hover .thumbnail-marker-container,
+.restaurant-marker:hover .svg-marker-container {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+.restaurant-marker:hover .svg-marker-container.favorited {
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+}
 
 /* --- Creators Section Styles --- */
 .creators-section {
