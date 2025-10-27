@@ -2,7 +2,7 @@
 // This file contains all shared configuration constants for the ReelEats application
 
 // Centralized version number - update this single variable to change version everywhere
-export const versionNumber = '1.772';
+export const versionNumber = '1.782';
 
 export const CONFIG = {
     // Supabase Configuration
@@ -30,6 +30,12 @@ export const CONFIG = {
     VIDEO_CONFIG: {
         IFRAME_TIMEOUT: 3000,
         FALLBACK_DELAY: 100
+    },
+
+    // Feature Flags
+    FEATURE_FLAGS: {
+        THUMBNAIL_MARKERS: true,
+        CITY_COLLAGES: true
     },
     
     // Google Maps API Configuration

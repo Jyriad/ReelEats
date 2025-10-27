@@ -3944,16 +3944,49 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         function createNumberedMarker(restaurant, index) {
-            // Get the first cuisine icon, fallback to number if no cuisines
-            const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
-            const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const favoritedClass = isFavorited ? 'favorited' : '';
-            const icon = L.divIcon({
-                className: 'svg-marker',
-                html: `<div class="svg-marker-container ${favoritedClass}" style="
-                    width: 32px; 
-                    height: 32px; 
+
+            // Check if thumbnail markers feature is enabled
+            const useThumbnails = CONFIG.FEATURE_FLAGS.THUMBNAIL_MARKERS;
+
+            // Check if restaurant has a TikTok thumbnail
+            let markerHtml = '';
+            let iconSize = [32, 32];
+            let iconAnchor = [16, 16];
+
+            if (useThumbnails && restaurant.tiktok_thumbnail_url) {
+                // Use thumbnail as marker
+                markerHtml = `<div class="thumbnail-marker-container ${favoritedClass}" style="
+                    width: 32px;
+                    height: 32px;
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <img src="${restaurant.tiktok_thumbnail_url}"
+                         alt="${restaurant.name}"
+                         style="
+                             width: 28px;
+                             height: 28px;
+                             border-radius: 50%;
+                             object-fit: cover;
+                         "
+                         loading="lazy"
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"width: 20px; height: 20px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;\">🍽️</div>'">
+                </div>`;
+            } else {
+                // Fallback to cuisine icon or number
+                const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
+                const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
+                markerHtml = `<div class="svg-marker-container ${favoritedClass}" style="
+                    width: 32px;
+                    height: 32px;
                     background: white;
                     border: 2px solid #e5e7eb;
                     border-radius: 50%;
@@ -3963,9 +3996,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                     font-size: 13px;
                     font-weight: bold;
-                ">${displayContent}</div>`,
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
+                ">${displayContent}</div>`;
+            }
+
+            const icon = L.divIcon({
+                className: 'restaurant-marker',
+                html: markerHtml,
+                iconSize: iconSize,
+                iconAnchor: iconAnchor
             });
             
             const marker = L.marker([restaurant.lat, restaurant.lon], { 
@@ -5175,6 +5213,9 @@ async function showVideoFor(restaurant) {
         console.error("An error occurred during initialization:", error);
         document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
     }
+
+    // Load city collages for homepage
+    loadCityCollages();
 });
 
 // ========================================
@@ -5193,6 +5234,121 @@ function testPass(testName) {
     testResults.passed++;
     testResults.total++;
     console.log(`✅ ${testName}`);
+}
+
+// City collage functions
+async function loadCityCollages() {
+    // Only run on homepage and if feature is enabled
+    if (!CONFIG.FEATURE_FLAGS.CITY_COLLAGES) {
+        return;
+    }
+
+    if (!window.location.pathname.includes('index.html') && window.location.pathname !== '/') {
+        return;
+    }
+
+    const cityGrid = document.getElementById('city-grid');
+    if (!cityGrid) return;
+
+    try {
+        // Fetch all cities
+        const { data: cities, error: citiesError } = await supabaseClient
+            .from('cities')
+            .select('name')
+            .order('name', { ascending: true });
+
+        if (citiesError) {
+            console.error('Error fetching cities for collages:', citiesError);
+            return;
+        }
+
+        if (!cities || cities.length === 0) {
+            console.log('No cities found for collages');
+            return;
+        }
+
+        // For each city, fetch up to 12 random featured TikToks
+        for (const cityObj of cities) {
+            const cityName = cityObj.name;
+
+            // Fetch restaurants for this city
+            const { data: restaurants, error: restaurantsError } = await supabaseClient
+                .from('restaurants')
+                .select('id')
+                .ilike('city', cityName);
+
+            if (restaurantsError || !restaurants || restaurants.length === 0) {
+                console.log(`No restaurants found for ${cityName}, skipping collage`);
+                continue;
+            }
+
+            const restaurantIds = restaurants.map(r => r.id);
+
+            // Fetch up to 12 random featured TikToks for this city
+            const { data: tiktoks, error: tiktoksError } = await supabaseClient
+                .from('tiktoks')
+                .select('restaurant_id, embed_html, thumbnail_url, is_featured')
+                .in('restaurant_id', restaurantIds)
+                .eq('is_featured', true)
+                .limit(12);
+
+            if (tiktoksError) {
+                console.error(`Error fetching TikToks for ${cityName}:`, tiktoksError);
+                continue;
+            }
+
+            if (!tiktoks || tiktoks.length === 0) {
+                console.log(`No TikToks found for ${cityName}, skipping collage`);
+                continue;
+            }
+
+            // Shuffle and take up to 12 thumbnails
+            const shuffledTiktoks = tiktoks.sort(() => Math.random() - 0.5);
+            const selectedTiktoks = shuffledTiktoks.slice(0, 12);
+
+            // Create collage HTML
+            const collageHtml = createCityCollage(cityName, selectedTiktoks);
+            cityGrid.appendChild(collageHtml);
+        }
+
+        console.log('✅ City collages loaded successfully');
+
+    } catch (error) {
+        console.error('Error loading city collages:', error);
+    }
+}
+
+function createCityCollage(cityName, tiktoks) {
+    const collageCard = document.createElement('a');
+    collageCard.href = `/explore?city=${encodeURIComponent(cityName.toLowerCase())}`;
+    collageCard.className = 'city-collage-card';
+
+    const thumbnailsHtml = tiktoks.map(tiktok => {
+        const videoId = tiktok.embed_html.match(/data-video-id="([^"]+)"/)?.[1] || '';
+        const thumbnailUrl = tiktok.thumbnail_url || 'https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬';
+
+        return `
+            <div class="city-collage-thumbnail">
+                <img src="${thumbnailUrl}"
+                     alt="${cityName} TikTok"
+                     loading="lazy"
+                     onerror="this.src='https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬'">
+            </div>
+        `;
+    }).join('');
+
+    collageCard.innerHTML = `
+        <div class="city-collage-container">
+            <div class="city-collage-grid">
+                ${thumbnailsHtml}
+            </div>
+            <div class="city-collage-overlay">
+                <h3 class="city-collage-title">${cityName}</h3>
+            </div>
+        </div>
+    `;
+
+    return collageCard;
 }
 
 function testFail(testName, error = '') {
