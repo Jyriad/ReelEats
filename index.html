@@ -173,6 +173,7 @@
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script async src="https://www.tiktok.com/embed.js"></script>
+    <script src="script.js"></script>
     
     <script>
         // Homepage functionality
@@ -516,6 +517,9 @@
             
             // Load cities on page load
             await loadCities();
+
+            // Load city collages for homepage
+            loadCityCollages();
         });
     </script>
 </body>

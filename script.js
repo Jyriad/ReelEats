@@ -174,14 +174,26 @@ document.addEventListener('DOMContentLoaded', async function() {
             const path = window.location.pathname;
             const firstSegment = path.split('/')[1] || '';
 
+            // Check for URL query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryCity = urlParams.get('city');
+
             let city = null;
             let creatorHandle = null; // lowercase without leading @
             let formattedHeading = 'Explore All';
 
             if (firstSegment === '' || firstSegment === 'explore') {
-                formattedHeading = 'Explore All';
-                document.title = 'ReelGrub - Discover Your Next Spot';
-                console.log('🌍 Loading all restaurants (explore all)');
+                // Check for city query parameter first
+                if (queryCity) {
+                    city = queryCity;
+                    formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+                    document.title = `ReelGrub - ${formattedHeading}`;
+                    console.log(`🏙️ Loading restaurants for city (query): ${formattedHeading}`);
+                } else {
+                    formattedHeading = 'Explore All';
+                    document.title = 'ReelGrub - Discover Your Next Spot';
+                    console.log('🌍 Loading all restaurants (explore all)');
+                }
             } else if (firstSegment === 'city') {
                 // New city route: /city/:city
                 const cityParam = (path.split('/')[2] || '').trim();
@@ -203,6 +215,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                 document.title = `ReelGrub - ${formattedHeading}`;
                 console.log(`🏙️ Loading restaurants for city (legacy): ${formattedHeading}`);
+                // Redirect to new query parameter format
+                window.location.href = `/explore?city=${encodeURIComponent(city)}`;
+                return; // Exit early since we're redirecting
             }
             
             // Display the current city name in the new UI elements
@@ -2003,13 +2018,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         async function loadRestaurantsForCity(city = null) {
             // --- Load restaurants with optional city filtering ---
+            console.log('loadRestaurantsForCity called with city:', city);
 
             let query = supabaseClient
                 .from('restaurants')
                 .select('*');
 
-            // If a city is provided, filter by city name
+            // If a city is provided, filter by city name (try multiple approaches)
             if (city) {
+                // Try exact match first
                 query = query.ilike('city', city);
             }
 
@@ -2019,6 +2036,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (restaurantsError) {
                 console.error("Error fetching restaurants:", restaurantsError);
                 throw restaurantsError;
+            }
+
+            // If city filtering returned very few results, try a broader search
+            if (city && restaurants && restaurants.length < 5) {
+                const { data: broaderRestaurants, error: broaderError } = await supabaseClient
+                    .from('restaurants')
+                    .select('*')
+                    .ilike('city', `%${city}%`); // Contains search
+
+                if (!broaderError && broaderRestaurants && broaderRestaurants.length > restaurants.length) {
+                    restaurants.length = 0; // Clear array
+                    restaurants.push(...broaderRestaurants); // Add broader results
+                }
             }
 
             if (!restaurants || restaurants.length === 0) {
@@ -4865,7 +4895,7 @@ async function showVideoFor(restaurant) {
                     if (selectedCity === '') {
                         window.location.href = '/explore';
                     } else {
-                        window.location.href = `/${selectedCity}`;
+                        window.location.href = `/explore?city=${encodeURIComponent(selectedCity)}`;
                     }
                 }
             });
@@ -5214,8 +5244,6 @@ async function showVideoFor(restaurant) {
         document.body.innerHTML = `<div style="color: black; background: white; padding: 20px;"><h1>Something went wrong</h1><p>Could not load the map. Please check the developer console for more details.</p></div>`;
     }
 
-    // Load city collages for homepage
-    loadCityCollages();
 });
 
 // ========================================
@@ -5240,15 +5268,22 @@ function testPass(testName) {
 async function loadCityCollages() {
     // Only run on homepage and if feature is enabled
     if (!CONFIG.FEATURE_FLAGS.CITY_COLLAGES) {
+        console.log('City collages feature disabled');
         return;
     }
 
     if (!window.location.pathname.includes('index.html') && window.location.pathname !== '/') {
+        console.log('Not on homepage, skipping city collages');
         return;
     }
 
     const cityGrid = document.getElementById('city-grid');
-    if (!cityGrid) return;
+    if (!cityGrid) {
+        console.log('City grid element not found');
+        return;
+    }
+
+        console.log('Starting city collages load...');
 
     try {
         // Fetch all cities
@@ -5270,12 +5305,24 @@ async function loadCityCollages() {
         // For each city, fetch up to 12 random featured TikToks
         for (const cityObj of cities) {
             const cityName = cityObj.name;
+            console.log(`Processing city: ${cityName}`);
 
-            // Fetch restaurants for this city
-            const { data: restaurants, error: restaurantsError } = await supabaseClient
+            // Fetch restaurants for this city (try exact match first, then case-insensitive)
+            let { data: restaurants, error: restaurantsError } = await supabaseClient
                 .from('restaurants')
                 .select('id')
                 .ilike('city', cityName);
+
+            // If no exact match, try case-insensitive search
+            if (!restaurantsError && (!restaurants || restaurants.length === 0)) {
+                const { data: fallbackRestaurants, error: fallbackError } = await supabaseClient
+                    .from('restaurants')
+                    .select('id')
+                    .ilike('city', cityName.toLowerCase());
+
+                restaurants = fallbackRestaurants;
+                restaurantsError = fallbackError;
+            }
 
             if (restaurantsError || !restaurants || restaurants.length === 0) {
                 console.log(`No restaurants found for ${cityName}, skipping collage`);
@@ -5292,12 +5339,7 @@ async function loadCityCollages() {
                 .eq('is_featured', true)
                 .limit(12);
 
-            if (tiktoksError) {
-                console.error(`Error fetching TikToks for ${cityName}:`, tiktoksError);
-                continue;
-            }
-
-            if (!tiktoks || tiktoks.length === 0) {
+            if (tiktoksError || !tiktoks || tiktoks.length === 0) {
                 console.log(`No TikToks found for ${cityName}, skipping collage`);
                 continue;
             }
