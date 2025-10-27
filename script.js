@@ -1758,14 +1758,31 @@ document.addEventListener('DOMContentLoaded', async function() {
                             
                             // Create bunched individual icons
                             let bunchedIconsHtml = '';
+                            const useThumbnails = CONFIG.FEATURE_FLAGS.THUMBNAIL_MARKERS;
+                            
                             children.forEach((marker, index) => {
                                 const x = (index * offset) - (childCount - 1) * offset / 2;
                                 const y = (index * offset) - (childCount - 1) * offset / 2;
                                 
                                 // Get the marker's restaurant data to determine content
                                 const restaurant = marker.options.restaurant;
-                                const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
-                                const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
+                                
+                                // Use thumbnail if available and feature is enabled
+                                let displayContent = '';
+                                if (useThumbnails && restaurant.tiktok_thumbnail_url) {
+                                    displayContent = `<img src="${restaurant.tiktok_thumbnail_url}"
+                                         alt="${restaurant.name}"
+                                         style="
+                                             width: ${iconSize - 4}px;
+                                             height: ${iconSize - 4}px;
+                                             border-radius: 50%;
+                                             object-fit: cover;
+                                         "
+                                         loading="lazy"
+                                         onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\"font-size: 10px;\">${getMarkerContent(restaurant, index)}</span>'">`;
+                                } else {
+                                    displayContent = getMarkerContent(restaurant, index);
+                                }
                                 
                                 bunchedIconsHtml += `
                                     <div style="
@@ -1782,8 +1799,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                         align-items: center;
                                         justify-content: center;
                                         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                                        font-size: 13px;
-                                        font-weight: bold;
+                                        overflow: hidden;
                                         z-index: ${10 + index};
                                     ">${displayContent}</div>
                                 `;
@@ -3987,6 +4003,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             return listItem;
         }
 
+        // Helper function to get marker content (cuisine icon or number)
+        function getMarkerContent(restaurant, index) {
+            const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
+            return firstCuisine ? firstCuisine.icon : (index + 1);
+        }
+
         function createNumberedMarker(restaurant, index) {
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const favoritedClass = isFavorited ? 'favorited' : '';
@@ -4026,8 +4048,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>`;
             } else {
                 // Fallback to cuisine icon or number
-                const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
-                const displayContent = firstCuisine ? firstCuisine.icon : (index + 1);
+                const displayContent = getMarkerContent(restaurant, index);
                 markerHtml = `<div class="svg-marker-container ${favoritedClass}" style="
                     width: 32px; 
                     height: 32px; 
