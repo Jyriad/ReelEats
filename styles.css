@@ -2049,7 +2049,8 @@ body.homepage .header {
 }
 
 .restaurant-marker > div {
-    transition: width 0.2s ease, height 0.2s ease, transform 0.2s ease;
+    transition: transform 0.2s ease;
+    transform-origin: center center;
 }
 
 .restaurant-marker:hover .thumbnail-marker-container,

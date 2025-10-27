@@ -4111,12 +4111,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             if (marker) {
-                // Scale up the marker by 20% by increasing the icon size
+                // Scale up the marker by 20% using CSS transform
                 const iconElement = marker.getElement();
                 if (iconElement) {
-                    iconElement.style.width = '60px';
-                    iconElement.style.height = '60px';
-                    iconElement.style.transform = 'translate(-5px, -5px)';
+                    iconElement.style.transform = 'scale(1.2)';
+                    iconElement.style.transformOrigin = 'center center';
                     iconElement.classList.add('highlighted');
                 }
             }
@@ -4136,12 +4135,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             if (marker) {
-                // Reset the marker size to normal
+                // Reset the marker scale to normal
                 const iconElement = marker.getElement();
                 if (iconElement) {
-                    iconElement.style.width = '50px';
-                    iconElement.style.height = '50px';
-                    iconElement.style.transform = 'translate(0, 0)';
+                    iconElement.style.transform = 'scale(1)';
                     iconElement.classList.remove('highlighted');
                 }
             }
