@@ -1773,13 +1773,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                                     displayContent = `<img src="${restaurant.tiktok_thumbnail_url}"
                                          alt="${restaurant.name}"
                                          style="
-                                             width: ${iconSize - 4}px;
-                                             height: ${iconSize - 4}px;
-                                             border-radius: 50%;
+                                             width: ${iconSize}px;
+                                             height: ${iconSize}px;
                                              object-fit: cover;
                                          "
-                                         loading="lazy"
-                                         onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\"font-size: 10px;\">${getMarkerContent(restaurant, index)}</span>'">`;
+                                         loading="lazy">`;
                                 } else {
                                     displayContent = getMarkerContent(restaurant, index);
                                 }
@@ -4031,20 +4029,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     border-radius: 50%;
                     overflow: hidden;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
                 ">
                     <img src="${restaurant.tiktok_thumbnail_url}"
                          alt="${restaurant.name}"
                          style="
-                             width: 28px;
-                             height: 28px;
-                             border-radius: 50%;
+                             width: 100%;
+                             height: 100%;
                              object-fit: cover;
-                         "
-                         loading="lazy"
-                         onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"width: 20px; height: 20px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;\">🍽️</div>'">
+                         ">
                 </div>`;
             } else {
                 // Fallback to cuisine icon or number
