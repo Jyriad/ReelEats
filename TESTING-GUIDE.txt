@@ -10,49 +10,49 @@ Complete test scenarios for verifying all functionality after refactor
 ## Normal User Flow
 
 ### 1. Homepage (index.html)
-- [ ] Page loads without errors
-- [ ] City collages appear (Birmingham, Bristol, London)
-- [ ] City collage thumbnails load (12 per city)
-- [ ] Click on city collage → navigates to explore page with city filter
-- [ ] Search input shows autocomplete dropdown
-- [ ] Type "London" → shows London in dropdown
-- [ ] Click search button → navigates to explore page
-- [ ] Click "Sign In" → opens auth modal
-- [ ] Close modal with X button
-- [ ] Click "Sign Up" → opens signup form in modal
-- [ ] Switch between login/signup forms works
-- [ ] Navigate away and back → page loads correctly
+- [x] Page loads without errors
+- [x] City collages appear (Birmingham, Bristol, London)
+- [x] City collage thumbnails load (12 per city)
+- [x] Click on city collage → navigates to explore page with city filter
+- [x] Search input shows autocomplete dropdown
+- [x] Type "London" → shows London in dropdown
+- [x] Click search button → navigates to explore page
+- [x] Click "Sign In" → opens auth modal
+- [x] Close modal with X button
+- [x] Click "Sign Up" → opens signup form in modal
+- [x] Switch between login/signup forms works
+- [x] Navigate away and back → page loads correctly
 
 ### 2. Explore Page (explore.html)
-- [ ] Map renders correctly
-- [ ] Restaurant markers appear on map (circular thumbnails)
-- [ ] Click marker → opens video modal
-- [ ] Video modal shows TikTok embed
-- [ ] Close video modal with X button
-- [ ] Restaurant list appears below map/on mobile drawer
-- [ ] Click restaurant card → opens video modal and zooms map to location
-- [ ] Mobile drawer pulls smoothly up/down
-- [ ] Mobile drawer can collapse to handle-only view
-- [ ] Mobile drawer can expand to nearly full screen
-- [ ] Filter by cuisine type works
-- [ ] Favorite button toggles (star icon)
-- [ ] Collection button toggles (bookmark icon)
-- [ ] Favorite button persists across page reloads
-- [ ] Hover over restaurant card → corresponding marker grows 20%
-- [ ] Search bar filters restaurants
-- [ ] City switcher shows all cities
-- [ ] Switch city → map updates with new restaurants
-- [ ] URL query parameter ?city=london works
-- [ ] Navigate back → remembers previous state
+- [x] Map renders correctly
+- [x] Restaurant markers appear on map (circular thumbnails)
+- [x] Click marker → opens video modal
+- [x] Video modal shows TikTok embed
+- [x] Close video modal with X button
+- [x] Restaurant list appears below map/on mobile drawer
+- [x] Click restaurant card → opens video modal and zooms map to location
+- [x] Mobile drawer pulls smoothly up/down
+- [ ?] Mobile drawer can collapse to handle-only view
+- [x] Mobile drawer can expand to nearly full screen
+- [x] Filter by cuisine type works
+- [x] Favorite button toggles (star icon)
+- [x] Collection button toggles (bookmark icon)
+- [x] Favorite button persists across page reloads
+- [x] Hover over restaurant card → corresponding marker grows 20%
+- [?] Search bar filters restaurants
+- [x] City switcher shows all cities
+- [x] Switch city → map updates with new restaurants
+- [x] URL query parameter ?city=london works
+- [x] Navigate back → remembers previous state
 
 ### 3. City-Specific Pages
-- [ ] Navigate to /explore?city=london
-- [ ] Only London restaurants show
-- [ ] Map bounds fit to London restaurants
-- [ ] Navigate to /explore?city=bristol
-- [ ] Only Bristol restaurants show
-- [ ] Navigate to /explore (no city)
-- [ ] All restaurants show
+- [x] Navigate to /explore?city=london
+- [x] Only London restaurants show
+- [x] Map bounds fit to London restaurants
+- [x] Navigate to /explore?city=bristol
+- [x] Only Bristol restaurants show
+- [x] Navigate to /explore (no city)
+- [x] All restaurants show
 
 ### 4. Authentication Flow
 - [ ] Click "Sign In" on any page

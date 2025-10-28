@@ -3643,15 +3643,40 @@ document.addEventListener('DOMContentLoaded', async function() {
                         videoCollectionBtn.title = 'Remove from Collections';
                     }
                     
+                    // Update the modal to show "Remove" instead of "Add"
+                    const modal = document.getElementById('collection-selection-modal');
+                    if (modal) {
+                        // Update the button text and state
+                        const addToCollectionBtn = document.querySelector(`[data-restaurant-id="${restaurantId}"].add-to-collection-btn`);
+                        if (addToCollectionBtn) {
+                            addToCollectionBtn.classList.add('collected');
+                            addToCollectionBtn.title = 'Remove from Collections';
+                        }
+                        
+                        // Update modal content to show current state
+                        const modalContent = modal.querySelector('.max-h-96');
+                        if (modalContent) {
+                            // Add a success indicator
+                            const successDiv = document.createElement('div');
+                            successDiv.className = 'p-4 bg-green-50 border-b border-green-200 text-green-800 text-center';
+                            successDiv.innerHTML = '✅ Added to collection! Click "Add to Collection" again to remove.';
+                            modalContent.insertBefore(successDiv, modalContent.firstChild);
+                            
+                            // Auto-remove success message after 2 seconds
+                            setTimeout(() => {
+                                if (successDiv.parentNode) {
+                                    successDiv.remove();
+                                }
+                            }, 2000);
+                        }
+                    }
+                    
                     // Re-display restaurants to show updated collection status
                     if (currentRestaurants && currentRestaurants.length > 0) {
                         logger.info('Re-displaying restaurants after adding to collection');
                         await applyAllFiltersAndDisplay();
                     }
                 }
-                
-                // Close the modal
-                document.getElementById('collection-selection-modal').remove();
             }
             
             // Check if clicked on create collection option
