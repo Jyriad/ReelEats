@@ -155,6 +155,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Check if essential elements exist (skip for homepage)
         const isHomepage = window.location.pathname.includes('index.html') || window.location.pathname === '/';
 
+        // Load city collages for homepage before any early returns
+        if (isHomepage) {
+            loadCityCollages();
+        }
+
         if (!mapElement) {
             if (isHomepage) {
                 logger.info('Homepage detected - no map element needed');
