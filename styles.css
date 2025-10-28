@@ -1947,11 +1947,32 @@ body.homepage .header {
     gap: 2px;
     padding: 8px;
     height: 100%;
+    min-height: 0;
+    align-items: stretch;
 }
 
 .city-collage-thumbnail {
     overflow: hidden;
     border-radius: 4px;
+    aspect-ratio: 1;
+    min-height: 0;
+    background: #f3f4f6;
+    position: relative;
+}
+
+/* Fallback for browsers without aspect-ratio support */
+@supports not (aspect-ratio: 1) {
+    .city-collage-thumbnail::before {
+        content: '';
+        display: block;
+        padding-top: 100%; /* 1:1 aspect ratio fallback */
+    }
+    
+    .city-collage-thumbnail img {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
 }
 
 .city-collage-thumbnail img {
@@ -1959,6 +1980,7 @@ body.homepage .header {
     height: 100%;
     object-fit: cover;
     transition: transform 0.2s ease;
+    display: block;
 }
 
 .city-collage-card:hover .city-collage-thumbnail img {
@@ -1980,6 +2002,32 @@ body.homepage .header {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* City Collage Skeleton Loader */
+.city-collage-skeleton {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 300px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+.city-collage-skeleton-thumbnail {
+    background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 .city-collage-title {

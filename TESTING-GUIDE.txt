@@ -1,0 +1,268 @@
+# ReelGrub Testing Guide
+Complete test scenarios for verifying all functionality after refactor
+
+## Setup
+1. Open DevTools (F12) to check console logs
+2. Test in both Chrome and Firefox
+3. Test on mobile device or responsive mode (375px width)
+4. Clear browser cache before testing
+
+## Normal User Flow
+
+### 1. Homepage (index.html)
+- [x] Page loads without errors
+- [x] City collages appear (Birmingham, Bristol, London)
+- [x] City collage thumbnails load (12 per city)
+- [x] Click on city collage → navigates to explore page with city filter
+- [x] Search input shows autocomplete dropdown
+- [x] Type "London" → shows London in dropdown
+- [x] Click search button → navigates to explore page
+- [x] Click "Sign In" → opens auth modal
+- [x] Close modal with X button
+- [x] Click "Sign Up" → opens signup form in modal
+- [x] Switch between login/signup forms works
+- [x] Navigate away and back → page loads correctly
+
+### 2. Explore Page (explore.html)
+- [x] Map renders correctly
+- [x] Restaurant markers appear on map (circular thumbnails)
+- [x] Click marker → opens video modal
+- [x] Video modal shows TikTok embed
+- [x] Close video modal with X button
+- [x] Restaurant list appears below map/on mobile drawer
+- [x] Click restaurant card → opens video modal and zooms map to location
+- [x] Mobile drawer pulls smoothly up/down
+- [ ?] Mobile drawer can collapse to handle-only view
+- [x] Mobile drawer can expand to nearly full screen
+- [x] Filter by cuisine type works
+- [x] Favorite button toggles (star icon)
+- [x] Collection button toggles (bookmark icon)
+- [x] Favorite button persists across page reloads
+- [x] Hover over restaurant card → corresponding marker grows 20%
+- [?] Search bar filters restaurants
+- [x] City switcher shows all cities
+- [x] Switch city → map updates with new restaurants
+- [x] URL query parameter ?city=london works
+- [x] Navigate back → remembers previous state
+
+### 3. City-Specific Pages
+- [x] Navigate to /explore?city=london
+- [x] Only London restaurants show
+- [x] Map bounds fit to London restaurants
+- [x] Navigate to /explore?city=bristol
+- [x] Only Bristol restaurants show
+- [x] Navigate to /explore (no city)
+- [x] All restaurants show
+
+### 4. Authentication Flow
+- [ ] Click "Sign In" on any page
+- [ ] Enter email and password
+- [ ] Submit → success message shows or navigates
+- [ ] Click "Sign Up"
+- [ ] Enter email and password
+- [ ] Submit → success message shows
+- [ ] Click "Continue with Google"
+- [ ] OAuth flow completes (or shows error)
+- [ ] Logged in state persists on page reload
+- [ ] Click logout → returns to logged out state
+- [ ] Auth modal remembers last form (login/signup)
+
+### 5. Collections
+- [ ] Click collection button on restaurant
+- [ ] Popup shows "Add to collection"
+- [ ] Click → button turns red/collected
+- [ ] Refresh page → collection status persists
+- [ ] Create named collection
+- [ ] Add multiple restaurants to collection
+- [ ] Open collection management modal
+- [ ] Remove restaurant from collection
+- [ ] Collection button updates accordingly
+
+### 6. Favorites
+- [ ] Click favorite button (star)
+- [ ] Button turns yellow/favorited
+- [ ] Refresh page → favorite persists
+- [ ] Click again → unfavorites
+- [ ] Multiple favorites work correctly
+
+### 7. Video Modal
+- [ ] Click restaurant card
+- [ ] Video modal opens
+- [ ] TikTok embed loads
+- [ ] Video plays
+- [ ] Close modal
+- [ ] Open different restaurant
+- [ ] Different video loads
+- [ ] Modal remembers video position on reopen
+- [ ] Watched indicator appears after watching
+
+## Creator Flow
+
+### 1. Creator Dashboard (dashboard.html)
+- [ ] Login as creator
+- [ ] Dashboard loads creator's restaurants
+- [ ] Click "Add New Restaurant"
+- [ ] Form appears
+- [ ] Enter restaurant name → validates
+- [ ] Enter address → Google autocomplete works
+- [ ] Enter TikTok URL → validates
+- [ ] Submit → success message
+- [ ] New restaurant appears in list
+- [ ] Click restaurant → shows on map preview
+- [ ] Edit restaurant details
+- [ ] Changes save correctly
+- [ ] Delete restaurant → confirmation shown
+
+### 2. TikTok Video Management
+- [ ] Click "Validate TikTok"
+- [ ] Enter TikTok URL
+- [ ] Thumbnail fetches automatically
+- [ ] Submit → video added to restaurant
+- [ ] Thumbnail appears in list
+- [ ] Click thumbnail → video modal opens
+- [ ] Remove TikTok video → updates correctly
+
+## Admin Flow
+
+### 1. Admin Page (admin.html)
+- [ ] Login with admin credentials
+- [ ] Admin page loads
+- [ ] Google Maps loads (secure API key)
+- [ ] View all restaurants
+- [ ] Edit restaurant details
+- [ ] Add TikTok video
+- [ ] Approve pending submissions
+- [ ] Reject submissions
+- [ ] Add new restaurant manually
+- [ ] Delete restaurant
+- [ ] View pending submissions list
+- [ ] Filter submissions by status
+
+## Performance Checks
+
+### Lighthouse Audit (Chrome DevTools)
+- [ ] Performance Score > 90
+- [ ] Accessibility Score > 90
+- [ ] Best Practices Score > 90
+- [ ] SEO Score > 85
+
+### Loading Times (Network Tab)
+- [ ] Homepage loads < 2s on 3G
+- [ ] Explore page renders < 3s on 3G
+- [ ] First Contentful Paint < 1.5s
+- [ ] Time to Interactive < 3s
+- [ ] Total blocking time < 200ms
+
+### Console Checks
+- [ ] No console errors in production
+- [ ] No console logs in production (except errors)
+- [ ] Dev mode shows [INFO], [DEBUG] tags
+- [ ] Error logs are clearly marked [ERROR]
+
+### Image Optimization
+- [ ] All images have loading="lazy"
+- [ ] Above-fold images have fetchpriority="high"
+- [ ] Images load progressively
+- [ ] Skeleton loaders appear before images
+- [ ] Broken images don't cause layout shifts
+
+### Network Requests
+- [ ] API calls are debounced (300ms search)
+- [ ] Map markers batch update correctly
+- [ ] No duplicate requests
+- [ ] Failed requests retry (3 attempts)
+
+## Mobile Testing (375px width)
+
+### Touch Interactions
+- [ ] Mobile drawer drags smoothly
+- [ ] No jitter or lag on drag
+- [ ] Double-tap expands drawer
+- [ ] Single tap closes to minimal state
+- [ ] Scroll works in drawer
+- [ ] Map pan works correctly
+- [ ] Pinch zoom works on map
+- [ ] Buttons are touch-friendly (44px+)
+- [ ] No accidental taps
+
+### Responsive Layout
+- [ ] Header collapses correctly
+- [ ] City collages stack on mobile
+- [ ] Restaurant cards readable
+- [ ] Search input accessible
+- [ ] Modals fit on screen
+- [ ] Footer visible
+
+## Error Handling
+
+### Network Errors
+- [ ] Disconnect network
+- [ ] Try to load page
+- [ ] Error message shows
+- [ ] Retry option appears
+- [ ] Reconnect → page works
+
+### Validation Errors
+- [ ] Invalid email format → error message
+- [ ] Invalid TikTok URL → error message
+- [ ] Empty required fields → error message
+- [ ] Error messages are user-friendly
+
+### Edge Cases
+- [ ] No restaurants in city → shows message
+- [ ] Restaurant with no TikTok → fallback works
+- [ ] Restaurant with no location → handles gracefully
+- [ ] Invalid coordinates → doesn't crash
+- [ ] Very long descriptions → truncates correctly
+
+## Browser Compatibility
+- [ ] Chrome (latest)
+- [ ] Firefox (latest)
+- [ ] Safari (latest)
+- [ ] Edge (latest)
+- [ ] Mobile Safari (iOS)
+- [ ] Chrome Mobile (Android)
+
+## Security Checks
+- [ ] No API keys visible in page source
+- [ ] Google Maps API key not exposed
+- [ ] Supabase anon key only (expected)
+- [ ] Service role key not in client code
+- [ ] HTTPS enforced on production
+
+## Data Persistence
+- [ ] Favorites persist after reload
+- [ ] Collections persist after reload
+- [ ] Watched videos persist
+- [ ] User location permission remembers
+- [ ] City cache expires after 24h correctly
+
+## Regression Tests
+
+### Smoke Test (5 minutes)
+1. Load homepage
+2. Click city collage
+3. Click marker on map
+4. Watch video
+5. Add to favorites
+6. Reload page
+7. Verify favorites persisted
+
+### Full Test (30 minutes)
+Run all checkboxes above in order
+
+### Critical Path Test
+1. Sign up as new user
+2. Browse restaurants
+3. Add favorites and collections
+4. Upload restaurant as creator
+5. Approve as admin
+6. View approved restaurant as normal user
+
+## Notes
+- Mark tests as passed with [x] or failed with [ ]
+- Document any bugs found
+- Include browser version and OS
+- Screenshot any errors
+- Test on production URL when deployed
+

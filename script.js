@@ -1,3 +1,13 @@
+// --- Conditional Logger (Dev Mode Only) ---
+const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const logger = {
+  info: (...args) => isDev && console.log('[INFO]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args), // Always log errors
+  warn: (...args) => isDev && console.warn('[WARN]', ...args),
+  debug: (...args) => isDev && console.log('[DEBUG]', ...args),
+  log: (...args) => isDev && console.log(...args)
+};
+
 // --- Supabase Client Initialization (Fallback) ---
 const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
@@ -44,10 +54,10 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
         const iframe = videoContainer.querySelector('iframe');
         if (iframe) {
             iframe.onload = () => {
-                console.log('✅ Direct iframe loaded');
+                logger.info('✅ Direct iframe loaded');
             };
             iframe.onerror = () => {
-                console.log('❌ Direct iframe failed, trying blockquote...');
+                logger.info('❌ Direct iframe failed, trying blockquote...');
                 fallbackFunction();
             };
             
@@ -55,11 +65,11 @@ function handleIframeLoading(videoContainer, embedHtml, fallbackFunction) {
                 try {
                     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
                     if (!iframeDoc || iframeDoc.body.children.length === 0) {
-                        console.log('⚠️ Iframe appears empty, trying blockquote...');
+                        logger.info('⚠️ Iframe appears empty, trying blockquote...');
                         fallbackFunction();
                     }
                 } catch (e) {
-                    console.log('✅ Iframe cross-origin (likely working)');
+                    logger.info('✅ Iframe cross-origin (likely working)');
                 }
             }, CONFIG.VIDEO_CONFIG.IFRAME_TIMEOUT);
         }
@@ -145,16 +155,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Check if essential elements exist (skip for homepage)
         const isHomepage = window.location.pathname.includes('index.html') || window.location.pathname === '/';
 
+        // Load city collages for homepage before any early returns
+        if (isHomepage) {
+            loadCityCollages();
+        }
+
         if (!mapElement) {
             if (isHomepage) {
-                console.log('Homepage detected - no map element needed');
+                logger.info('Homepage detected - no map element needed');
                 return; // Exit early for homepage
             }
             throw new Error('Map element not found');
         }
         if (!restaurantList) {
             if (isHomepage) {
-                console.log('Homepage detected - no restaurant list needed');
+                logger.info('Homepage detected - no restaurant list needed');
                 return; // Exit early for homepage
             }
             throw new Error('Restaurant list element not found');
@@ -202,11 +217,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     city = queryCity;
                     formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                     document.title = `ReelGrub - ${formattedHeading}`;
-                    console.log(`🏙️ Loading restaurants for city (query): ${formattedHeading}`);
+                    logger.info(`🏙️ Loading restaurants for city (query): ${formattedHeading}`);
                 } else {
                 formattedHeading = 'Explore All';
                 document.title = 'ReelGrub - Discover Your Next Spot';
-                console.log('🌍 Loading all restaurants (explore all)');
+                logger.info('🌍 Loading all restaurants (explore all)');
                 }
             } else if (firstSegment === 'city') {
                 // New city route: /city/:city
@@ -215,20 +230,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                     city = cityParam;
                     formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                     document.title = `ReelGrub - ${formattedHeading}`;
-                    console.log(`🏙️ Loading restaurants for city: ${formattedHeading}`);
+                    logger.info(`🏙️ Loading restaurants for city: ${formattedHeading}`);
                 }
             } else if (firstSegment.startsWith('@')) {
                 // Creator route: /@handle
                 creatorHandle = firstSegment.substring(1).toLowerCase();
                 formattedHeading = `@${creatorHandle}`;
                 document.title = `ReelGrub - ${formattedHeading}`;
-                console.log(`👤 Loading restaurants for creator: ${formattedHeading}`);
+                logger.info(`👤 Loading restaurants for creator: ${formattedHeading}`);
             } else {
                 // Back-compat: treat bare /:city as city until old links fade
                 city = firstSegment;
                 formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                 document.title = `ReelGrub - ${formattedHeading}`;
-                console.log(`🏙️ Loading restaurants for city (legacy): ${formattedHeading}`);
+                logger.info(`🏙️ Loading restaurants for city (legacy): ${formattedHeading}`);
                 // Redirect to new query parameter format
                 window.location.href = `/explore?city=${encodeURIComponent(city)}`;
                 return; // Exit early since we're redirecting
@@ -296,14 +311,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const savedCuisines = localStorage.getItem('selectedCuisines');
             if (savedCuisines) {
                 selectedCuisines = new Set(JSON.parse(savedCuisines));
-                console.log('🔄 Loaded saved cuisines:', Array.from(selectedCuisines));
+                logger.info('🔄 Loaded saved cuisines:', Array.from(selectedCuisines));
             }
             
             // Load selected collections
             const savedCollections = localStorage.getItem('selectedCollections');
             if (savedCollections) {
                 selectedCollections = new Set(JSON.parse(savedCollections));
-                console.log('🔄 Loaded saved collections:', Array.from(selectedCollections));
+                logger.info('🔄 Loaded saved collections:', Array.from(selectedCollections));
             }
         }
         
@@ -311,7 +326,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         function saveFilterStates() {
             localStorage.setItem('selectedCuisines', JSON.stringify(Array.from(selectedCuisines)));
             localStorage.setItem('selectedCollections', JSON.stringify(Array.from(selectedCollections)));
-            console.log('💾 Saved filter states:', {
+            logger.info('💾 Saved filter states:', {
                 cuisines: Array.from(selectedCuisines),
                 collections: Array.from(selectedCollections)
             });
@@ -536,7 +551,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         collectedRestaurants.add(item.restaurant_id); // numeric version
                         collectedRestaurants.add(String(item.restaurant_id)); // string version
                     });
-                    console.log('Loaded collected restaurants:', collectedRestaurants);
+                    logger.info('Loaded collected restaurants:', collectedRestaurants);
                 }
             } catch (error) {
                 console.error('Error loading collected restaurants:', error);
@@ -639,8 +654,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Load restaurants for specific collections
         async function loadRestaurantsForCollections(collectionIds) {
-            console.log('🔄 Loading restaurants for collections:', collectionIds);
-            console.log('🔄 Collection IDs type and values:', collectionIds.map(id => ({ id, type: typeof id })));
+            logger.info('🔄 Loading restaurants for collections:', collectionIds);
+            logger.info('🔄 Collection IDs type and values:', collectionIds.map(id => ({ id, type: typeof id })));
             if (collectionIds.length === 0) return;
 
             const { data: { user } } = await supabaseClient.auth.getUser();
@@ -652,7 +667,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             try {
                 // Convert collection IDs to numbers in case they're strings
                 const numericCollectionIds = collectionIds.map(id => parseInt(id, 10));
-                console.log('🔢 Converted to numeric IDs:', numericCollectionIds);
+                logger.info('🔢 Converted to numeric IDs:', numericCollectionIds);
 
                 const { data, error } = await supabaseClient
                     .from('collection_restaurants')
@@ -662,7 +677,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (error) {
                     console.error('❌ Error loading collection restaurants:', error);
                     // Try without conversion as fallback
-                    console.log('🔄 Trying with original IDs as fallback...');
+                    logger.info('🔄 Trying with original IDs as fallback...');
                     const { data: fallbackData, error: fallbackError } = await supabaseClient
                         .from('collection_restaurants')
                         .select('restaurant_id, collection_id')
@@ -671,18 +686,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (fallbackError) {
                         console.error('❌ Fallback also failed:', fallbackError);
                     } else {
-                        console.log('✅ Fallback succeeded with data:', fallbackData);
+                        logger.info('✅ Fallback succeeded with data:', fallbackData);
                         data = fallbackData;
                     }
                 } else {
-                    console.log('✅ Collection restaurant data found:', data);
-                    console.log('📊 Number of records found:', data?.length || 0);
+                    logger.info('✅ Collection restaurant data found:', data);
+                    logger.info('📊 Number of records found:', data?.length || 0);
                 }
 
                 if (data && data.length > 0) {
                     // Store mappings for each collection with both string and numeric keys
                     data.forEach(item => {
-                        console.log(`🔗 Mapping: Collection ${item.collection_id} -> Restaurant ${item.restaurant_id}`);
+                        logger.info(`🔗 Mapping: Collection ${item.collection_id} -> Restaurant ${item.restaurant_id}`);
                         
                         const numericCollectionId = parseInt(item.collection_id, 10);
                         const stringCollectionId = String(item.collection_id);
@@ -699,11 +714,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                         collectionRestaurantMappings.get(stringCollectionId).add(item.restaurant_id);
                         
-                        console.log(`✅ Stored mapping for both ${numericCollectionId} (number) and "${stringCollectionId}" (string)`);
+                        logger.info(`✅ Stored mapping for both ${numericCollectionId} (number) and "${stringCollectionId}" (string)`);
                     });
-                    console.log('🗺️ Final collection restaurant mappings:', collectionRestaurantMappings);
+                    logger.info('🗺️ Final collection restaurant mappings:', collectionRestaurantMappings);
                 } else {
-                    console.warn('⚠️ No restaurant mappings found for collections:', collectionIds);
+                    logger.warn('⚠️ No restaurant mappings found for collections:', collectionIds);
                     
                     // Let's also check if the collections actually exist
                     const { data: collectionCheck, error: collectionError } = await supabaseClient
@@ -714,7 +729,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (collectionError) {
                         console.error('❌ Error checking collections:', collectionError);
                     } else {
-                        console.log('🏷️ Collections that exist:', collectionCheck);
+                        logger.info('🏷️ Collections that exist:', collectionCheck);
                     }
                 }
             } catch (error) {
@@ -724,17 +739,17 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Combined filter function that applies both cuisine and collection filters
         async function applyAllFilters(restaurants) {
-            console.log('🎯 Starting combined filter process');
-            console.log('Total restaurants to filter:', restaurants.length);
-            console.log('selectedCollections.size:', selectedCollections.size);
-            console.log('selectedCollections contents:', Array.from(selectedCollections));
+            logger.info('🎯 Starting combined filter process');
+            logger.info('Total restaurants to filter:', restaurants.length);
+            logger.info('selectedCollections.size:', selectedCollections.size);
+            logger.info('selectedCollections contents:', Array.from(selectedCollections));
             
             let filteredRestaurants = [...restaurants]; // Start with all restaurants
             window.filteredRestaurants = filteredRestaurants; // Make it globally accessible
             
             // Apply cuisine filter first
             const selectedCuisines = getSelectedCuisines();
-            console.log('Selected cuisines:', selectedCuisines);
+            logger.info('Selected cuisines:', selectedCuisines);
             
             if (selectedCuisines.length > 0) {
                 filteredRestaurants = filteredRestaurants.filter(restaurant => {
@@ -742,42 +757,42 @@ document.addEventListener('DOMContentLoaded', async function() {
                         selectedCuisines.includes(cuisine.name)
                     );
                 });
-                console.log(`🍽️ After cuisine filter: ${filteredRestaurants.length} restaurants`);
+                logger.info(`🍽️ After cuisine filter: ${filteredRestaurants.length} restaurants`);
             }
             
             // Apply collection filter second
-            console.log('Selected collections:', Array.from(selectedCollections));
+            logger.info('Selected collections:', Array.from(selectedCollections));
             
             if (selectedCollections.size > 0) {
                 filteredRestaurants = await filterRestaurantsByCollections(filteredRestaurants);
-                console.log(`📚 After collection filter: ${filteredRestaurants.length} restaurants`);
+                logger.info(`📚 After collection filter: ${filteredRestaurants.length} restaurants`);
             } else {
-                console.log('📚 No collection filter applied - showing all restaurants');
+                logger.info('📚 No collection filter applied - showing all restaurants');
             }
             
-            console.log(`🎉 Final filtered results: ${filteredRestaurants.length} restaurants`);
+            logger.info(`🎉 Final filtered results: ${filteredRestaurants.length} restaurants`);
             return filteredRestaurants;
         }
 
         // Filter restaurants by selected collections
         async function filterRestaurantsByCollections(restaurants) {
-            console.log('🔍 Starting collection filter process');
-            console.log('Selected collections:', Array.from(selectedCollections));
-            console.log('Total restaurants to filter:', restaurants.length);
-            console.log('Current collectionRestaurantMappings size:', collectionRestaurantMappings.size);
-            console.log('Current collectionRestaurantMappings contents:', Array.from(collectionRestaurantMappings.entries()));
+            logger.info('🔍 Starting collection filter process');
+            logger.info('Selected collections:', Array.from(selectedCollections));
+            logger.info('Total restaurants to filter:', restaurants.length);
+            logger.info('Current collectionRestaurantMappings size:', collectionRestaurantMappings.size);
+            logger.info('Current collectionRestaurantMappings contents:', Array.from(collectionRestaurantMappings.entries()));
 
             if (selectedCollections.size === 0) {
-                console.log('No collections selected, returning all restaurants');
+                logger.info('No collections selected, returning all restaurants');
                 return restaurants;
             }
             
             try {
                 // Load restaurant mappings for selected collections
-                console.log('🔄 Loading restaurant mappings for collections:', Array.from(selectedCollections));
+                logger.info('🔄 Loading restaurant mappings for collections:', Array.from(selectedCollections));
                 await loadRestaurantsForCollections(Array.from(selectedCollections));
-                console.log('🔄 After loading - collectionRestaurantMappings size:', collectionRestaurantMappings.size);
-                console.log('🔄 After loading - collectionRestaurantMappings contents:', Array.from(collectionRestaurantMappings.entries()));
+                logger.info('🔄 After loading - collectionRestaurantMappings size:', collectionRestaurantMappings.size);
+                logger.info('🔄 After loading - collectionRestaurantMappings contents:', Array.from(collectionRestaurantMappings.entries()));
 
                 // Get all restaurant IDs that are in any of the selected collections
                 const restaurantIdsInCollections = new Set();
@@ -786,9 +801,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const numericId = parseInt(collectionId, 10);
                     const stringId = String(collectionId);
                     
-                    console.log(`🔍 Looking for collection ${collectionId} (type: ${typeof collectionId})`);
-                    console.log(`🔍 Trying numeric version: ${numericId}`);
-                    console.log(`🔍 Trying string version: "${stringId}"`);
+                    logger.info(`🔍 Looking for collection ${collectionId} (type: ${typeof collectionId})`);
+                    logger.info(`🔍 Trying numeric version: ${numericId}`);
+                    logger.info(`🔍 Trying string version: "${stringId}"`);
                     
                     let restaurantsInCollection = collectionRestaurantMappings.get(collectionId);
                     if (!restaurantsInCollection) {
@@ -798,8 +813,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         restaurantsInCollection = collectionRestaurantMappings.get(stringId);
                     }
                     
-                    console.log(`Collection ${collectionId} has restaurants:`, restaurantsInCollection ? Array.from(restaurantsInCollection) : 'none');
-                    console.log('🗺️ Available mappings keys:', Array.from(collectionRestaurantMappings.keys()));
+                    logger.info(`Collection ${collectionId} has restaurants:`, restaurantsInCollection ? Array.from(restaurantsInCollection) : 'none');
+                    logger.info('🗺️ Available mappings keys:', Array.from(collectionRestaurantMappings.keys()));
                     
                     if (restaurantsInCollection) {
                         restaurantsInCollection.forEach(restaurantId => {
@@ -808,22 +823,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 });
 
-                console.log('🎯 Restaurant IDs in selected collections:', Array.from(restaurantIdsInCollections));
+                logger.info('🎯 Restaurant IDs in selected collections:', Array.from(restaurantIdsInCollections));
 
                 if (restaurantIdsInCollections.size === 0) {
-                    console.warn('⚠️ No restaurants found in selected collections');
+                    logger.warn('⚠️ No restaurants found in selected collections');
                     return [];
                 }
 
                 const filtered = restaurants.filter(restaurant => {
                     const isInCollection = restaurantIdsInCollections.has(restaurant.id);
                     if (isInCollection) {
-                        console.log(`✅ Restaurant ${restaurant.name} (ID: ${restaurant.id}) is in selected collections`);
+                        logger.info(`✅ Restaurant ${restaurant.name} (ID: ${restaurant.id}) is in selected collections`);
                     }
                     return isInCollection;
                 });
 
-                console.log(`🎉 Filtered restaurants: ${filtered.length} out of ${restaurants.length}`);
+                logger.info(`🎉 Filtered restaurants: ${filtered.length} out of ${restaurants.length}`);
                 return filtered;
             } catch (error) {
                 console.error('❌ Error in filterRestaurantsByCollections:', error);
@@ -1118,8 +1133,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             if (type === 'signup' && accessToken) {
-                console.log('Email confirmation detected in URL, processing...');
-                console.log('Token type:', tokenType, 'Expires at:', expiresAt);
+                logger.info('Email confirmation detected in URL, processing...');
+                logger.info('Token type:', tokenType, 'Expires at:', expiresAt);
                 
                 // Set the session with the tokens
                 supabaseClient.auth.setSession({
@@ -1130,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         console.error('Error setting session:', error);
                         showAuthFeedback('Email confirmation failed. Please try signing up again.');
                     } else {
-                        console.log('Email confirmation successful');
+                        logger.info('Email confirmation successful');
                         showAuthFeedback('Email confirmed successfully! You are now logged in.', false);
                         
                         // Clean up the URL by removing the tokens
@@ -1159,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const currentOrigin = window.location.origin;
                 const redirectUrl = currentOrigin + '/';
                 
-                console.log('Signing up with redirect URL:', redirectUrl);
+                logger.info('Signing up with redirect URL:', redirectUrl);
                 
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
@@ -1191,8 +1206,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         async function handleOAuthLogin(provider) {
             try {
-                console.log('Starting OAuth login with provider:', provider);
-                console.log('Current URL:', window.location.href);
+                logger.info('Starting OAuth login with provider:', provider);
+                logger.info('Current URL:', window.location.href);
                 
                 const { data, error } = await supabaseClient.auth.signInWithOAuth({
                     provider: provider,
@@ -1206,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     throw error;
                 }
                 
-                console.log('OAuth redirect initiated:', data);
+                logger.info('OAuth redirect initiated:', data);
                 
             } catch (error) {
                 console.error('OAuth login failed:', error);
@@ -1296,7 +1311,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Check if user is authenticated
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) {
-                    console.log('User not authenticated, opening auth modal');
+                    logger.info('User not authenticated, opening auth modal');
                     mobileMenuModal.classList.add('hidden');
                     mobileMenuModal.style.display = 'none';
                     openAuthModal();
@@ -1318,11 +1333,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Mobile-specific location function that doesn't reset the map view
         function findUserLocationMobile() {
             if (!navigator.geolocation) {
-                console.log('Geolocation is not supported by this browser');
+                logger.info('Geolocation is not supported by this browser');
                 return;
             }
 
-            console.log('Requesting user location for mobile...');
+            logger.info('Requesting user location for mobile...');
             
             const options = {
                 enableHighAccuracy: true,
@@ -1335,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const userLat = position.coords.latitude;
                     const userLon = position.coords.longitude;
                     
-                    console.log('User location found for mobile:', userLat, userLon);
+                    logger.info('User location found for mobile:', userLat, userLon);
                     
                     // Store user location globally for distance calculations
                     window.userLocation = { lat: userLat, lon: userLon };
@@ -1345,7 +1360,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         animate: true,
                         duration: 1.0
                     });
-                    console.log('Map centered on user location and staying there');
+                    logger.info('Map centered on user location and staying there');
                     
                     // Add user location marker with distinct styling
                     const userIcon = L.divIcon({
@@ -1379,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             message = 'Location request timed out';
                             break;
                     }
-                    console.log(message);
+                    logger.info(message);
                 },
                 options
             );
@@ -1417,7 +1432,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         googleLoginBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Google login button clicked');
+            logger.info('Google login button clicked');
             handleOAuthLogin('google');
         });
 
@@ -1441,7 +1456,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             if (accessToken && refreshToken) {
-                console.log('OAuth redirect detected, processing tokens...');
+                logger.info('OAuth redirect detected, processing tokens...');
                 
                 try {
                     // Set the session manually
@@ -1454,7 +1469,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         console.error('Error setting session:', error);
                         showAuthFeedback('Failed to complete authentication: ' + error.message);
                     } else {
-                        console.log('OAuth authentication successful:', data);
+                        logger.info('OAuth authentication successful:', data);
                         // Close the auth modal if it's open
                         closeAuthModal();
                     }
@@ -1565,11 +1580,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Request geolocation on page load to show distances immediately
         function requestGeolocationOnLoad() {
             if (!navigator.geolocation) {
-                console.log('Geolocation is not supported by this browser');
+                logger.info('Geolocation is not supported by this browser');
                 return;
             }
 
-            console.log('Requesting geolocation on page load...');
+            logger.info('Requesting geolocation on page load...');
             
             const options = {
                 enableHighAccuracy: true,
@@ -1582,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const userLat = position.coords.latitude;
                     const userLon = position.coords.longitude;
                     
-                    console.log('User location found on page load:', userLat, userLon);
+                    logger.info('User location found on page load:', userLat, userLon);
                     
                     // Store user location globally for distance calculations
                     window.userLocation = { lat: userLat, lon: userLon };
@@ -1595,16 +1610,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                             return distanceA - distanceB;
                         });
                         await applyAllFiltersAndDisplay();
-                        console.log('Restaurants re-ordered by distance from user location on page load');
+                        logger.info('Restaurants re-ordered by distance from user location on page load');
                     }
                     
                     // Update restaurant cards with distances
                     updateRestaurantCardsWithDistance();
                     
-                    console.log('Distance information added to restaurant cards on page load');
+                    logger.info('Distance information added to restaurant cards on page load');
                 },
                 function(error) {
-                    console.log('Geolocation error on page load:', error.message);
+                    logger.info('Geolocation error on page load:', error.message);
                     // Don't show any error to user - just silently fail
                     // The location button is still available for manual request
                 },
@@ -1620,7 +1635,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Setup cuisine filter modal event listeners directly with a small delay
         setTimeout(() => {
-            console.log('🔧 Setting up cuisine filter modals...');
+            logger.info('🔧 Setting up cuisine filter modals...');
             setupCuisineFilterModals();
         }, 500); // Increased delay to ensure everything is loaded
         
@@ -1636,7 +1651,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Pre-load collection-restaurant mappings if collections are selected
         if (selectedCollections.size > 0) {
-            console.log('🔄 Pre-loading collection mappings for selected collections:', Array.from(selectedCollections));
+            logger.info('🔄 Pre-loading collection mappings for selected collections:', Array.from(selectedCollections));
             await loadRestaurantsForCollections(Array.from(selectedCollections));
         }
         
@@ -1705,12 +1720,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function initializeMap() {
             if (mapInitialized) {
-                console.log('Map already initialized, skipping...');
+                logger.info('Map already initialized, skipping...');
                 return;
             }
             
             try {
-                console.log('Initializing map...');
+                logger.info('Initializing map...');
                 // Check if map is already initialized
                 if (map) {
                     map.remove();
@@ -1900,7 +1915,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 window.mapInitialized = true;
                 mapInitialized = window.mapInitialized;
-                console.log('Map initialized successfully');
+                logger.info('Map initialized successfully');
             } catch (error) {
                 console.error('Map initialization error:', error);
                 mapInitialized = false;
@@ -1909,11 +1924,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         function addUserLocationMarker() {
             if (!navigator.geolocation) {
-                console.log('Geolocation is not supported by this browser');
+                logger.info('Geolocation is not supported by this browser');
                 return;
             }
 
-            console.log('Requesting user location...');
+            logger.info('Requesting user location...');
             
             const options = {
                 enableHighAccuracy: true,
@@ -1926,7 +1941,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const userLat = position.coords.latitude;
                     const userLon = position.coords.longitude;
                     
-                    console.log('User location found:', userLat, userLon);
+                    logger.info('User location found:', userLat, userLon);
                     
                     // Store user location globally for distance calculations
                     window.userLocation = { lat: userLat, lon: userLon };
@@ -1939,7 +1954,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             return distanceA - distanceB;
                         });
                         await applyAllFiltersAndDisplay();
-                        console.log('Restaurants re-ordered by distance from user location');
+                        logger.info('Restaurants re-ordered by distance from user location');
                     }
                     
                     // Pan map to center on user location
@@ -1947,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         animate: true,
                         duration: 1.0
                     });
-                    console.log('Map centered on user location');
+                    logger.info('Map centered on user location');
                     
                     // Add user location marker with distinct styling
                     const userIcon = L.divIcon({
@@ -1979,12 +1994,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Update restaurant cards with distances
                     updateRestaurantCardsWithDistance();
                     
-                    console.log('User location marker added');
+                    logger.info('User location marker added');
                 },
                 function(error) {
-                    console.log('Geolocation error:', error.message);
+                    logger.info('Geolocation error:', error.message);
                     // Fallback to default London location
-                    console.log('Using default London location');
+                    logger.info('Using default London location');
                 },
                 options
             );
@@ -1994,16 +2009,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             const t0 = performance.now();
             await loadCities();
             const t1 = performance.now();
-            console.log(`Cities query and processing took: ${t1 - t0} ms`);
+            logger.info(`Cities query and processing took: ${t1 - t0} ms`);
 
             // Initialize the app with URL-based routing
             await initializeApp();
             const t2 = performance.now();
-            console.log(`Total initial load time: ${t2 - t0} ms`);
+            logger.info(`Total initial load time: ${t2 - t0} ms`);
             
             // Check for #auth hash to open authentication modal (only when hash is present)
             if (window.location.hash && window.location.hash === '#auth') {
-                console.log('Opening auth modal due to #auth hash');
+                logger.info('Opening auth modal due to #auth hash');
                 setTimeout(() => {
                     openAuthModal();
                 }, 500); // Small delay to ensure everything is loaded
@@ -2019,7 +2034,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (cachedData) {
                 const { cities, timestamp } = JSON.parse(cachedData);
                 if (Date.now() - timestamp < CACHE_DURATION) {
-                    console.log("Loading cities from cache.");
+                    logger.info("Loading cities from cache.");
                     // populateCitySelect removed - cities are now handled in initializeApp
                     // Fetch in background to check for updates, but don't block
                     fetchAndCacheCities(); 
@@ -2028,7 +2043,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             // If no valid cache, fetch from network
-            console.log("Fetching cities from network...");
+            logger.info("Fetching cities from network...");
             await fetchAndCacheCities();
         }
 
@@ -2046,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         async function loadRestaurantsForCity(city = null) {
             // --- Load restaurants with optional city filtering ---
-            console.log('loadRestaurantsForCity called with city:', city);
+            logger.info('loadRestaurantsForCity called with city:', city);
 
             let query = supabaseClient
                 .from('restaurants')
@@ -2087,7 +2102,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // 2. Fetch TikToks for those specific restaurants (including thumbnails).
             const restaurantIds = restaurants.map(r => r.id);
-            console.log('🔍 Fetching TikToks for restaurant IDs:', restaurantIds);
+            logger.info('🔍 Fetching TikToks for restaurant IDs:', restaurantIds);
             const { data: tiktoks, error: tiktoksError } = await supabaseClient
                 .from('tiktoks')
                 .select('restaurant_id, embed_html, thumbnail_url, is_featured')
@@ -2099,7 +2114,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.error("Error fetching tiktoks:", tiktoksError);
                 tiktoks = [];
             } else {
-                console.log('✅ Fetched TikToks:', tiktoks);
+                logger.info('✅ Fetched TikToks:', tiktoks);
             }
 
             // 3. Fetch cuisine information for restaurants
@@ -2118,9 +2133,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 4. Join the data together in JavaScript.
             const tiktokMap = new Map();
             if (tiktoks) {
-                console.log('📝 Processing TikToks:', tiktoks);
+                logger.info('📝 Processing TikToks:', tiktoks);
                 tiktoks.forEach(t => {
-                    console.log('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html, 'thumbnail:', t.thumbnail_url);
+                    logger.info('📝 Adding TikTok for restaurant:', t.restaurant_id, 'embed_html:', t.embed_html, 'thumbnail:', t.thumbnail_url);
                     // Store the entire TikTok object, not just embed_html
                     tiktokMap.set(t.restaurant_id, {
                         embed_html: t.embed_html,
@@ -2129,8 +2144,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     });
                 });
             }
-            console.log('🗺️ TikTok Map size:', tiktokMap.size);
-            console.log('🗺️ TikTok Map contents:', Array.from(tiktokMap.entries()));
+            logger.info('🗺️ TikTok Map size:', tiktokMap.size);
+            logger.info('🗺️ TikTok Map contents:', Array.from(tiktokMap.entries()));
 
             const cuisineMap = new Map();
             if (restaurantCuisines) {
@@ -2147,7 +2162,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             window.currentRestaurants = restaurants.map(r => {
                 const tiktokData = tiktokMap.get(r.id) || null;
-                console.log('🏗️ Creating restaurant object:', r.id, 'tiktok_data:', tiktokData ? 'EXISTS' : 'NULL');
+                logger.info('🏗️ Creating restaurant object:', r.id, 'tiktok_data:', tiktokData ? 'EXISTS' : 'NULL');
                 return {
                     ...r,
                     tiktok_embed_html: tiktokData?.embed_html || null,
@@ -2157,8 +2172,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 };
             });
             currentRestaurants = window.currentRestaurants;
-            console.log('📊 Total restaurants with TikTok data:', currentRestaurants.filter(r => r.tiktok_embed_html).length);
-            console.log('📊 Total restaurants with thumbnails:', currentRestaurants.filter(r => r.tiktok_thumbnail_url).length);
+            logger.info('📊 Total restaurants with TikTok data:', currentRestaurants.filter(r => r.tiktok_embed_html).length);
+            logger.info('📊 Total restaurants with thumbnails:', currentRestaurants.filter(r => r.tiktok_thumbnail_url).length);
             
             // Order restaurants based on geolocation availability
             if (window.userLocation) {
@@ -2168,11 +2183,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const distanceB = calculateDistance(window.userLocation.lat, window.userLocation.lon, b.lat, b.lon);
                     return distanceA - distanceB;
                 });
-                console.log('Restaurants ordered by distance from user location');
+                logger.info('Restaurants ordered by distance from user location');
             } else {
                 // If no geolocation, randomize the order
                 currentRestaurants.sort(() => Math.random() - 0.5);
-                console.log('Restaurants ordered randomly (no geolocation)');
+                logger.info('Restaurants ordered randomly (no geolocation)');
             }
             
             // Small delay to ensure skeleton loaders are visible before showing real data
@@ -2204,7 +2219,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
 
                 if (roleErr || !roleRow || (roleRow.role && roleRow.role !== 'creator')) {
-                    console.warn('Creator not found for handle:', handleLower, roleErr);
+                    logger.warn('Creator not found for handle:', handleLower, roleErr);
                     displayRestaurants([], false, false);
                     const list = document.getElementById('restaurant-list');
                     if (list) {
@@ -2325,7 +2340,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Setup cuisine filter modal event listeners directly
         function setupCuisineFilterModals() {
-            console.log('🔧 Setting up cuisine filter modal event listeners...');
+            logger.info('🔧 Setting up cuisine filter modal event listeners...');
             
             // Desktop modal setup
             const desktopCloseBtn = document.getElementById('close-desktop-filter-modal');
@@ -2333,7 +2348,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const desktopApplyBtn = document.getElementById('apply-cuisine-filter-desktop');
             const desktopModal = document.getElementById('desktop-filter-modal');
             
-            console.log('Desktop modal elements:', {
+            logger.info('Desktop modal elements:', {
                 close: !!desktopCloseBtn,
                 cancel: !!desktopCancelBtn,
                 apply: !!desktopApplyBtn,
@@ -2342,21 +2357,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (desktopCloseBtn) {
                 desktopCloseBtn.addEventListener('click', () => {
-                    console.log('Desktop close button clicked');
+                    logger.info('Desktop close button clicked');
                     closeDesktopFilterModal();
                 });
             }
             
             if (desktopCancelBtn) {
                 desktopCancelBtn.addEventListener('click', () => {
-                    console.log('Desktop cancel button clicked');
+                    logger.info('Desktop cancel button clicked');
                     closeDesktopFilterModal();
                 });
             }
             
             if (desktopApplyBtn) {
                 desktopApplyBtn.addEventListener('click', () => {
-                    console.log('Desktop apply button clicked');
+                    logger.info('Desktop apply button clicked');
                     applyDesktopFilter();
                 });
             }
@@ -2364,7 +2379,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (desktopModal) {
                 desktopModal.addEventListener('click', (e) => {
                     if (e.target === desktopModal) {
-                        console.log('Desktop modal clicked outside');
+                        logger.info('Desktop modal clicked outside');
                         closeDesktopFilterModal();
                     }
                 });
@@ -2376,7 +2391,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const mobileApplyBtn = document.getElementById('apply-cuisine-filter-mobile');
             const mobileModal = document.getElementById('filter-modal');
             
-            console.log('Mobile modal elements:', {
+            logger.info('Mobile modal elements:', {
                 close: !!mobileCloseBtn,
                 cancel: !!mobileCancelBtn,
                 apply: !!mobileApplyBtn,
@@ -2385,21 +2400,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (mobileCloseBtn) {
                 mobileCloseBtn.addEventListener('click', () => {
-                    console.log('Mobile close button clicked');
+                    logger.info('Mobile close button clicked');
                     closeMobileFilterModal();
                 });
             }
             
             if (mobileCancelBtn) {
                 mobileCancelBtn.addEventListener('click', () => {
-                    console.log('Mobile cancel button clicked');
+                    logger.info('Mobile cancel button clicked');
                     closeMobileFilterModal();
                 });
             }
             
             if (mobileApplyBtn) {
                 mobileApplyBtn.addEventListener('click', () => {
-                    console.log('Mobile apply button clicked');
+                    logger.info('Mobile apply button clicked');
                     applyMobileFilter();
                 });
             }
@@ -2407,19 +2422,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (mobileModal) {
                 mobileModal.addEventListener('click', (e) => {
                     if (e.target === mobileModal) {
-                        console.log('Mobile modal clicked outside');
+                        logger.info('Mobile modal clicked outside');
                         closeMobileFilterModal();
                     }
                 });
             }
             
-            console.log('✅ Cuisine filter modal event listeners set up');
+            logger.info('✅ Cuisine filter modal event listeners set up');
         }
         
         // Populate cuisine filter with all available cuisines
         async function populateCuisineFilter() {
             try {
-                console.log('🍽️ Loading cuisines for filter from database...');
+                logger.info('🍽️ Loading cuisines for filter from database...');
                 
                 // Fetch all categories and their cuisines from database
                 const { data: categories, error } = await supabaseClient
@@ -2434,7 +2449,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 if (error) throw error;
 
-                console.log('🍽️ Loaded cuisine categories:', categories.length);
+                logger.info('🍽️ Loaded cuisine categories:', categories.length);
 
                 // Transform database data to match expected format
                 const cuisineCategories = categories.map(category => ({
@@ -2461,7 +2476,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Populate mobile filter with categories
                 populateMobileFilterWithCategories(cuisineCategories);
                 
-                console.log('🍽️ Cuisine filter populated successfully');
+                logger.info('🍽️ Cuisine filter populated successfully');
             } catch (error) {
                 console.error('🍽️ Error loading cuisines for filter:', error);
                 // Fallback to empty state
@@ -2480,7 +2495,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
             
-            console.log('Populating desktop filter with categories:', cuisineCategories.length);
+            logger.info('Populating desktop filter with categories:', cuisineCategories.length);
             container.innerHTML = '';
             
             cuisineCategories.forEach(category => {
@@ -2528,7 +2543,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     // Add event listener for checkbox
                     checkbox.addEventListener('change', function() {
-                        console.log('Desktop cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
+                        logger.info('Desktop cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
                         
                         // Update persistent state
                         if (this.checked) {
@@ -2548,7 +2563,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // Don't trigger if clicking the checkbox directly
                         if (e.target === checkbox) return;
                         
-                        console.log('Card clicked for cuisine:', cuisine.name);
+                        logger.info('Card clicked for cuisine:', cuisine.name);
                         checkbox.checked = !checkbox.checked;
                         checkbox.dispatchEvent(new Event('change'));
                     });
@@ -2577,7 +2592,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const selectedCount = document.querySelectorAll('.cuisine-checkbox:checked').length;
             const countElement = document.getElementById('selected-count');
             
-            console.log('Updating selected count:', selectedCount);
+            logger.info('Updating selected count:', selectedCount);
             
             if (selectedCount > 0) {
                 countElement.textContent = selectedCount;
@@ -2595,7 +2610,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
             
-            console.log('Populating mobile filter with categories:', cuisineCategories.length);
+            logger.info('Populating mobile filter with categories:', cuisineCategories.length);
             container.innerHTML = '';
             
             cuisineCategories.forEach(category => {
@@ -2626,7 +2641,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     // Add event listener for mobile cuisine checkbox
                     checkbox.addEventListener('change', function() {
-                        console.log('Mobile cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
+                        logger.info('Mobile cuisine checkbox changed:', cuisine.name, 'checked:', this.checked);
                         
                         // Update persistent state
                         if (this.checked) {
@@ -2716,7 +2731,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Filter restaurants by selected cuisines (multiple selection)
         // Apply combined filters (cuisine + collection)
         async function applyAllFiltersAndDisplay() {
-            console.log('🎯 Applying all filters and updating display');
+            logger.info('🎯 Applying all filters and updating display');
             
             // Update filter button appearances
             updateFilterButtonAppearance();
@@ -2836,14 +2851,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const filterToggleBtn = document.getElementById('filter-toggle-btn');
             
             filterToggleBtn.addEventListener('click', function() {
-                console.log('Filter button clicked, window width:', window.innerWidth);
+                logger.info('Filter button clicked, window width:', window.innerWidth);
                 // On mobile, open the mobile modal
                 if (window.innerWidth < 768) {
-                    console.log('Opening mobile filter modal');
+                    logger.info('Opening mobile filter modal');
                     openMobileFilterModal();
                 } else {
                     // On desktop, open the desktop modal
-                    console.log('Opening desktop filter modal');
+                    logger.info('Opening desktop filter modal');
                     openDesktopFilterModal();
                 }
             });
@@ -2857,8 +2872,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const cancelBtn = document.getElementById('cancel-cuisine-filter-desktop');
             const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
             
-            console.log('Setting up desktop filter modal...');
-            console.log('Elements found:', {
+            logger.info('Setting up desktop filter modal...');
+            logger.info('Elements found:', {
                 filterModal: !!filterModal,
                 closeBtn: !!closeBtn,
                 applyBtn: !!applyBtn,
@@ -2869,28 +2884,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Close modal
             if (closeBtn) {
                 closeBtn.addEventListener('click', function() {
-                    console.log('Close button clicked');
+                    logger.info('Close button clicked');
                     closeDesktopFilterModal();
                 });
             }
             
             if (cancelBtn) {
                 cancelBtn.addEventListener('click', function() {
-                    console.log('Cancel button clicked');
+                    logger.info('Cancel button clicked');
                     closeDesktopFilterModal();
                 });
             }
             
             if (applyBtn) {
                 applyBtn.addEventListener('click', function() {
-                    console.log('Apply button clicked');
+                    logger.info('Apply button clicked');
                     applyDesktopFilter();
                 });
             }
             
             if (clearBtn) {
                 clearBtn.addEventListener('click', function() {
-                    console.log('Clear button clicked');
+                    logger.info('Clear button clicked');
                     clearDesktopFilter();
                 });
             }
@@ -2899,7 +2914,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (filterModal) {
                 filterModal.addEventListener('click', function(e) {
                     if (e.target === filterModal) {
-                        console.log('Clicked outside modal');
+                        logger.info('Clicked outside modal');
                         closeDesktopFilterModal();
                     }
                 });
@@ -2933,7 +2948,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Open desktop filter modal
         function openDesktopFilterModal() {
-            console.log('Opening desktop filter modal...');
+            logger.info('Opening desktop filter modal...');
             const filterModal = document.getElementById('desktop-filter-modal');
             if (!filterModal) {
                 console.error('Desktop filter modal not found!');
@@ -2949,7 +2964,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Check if the container has content
             const container = document.getElementById('cuisine-filter-container-desktop');
             if (container) {
-                console.log('Desktop filter container children:', container.children.length);
+                logger.info('Desktop filter container children:', container.children.length);
             }
             
             // Sync desktop checkboxes with current state
@@ -2963,7 +2978,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const applyBtn = document.getElementById('apply-cuisine-filter-desktop');
             const clearBtn = document.getElementById('clear-cuisine-filter-desktop');
             
-            console.log('Setting up desktop modal listeners:', {
+            logger.info('Setting up desktop modal listeners:', {
                 close: !!closeBtn,
                 cancel: !!cancelBtn,
                 apply: !!applyBtn,
@@ -2973,7 +2988,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Add event listeners if they don't already exist
             if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
                 closeBtn.addEventListener('click', () => {
-                    console.log('Desktop close button clicked');
+                    logger.info('Desktop close button clicked');
                     closeDesktopFilterModal();
                 });
                 closeBtn.setAttribute('data-listener-added', 'true');
@@ -2981,7 +2996,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (cancelBtn && !cancelBtn.hasAttribute('data-listener-added')) {
                 cancelBtn.addEventListener('click', () => {
-                    console.log('Desktop cancel button clicked');
+                    logger.info('Desktop cancel button clicked');
                     closeDesktopFilterModal();
                 });
                 cancelBtn.setAttribute('data-listener-added', 'true');
@@ -2989,7 +3004,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (applyBtn && !applyBtn.hasAttribute('data-listener-added')) {
                 applyBtn.addEventListener('click', () => {
-                    console.log('Desktop apply button clicked');
+                    logger.info('Desktop apply button clicked');
                     applyDesktopFilter();
                 });
                 applyBtn.setAttribute('data-listener-added', 'true');
@@ -2997,7 +3012,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (clearBtn && !clearBtn.hasAttribute('data-listener-added')) {
                 clearBtn.addEventListener('click', () => {
-                    console.log('Desktop clear button clicked');
+                    logger.info('Desktop clear button clicked');
                     clearDesktopFilter();
                 });
                 clearBtn.setAttribute('data-listener-added', 'true');
@@ -3006,12 +3021,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Close desktop filter modal
         function closeDesktopFilterModal() {
-            console.log('Closing desktop filter modal...');
+            logger.info('Closing desktop filter modal...');
             const filterModal = document.getElementById('desktop-filter-modal');
             if (filterModal) {
                 filterModal.classList.add('hidden');
                 filterModal.classList.remove('flex');
-                console.log('Modal closed successfully');
+                logger.info('Modal closed successfully');
             } else {
                 console.error('Desktop filter modal not found!');
             }
@@ -3084,7 +3099,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const applyBtn = document.getElementById('apply-cuisine-filter-mobile');
             const clearBtn = document.getElementById('clear-cuisine-filter-mobile');
             
-            console.log('Setting up mobile modal listeners:', {
+            logger.info('Setting up mobile modal listeners:', {
                 close: !!closeBtn,
                 cancel: !!cancelBtn,
                 apply: !!applyBtn,
@@ -3094,7 +3109,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Add event listeners if they don't already exist
             if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
                 closeBtn.addEventListener('click', () => {
-                    console.log('Mobile close button clicked');
+                    logger.info('Mobile close button clicked');
                     closeMobileFilterModal();
                 });
                 closeBtn.setAttribute('data-listener-added', 'true');
@@ -3102,7 +3117,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (cancelBtn && !cancelBtn.hasAttribute('data-listener-added')) {
                 cancelBtn.addEventListener('click', () => {
-                    console.log('Mobile cancel button clicked');
+                    logger.info('Mobile cancel button clicked');
                     closeMobileFilterModal();
                 });
                 cancelBtn.setAttribute('data-listener-added', 'true');
@@ -3110,7 +3125,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (applyBtn && !applyBtn.hasAttribute('data-listener-added')) {
                 applyBtn.addEventListener('click', () => {
-                    console.log('Mobile apply button clicked');
+                    logger.info('Mobile apply button clicked');
                     applyMobileFilter();
                 });
                 applyBtn.setAttribute('data-listener-added', 'true');
@@ -3118,7 +3133,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (clearBtn && !clearBtn.hasAttribute('data-listener-added')) {
                 clearBtn.addEventListener('click', () => {
-                    console.log('Mobile clear button clicked');
+                    logger.info('Mobile clear button clicked');
                     clearMobileFilter();
                 });
                 clearBtn.setAttribute('data-listener-added', 'true');
@@ -3127,7 +3142,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Close mobile filter modal
         function closeMobileFilterModal() {
-            console.log('Closing mobile filter modal...');
+            logger.info('Closing mobile filter modal...');
             const filterModal = document.getElementById('filter-modal');
             if (filterModal) {
                 filterModal.classList.add('hidden');
@@ -3202,7 +3217,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Open login modal when admin link is clicked
             adminLink.addEventListener('click', async function(e) {
                 e.preventDefault();
-                console.log('Admin link clicked');
+                logger.info('Admin link clicked');
                 
                 // Check if user is already logged in and has admin privileges
                 const { data: { session } } = await supabaseClient.auth.getSession();
@@ -3216,16 +3231,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                             .single();
                         
                         if (userRole) {
-                            console.log('User already has admin privileges, redirecting to admin panel');
+                            logger.info('User already has admin privileges, redirecting to admin panel');
                             window.location.href = 'admin.html';
                             return;
                         }
                     } catch (error) {
-                        console.log('Error checking admin role:', error);
+                        logger.info('Error checking admin role:', error);
                     }
                 }
                 
-                console.log('Opening login modal');
+                logger.info('Opening login modal');
                 loginModal.classList.remove('hidden');
                 loginModal.classList.add('flex');
             });
@@ -3260,13 +3275,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const password = document.getElementById('admin-password').value;
                 
                 try {
-                    console.log('Attempting admin login for:', email);
-                    console.log('Password length:', password.length);
+                    logger.info('Attempting admin login for:', email);
+                    logger.info('Password length:', password.length);
                     
                     // Test Supabase connection first
-                    console.log('Testing Supabase connection...');
+                    logger.info('Testing Supabase connection...');
                     const { data: testData, error: testError } = await supabaseClient.auth.getSession();
-                    console.log('Supabase connection test result:', { testData, testError });
+                    logger.info('Supabase connection test result:', { testData, testError });
                     
                     // Sign in with Supabase
                     const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -3281,7 +3296,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         throw error;
                     }
                     
-                    console.log('Login successful, checking admin status...');
+                    logger.info('Login successful, checking admin status...');
                     
                     // Check if user has admin role
                     const { data: userRole, error: roleError } = await supabaseClient
@@ -3295,7 +3310,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         throw new Error('Access denied. Admin privileges required.');
                     }
                     
-                    console.log('Admin access granted, redirecting to admin panel');
+                    logger.info('Admin access granted, redirecting to admin panel');
                     
                     // Close modal and redirect
                     closeLoginModal();
@@ -3318,19 +3333,31 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Toast notification function
         function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast-notification');
+            const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toast-message');
+            
+            if (!toast || !toastMessage) {
+                console.log('Toast elements not found, falling back to console');
+                console.log(`Toast: ${message}`);
+                return;
+            }
             
             // Set message and type
             toastMessage.textContent = message;
-            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out ${type}`;
+            
+            // Set background color based on type
+            let bgColor = 'bg-green-500';
+            if (type === 'error') bgColor = 'bg-red-500';
+            if (type === 'warning') bgColor = 'bg-yellow-500';
+            
+            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transition-transform duration-300 ease-in-out ${bgColor}`;
             
             // Show toast (remove hidden class)
             toast.classList.remove('hidden');
             
-            // Slide in
+            // Slide in from right
             setTimeout(() => {
-                toast.classList.add('show');
+                toast.style.transform = 'translateX(0)';
             }, 100);
             
             // Hide toast after 3 seconds
@@ -3348,7 +3375,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Check if user is authenticated
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) {
-                console.log('User not authenticated, opening auth modal');
+                logger.info('User not authenticated, opening auth modal');
                 openAuthModal();
                 return;
             }
@@ -3433,7 +3460,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const collectionId = collectionItem.dataset.collectionId;
                 const collectionName = collectionItem.dataset.collectionName;
                 
-                console.log('Collection clicked for filtering:', collectionName, 'ID:', collectionId);
+                logger.info('Collection clicked for filtering:', collectionName, 'ID:', collectionId);
                 
                 // Clear any existing collection filters
                 selectedCollections.clear();
@@ -3542,7 +3569,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 // Update collection state (store both string and numeric versions)
                                 collectedRestaurants.add(restaurantId);
                                 collectedRestaurants.add(parseInt(restaurantId, 10));
-                                console.log('Updated collectedRestaurants (quick create):', collectedRestaurants);
+                                logger.info('Updated collectedRestaurants (quick create):', collectedRestaurants);
                                 
                                 // Close modal and reset
                                 document.getElementById('quick-create-collection-modal').classList.add('hidden');
@@ -3552,7 +3579,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 
                                 // Re-display restaurants to show updated collection status
                                 if (currentRestaurants && currentRestaurants.length > 0) {
-                                    console.log('Re-displaying restaurants after quick create collection');
+                                    logger.info('Re-displaying restaurants after quick create collection');
                                     displayRestaurants(currentRestaurants);
                                 }
                             }
@@ -3600,10 +3627,96 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const collectionId = collectionOption.dataset.collectionId;
                 const restaurantId = collectionOption.dataset.restaurantId;
 
-                // Add to existing collection
-                const { error } = await supabaseClient
-                    .from('collection_restaurants')
-                    .insert({ collection_id: collectionId, restaurant_id: restaurantId });
+                // Check if restaurant is already in this collection
+                const isAlreadyInCollection = collectedRestaurants.has(restaurantId) || collectedRestaurants.has(parseInt(restaurantId, 10));
+                
+                if (isAlreadyInCollection) {
+                    // Remove from collection
+                    const { error } = await supabaseClient
+                        .from('collection_restaurants')
+                        .delete()
+                        .eq('collection_id', collectionId)
+                        .eq('restaurant_id', restaurantId);
+
+                    if (error) {
+                        console.error(error);
+                        showToast('Error removing from collection. Please try again.', 'error');
+                    } else {
+                        // Show immediate success feedback
+                        showToast('Removed from collection!');
+                        
+                        // Update collection state immediately
+                        collectedRestaurants.delete(restaurantId);
+                        collectedRestaurants.delete(parseInt(restaurantId, 10));
+                        logger.info('Updated collectedRestaurants (removed):', collectedRestaurants);
+                        
+                        // Update the specific restaurant card immediately
+                        const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+                        if (restaurantCard) {
+                            const bookmarkBtn = restaurantCard.querySelector('.add-to-collection-btn');
+                            if (bookmarkBtn) {
+                                bookmarkBtn.classList.remove('collected');
+                                bookmarkBtn.title = 'Add to Collections';
+                            }
+                        }
+                        
+                        // Update the modal to show the new state
+                        const modal = document.getElementById('collection-selection-modal');
+                        if (modal) {
+                            // Update the modal title back to "Add to Collection"
+                            const modalTitle = modal.querySelector('h3');
+                            if (modalTitle) {
+                                modalTitle.textContent = 'Add to Collection';
+                            }
+                            
+                            // Reset the clicked collection option
+                            const arrowIcon = collectionOption.querySelector('svg');
+                            if (arrowIcon) {
+                                arrowIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>';
+                            }
+                            
+                            // Remove visual indicators
+                            collectionOption.classList.remove('bg-green-50', 'border-green-200');
+                            collectionOption.classList.add('hover:bg-gray-50');
+                            
+                            // Update the text to remove "(Added)" indicator
+                            const collectionName = collectionOption.querySelector('span');
+                            if (collectionName) {
+                                collectionName.textContent = collectionName.textContent.replace(' (Added)', '');
+                            }
+                            
+                            // Add success message
+                            const modalContent = modal.querySelector('.max-h-96');
+                            if (modalContent) {
+                                const existingSuccess = modalContent.querySelector('.success-message');
+                                if (existingSuccess) {
+                                    existingSuccess.remove();
+                                }
+                                
+                                const successDiv = document.createElement('div');
+                                successDiv.className = 'success-message p-4 bg-blue-50 border-b border-blue-200 text-blue-800 text-center';
+                                successDiv.innerHTML = '✅ Removed from collection!';
+                                modalContent.insertBefore(successDiv, modalContent.firstChild);
+                                
+                                setTimeout(() => {
+                                    if (successDiv.parentNode) {
+                                        successDiv.remove();
+                                    }
+                                }, 3000);
+                            }
+                        }
+                        
+                        // Re-display restaurants to show updated collection status
+                        if (currentRestaurants && currentRestaurants.length > 0) {
+                            logger.info('Re-displaying restaurants after removing from collection');
+                            await applyAllFiltersAndDisplay();
+                        }
+                    }
+                } else {
+                    // Add to existing collection
+                    const { error } = await supabaseClient
+                        .from('collection_restaurants')
+                        .insert({ collection_id: collectionId, restaurant_id: restaurantId });
 
                 if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
                     showToast('This restaurant is already in that collection.', 'warning');
@@ -3611,11 +3724,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     console.error(error);
                     showToast('Error adding to collection. Please try again.', 'error');
                 } else {
+                    // Show immediate success feedback
                     showToast('Added to collection!');
+                    
                     // Update collection state immediately (store both string and numeric versions)
                     collectedRestaurants.add(restaurantId);
                     collectedRestaurants.add(parseInt(restaurantId, 10));
-                    console.log('Updated collectedRestaurants:', collectedRestaurants);
+                    logger.info('Updated collectedRestaurants:', collectedRestaurants);
                     
                     // Update the specific restaurant card immediately
                     const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
@@ -3623,6 +3738,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const bookmarkBtn = restaurantCard.querySelector('.add-to-collection-btn');
                         if (bookmarkBtn) {
                             bookmarkBtn.classList.add('collected');
+                            bookmarkBtn.title = 'Remove from Collections';
                         }
                     }
                     
@@ -3633,15 +3749,71 @@ document.addEventListener('DOMContentLoaded', async function() {
                         videoCollectionBtn.title = 'Remove from Collections';
                     }
                     
+                    // Update the modal to show the new state - DON'T CLOSE IT
+                    const modal = document.getElementById('collection-selection-modal');
+                    if (modal) {
+                        // Update the modal title
+                        const modalTitle = modal.querySelector('h3');
+                        if (modalTitle) {
+                            modalTitle.textContent = 'Remove from Collection';
+                        }
+                        
+                        // Update all collection options to show "Remove" state
+                        const collectionOptions = modal.querySelectorAll('.collection-option');
+                        collectionOptions.forEach(option => {
+                            const collectionId = option.dataset.collectionId;
+                            
+                            // Check if this restaurant is now in this collection
+                            if (collectedRestaurants.has(restaurantId) || collectedRestaurants.has(parseInt(restaurantId, 10))) {
+                                // Update the option to show "Remove" state
+                                const arrowIcon = option.querySelector('svg');
+                                if (arrowIcon) {
+                                    arrowIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+                                }
+                                
+                                // Add visual indicator that it's been added
+                                option.classList.add('bg-green-50', 'border-green-200');
+                                option.classList.remove('hover:bg-gray-50');
+                                
+                                // Update the text to show it's been added
+                                const collectionName = option.querySelector('span');
+                                if (collectionName) {
+                                    collectionName.innerHTML = `${collectionName.textContent} <span class="text-green-600 text-sm">(Added)</span>`;
+                                }
+                            }
+                        });
+                        
+                        // Add a success indicator at the top
+                        const modalContent = modal.querySelector('.max-h-96');
+                        if (modalContent) {
+                            // Clear any existing success messages
+                            const existingSuccess = modalContent.querySelector('.success-message');
+                            if (existingSuccess) {
+                                existingSuccess.remove();
+                            }
+                            
+                            // Add a success indicator at the top
+                            const successDiv = document.createElement('div');
+                            successDiv.className = 'success-message p-4 bg-green-50 border-b border-green-200 text-green-800 text-center';
+                            successDiv.innerHTML = '✅ Successfully added to collection! Click any collection to remove.';
+                            modalContent.insertBefore(successDiv, modalContent.firstChild);
+                            
+                            // Auto-remove success message after 4 seconds
+                            setTimeout(() => {
+                                if (successDiv.parentNode) {
+                                    successDiv.remove();
+                                }
+                            }, 4000);
+                        }
+                    }
+                    
                     // Re-display restaurants to show updated collection status
                     if (currentRestaurants && currentRestaurants.length > 0) {
-                        console.log('Re-displaying restaurants after adding to collection');
+                        logger.info('Re-displaying restaurants after adding to collection');
                         await applyAllFiltersAndDisplay();
                     }
                 }
-                
-                // Close the modal
-                document.getElementById('collection-selection-modal').remove();
+                }
             }
             
             // Check if clicked on create collection option
@@ -3704,10 +3876,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // Update collection state (store both string and numeric versions)
                         collectedRestaurants.add(restaurantId);
                         collectedRestaurants.add(parseInt(restaurantId, 10));
-                        console.log('Updated collectedRestaurants:', collectedRestaurants);
+                        logger.info('Updated collectedRestaurants:', collectedRestaurants);
                         // Re-display restaurants to show updated collection status
                         if (currentRestaurants && currentRestaurants.length > 0) {
-                            console.log('Re-displaying restaurants after adding to collection');
+                            logger.info('Re-displaying restaurants after adding to collection');
                             await applyAllFiltersAndDisplay();
                         }
                     }
@@ -3741,7 +3913,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // Update collection state immediately (store both string and numeric versions)
                         collectedRestaurants.add(restaurantId);
                         collectedRestaurants.add(parseInt(restaurantId, 10));
-                        console.log('Updated collectedRestaurants:', collectedRestaurants);
+                        logger.info('Updated collectedRestaurants:', collectedRestaurants);
                         
                         // Update the specific restaurant card immediately
                         const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
@@ -3761,7 +3933,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         
                         // Re-display restaurants to show updated collection status
                         if (currentRestaurants && currentRestaurants.length > 0) {
-                            console.log('Re-displaying restaurants after adding to collection');
+                            logger.info('Re-displaying restaurants after adding to collection');
                             await applyAllFiltersAndDisplay();
                         }
                     }
@@ -3809,7 +3981,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         
                         // Re-display restaurants to show updated collection status
                         if (currentRestaurants && currentRestaurants.length > 0) {
-                            console.log('Re-displaying restaurants after removing from collection');
+                            logger.info('Re-displaying restaurants after removing from collection');
                             await applyAllFiltersAndDisplay();
                         }
                     }
@@ -3902,10 +4074,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             const number = index + 1;
             
             // Debug logging
-            console.log(`Creating list item for ${restaurant.name} (ID: ${restaurant.id}): isCollected=${isCollected}, collectionClass="${collectionClass}"`);
-            console.log(`Current collectedRestaurants Set:`, Array.from(collectedRestaurants));
+            logger.info(`Creating list item for ${restaurant.name} (ID: ${restaurant.id}): isCollected=${isCollected}, collectionClass="${collectionClass}"`);
+            logger.info(`Current collectedRestaurants Set:`, Array.from(collectedRestaurants));
             if (isCollected) {
-                console.log(`Restaurant ${restaurant.name} is collected, applying class: ${collectionClass}`);
+                logger.info(`Restaurant ${restaurant.name} is collected, applying class: ${collectionClass}`);
             }
 
             const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
@@ -4207,7 +4379,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Preload video for a single restaurant (extracted from showVideoFor)
         async function preloadVideo(restaurant) {
             if (!restaurant.tiktok_embed_html) {
-                console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
+                logger.info('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
                 return;
             }
 
@@ -4222,7 +4394,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             preloadContainer.dataset.restaurantId = restaurant.id; // Store restaurant ID for cleanup
             document.body.appendChild(preloadContainer);
 
-            console.log('🎬 Preloading video for:', restaurant.name);
+            logger.info('🎬 Preloading video for:', restaurant.name);
 
             // Inject the raw TikTok blockquote HTML into the hidden container
             preloadContainer.innerHTML = restaurant.tiktok_embed_html;
@@ -4245,7 +4417,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const observer = new MutationObserver((mutations, obs) => {
                 const iframe = preloadContainer.querySelector('iframe');
                 if (iframe) {
-                    console.log('✅ Video preloaded for:', restaurant.name);
+                    logger.info('✅ Video preloaded for:', restaurant.name);
                     // Store the preloaded iframe for later use
                     restaurant._preloadedIframe = iframe.outerHTML;
                     obs.disconnect();
@@ -4274,7 +4446,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Preload videos in batches
         function preloadVideoBatch(restaurants) {
-            console.log('🚀 Preloading video batch for', restaurants.length, 'restaurants');
+            logger.info('🚀 Preloading video batch for', restaurants.length, 'restaurants');
             restaurants.forEach(restaurant => {
                 preloadVideo(restaurant);
             });
@@ -4285,7 +4457,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        console.log('👀 Last restaurant item is visible, loading next batch...');
+                        logger.info('👀 Last restaurant item is visible, loading next batch...');
                         
                         // Get current number of items in the list
                         const restaurantList = document.getElementById('restaurant-list');
@@ -4461,13 +4633,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
 async function showVideoFor(restaurant) {
-            console.log('🎬 showVideoFor called with restaurant:', restaurant);
-            console.log('🎬 restaurant.tiktok_embed_html:', restaurant.tiktok_embed_html);
-            console.log('🎬 restaurant.tiktok_embed_html type:', typeof restaurant.tiktok_embed_html);
-            console.log('🎬 restaurant.tiktok_embed_html length:', restaurant.tiktok_embed_html ? restaurant.tiktok_embed_html.length : 'N/A');
+            logger.info('🎬 showVideoFor called with restaurant:', restaurant);
+            logger.info('🎬 restaurant.tiktok_embed_html:', restaurant.tiktok_embed_html);
+            logger.info('🎬 restaurant.tiktok_embed_html type:', typeof restaurant.tiktok_embed_html);
+            logger.info('🎬 restaurant.tiktok_embed_html length:', restaurant.tiktok_embed_html ? restaurant.tiktok_embed_html.length : 'N/A');
 
     if (!restaurant.tiktok_embed_html) {
-        console.log('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
+        logger.info('❌ No TikTok embed HTML found for restaurant:', restaurant.name);
         showNoVideoMessage(videoContainer, restaurant.name);
         videoModal.classList.add('show');
         return;
@@ -4503,12 +4675,12 @@ async function showVideoFor(restaurant) {
     preloadContainer.style.background = 'black';
     document.body.appendChild(preloadContainer);
 
-    console.log('🎬 Preload container created, injecting TikTok HTML...');
-    console.log('🎬 TikTok HTML length:', restaurant.tiktok_embed_html.length);
+    logger.info('🎬 Preload container created, injecting TikTok HTML...');
+    logger.info('🎬 TikTok HTML length:', restaurant.tiktok_embed_html.length);
 
     // Inject the raw TikTok blockquote HTML into the hidden container
     preloadContainer.innerHTML = restaurant.tiktok_embed_html;
-    console.log('🎬 TikTok HTML injected into preload container');
+    logger.info('🎬 TikTok HTML injected into preload container');
 
     // Make sure the blockquote is visible for TikTok processing
     const hiddenBlockquotes = preloadContainer.querySelectorAll('blockquote.tiktok-embed');
@@ -4519,30 +4691,30 @@ async function showVideoFor(restaurant) {
         bq.classList.remove('hidden');
     });
 
-    console.log('🎬 Hidden blockquotes prepared:', hiddenBlockquotes.length);
+    logger.info('🎬 Hidden blockquotes prepared:', hiddenBlockquotes.length);
 
             // Try multiple approaches to trigger TikTok embed processing
-            console.log('🎬 Attempting to trigger TikTok embed processing...');
+            logger.info('🎬 Attempting to trigger TikTok embed processing...');
 
             // Method 1: Use TikTok's official API if available
             if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                console.log('✅ TikTok script available, calling load()...');
+                logger.info('✅ TikTok script available, calling load()...');
                 window.tiktokEmbed.load();
             } else {
-                console.log('⏳ TikTok script not ready, trying alternative methods...');
+                logger.info('⏳ TikTok script not ready, trying alternative methods...');
 
                 // Method 2: Try to find and trigger existing TikTok embeds
                 const existingEmbeds = document.querySelectorAll('blockquote.tiktok-embed');
                 if (existingEmbeds.length > 0) {
-                    console.log('🔍 Found existing TikTok embeds:', existingEmbeds.length);
+                    logger.info('🔍 Found existing TikTok embeds:', existingEmbeds.length);
                     // TikTok script might already be processing existing embeds
                 }
 
                 // Method 3: Try to manually create the iframe
-                console.log('🔄 Attempting manual iframe creation...');
+                logger.info('🔄 Attempting manual iframe creation...');
                 const videoId = restaurant.tiktok_embed_html.match(/data-video-id="([^"]+)"/)?.[1];
                 if (videoId) {
-                    console.log('🎬 Found video ID:', videoId);
+                    logger.info('🎬 Found video ID:', videoId);
                     const iframe = document.createElement('iframe');
                     iframe.src = `https://www.tiktok.com/embed/v2/${videoId}`;
                     iframe.width = '330';
@@ -4553,7 +4725,7 @@ async function showVideoFor(restaurant) {
                     iframe.style.border = 'none';
                     iframe.style.background = 'black';
 
-                    console.log('✅ Created iframe manually, adding to modal...');
+                    logger.info('✅ Created iframe manually, adding to modal...');
                     videoContainer.innerHTML = '';
                     videoContainer.appendChild(iframe);
 
@@ -4562,11 +4734,11 @@ async function showVideoFor(restaurant) {
                     observer.disconnect();
                     return;
                 } else {
-                    console.log('❌ Could not extract video ID from embed HTML');
+                    logger.info('❌ Could not extract video ID from embed HTML');
                 }
 
                 // Method 4: Force reload TikTok script
-                console.log('🔄 Attempting to reload TikTok script...');
+                logger.info('🔄 Attempting to reload TikTok script...');
                 const existingScript = document.querySelector('script[src*="tiktok.com/embed.js"]');
                 if (existingScript) {
                     existingScript.remove();
@@ -4576,13 +4748,13 @@ async function showVideoFor(restaurant) {
                 newScript.src = 'https://www.tiktok.com/embed.js';
                 newScript.async = true;
                 newScript.onload = () => {
-                    console.log('✅ TikTok script reloaded');
+                    logger.info('✅ TikTok script reloaded');
                     setTimeout(() => {
                         if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
-                            console.log('✅ TikTok script ready after reload, calling load()...');
+                            logger.info('✅ TikTok script ready after reload, calling load()...');
                             window.tiktokEmbed.load();
                         } else {
-                            console.log('❌ TikTok script still not working after reload');
+                            logger.info('❌ TikTok script still not working after reload');
                         }
                     }, 1000);
                 };
@@ -4591,13 +4763,13 @@ async function showVideoFor(restaurant) {
 
     // Use MutationObserver to wait for iframe creation
     const observer = new MutationObserver((mutations, obs) => {
-        console.log('🔍 MutationObserver triggered, checking for iframe...');
+        logger.info('🔍 MutationObserver triggered, checking for iframe...');
         const iframe = preloadContainer.querySelector('iframe');
 
         if (iframe) {
-            console.log('✅ TikTok iframe detected! Moving to modal...');
-            console.log('🎬 Iframe src:', iframe.src);
-            console.log('🎬 Iframe readyState:', iframe.readyState);
+            logger.info('✅ TikTok iframe detected! Moving to modal...');
+            logger.info('🎬 Iframe src:', iframe.src);
+            logger.info('🎬 Iframe readyState:', iframe.readyState);
 
             // Clear loading spinner and add iframe
             videoContainer.innerHTML = '';
@@ -4606,14 +4778,14 @@ async function showVideoFor(restaurant) {
             // Clean up
             document.body.removeChild(preloadContainer);
             obs.disconnect();
-            console.log('✅ Video loading complete');
+            logger.info('✅ Video loading complete');
         } else {
-            console.log('⏳ No iframe found yet, mutations:', mutations.length);
-            mutations.forEach(m => console.log('  - Mutation:', m.type, m.addedNodes.length, 'nodes'));
+            logger.info('⏳ No iframe found yet, mutations:', mutations.length);
+            mutations.forEach(m => logger.info('  - Mutation:', m.type, m.addedNodes.length, 'nodes'));
         }
     });
 
-    console.log('🎬 Starting MutationObserver...');
+    logger.info('🎬 Starting MutationObserver...');
     observer.observe(preloadContainer, {
         childList: true,
         subtree: true,
@@ -4625,7 +4797,7 @@ async function showVideoFor(restaurant) {
     setTimeout(() => {
         if (document.body.contains(preloadContainer)) {
             console.error('❌ TikTok embed timed out after 8 seconds');
-            console.log('🔍 Final preload container contents:', preloadContainer.innerHTML);
+            logger.info('🔍 Final preload container contents:', preloadContainer.innerHTML);
 
             document.body.removeChild(preloadContainer);
             observer.disconnect();
@@ -4677,11 +4849,11 @@ async function showVideoFor(restaurant) {
             let rafId = null;
 
             if (!drawerHandle || !aside) {
-                console.log('Drawer handle or aside not found');
+                logger.info('Drawer handle or aside not found');
                 return;
             }
 
-            console.log('Setting up mobile drawer functionality');
+            logger.info('Setting up mobile drawer functionality');
 
             // Calculate translateY from height value
             function heightToTranslateY(height) {
@@ -4702,11 +4874,11 @@ async function showVideoFor(restaurant) {
                 
                 if (savedHeight && !isNaN(parseInt(savedHeight))) {
                     initialHeight = parseInt(savedHeight);
-                    console.log('Restoring drawer height from localStorage:', savedHeight, 'px');
+                    logger.info('Restoring drawer height from localStorage:', savedHeight, 'px');
                 } else {
                     // Use default height (33vh)
                     initialHeight = Math.floor(window.innerHeight * 0.33);
-                    console.log('Using default drawer height: 33vh =', initialHeight, 'px');
+                    logger.info('Using default drawer height: 33vh =', initialHeight, 'px');
                 }
                 
                 // Ensure height is within valid bounds
@@ -4718,10 +4890,10 @@ async function showVideoFor(restaurant) {
                 currentTranslateY = heightToTranslateY(initialHeight);
                 const heightPx = `${initialHeight}px`;
                 
-                console.log('Window height:', window.innerHeight);
-                console.log('Max drawer height:', maxHeight);
-                console.log('Initial drawer height:', initialHeight);
-                console.log('Calculated translateY:', currentTranslateY);
+                logger.info('Window height:', window.innerHeight);
+                logger.info('Max drawer height:', maxHeight);
+                logger.info('Initial drawer height:', initialHeight);
+                logger.info('Calculated translateY:', currentTranslateY);
                 
                 // Disable transition for initial positioning
                 aside.style.transition = 'none';
@@ -4738,8 +4910,8 @@ async function showVideoFor(restaurant) {
                     aside.style.transition = '';
                 }, 50);
                 
-                console.log('Drawer transform applied:', aside.style.transform);
-                console.log('Drawer computed height:', getComputedStyle(aside).height);
+                logger.info('Drawer transform applied:', aside.style.transform);
+                logger.info('Drawer computed height:', getComputedStyle(aside).height);
             }
 
             // Update drawer position with RAF for smooth 60fps
@@ -4931,7 +5103,7 @@ async function showVideoFor(restaurant) {
             cityList.addEventListener('click', (e) => {
                 if (e.target.tagName === 'LI') {
                     const selectedCity = e.target.dataset.city;
-                    console.log('🏙️ Navigating to city:', selectedCity);
+                    logger.info('🏙️ Navigating to city:', selectedCity);
                     
                     // Navigate to the new city URL
                     if (selectedCity === '') {
@@ -5000,7 +5172,7 @@ async function showVideoFor(restaurant) {
             
             // Check if geolocation is supported
             if (!navigator.geolocation) {
-                console.log('Geolocation not supported, hiding location button');
+                logger.info('Geolocation not supported, hiding location button');
                 locationBtn.style.display = 'none';
                 return;
             }
@@ -5009,17 +5181,17 @@ async function showVideoFor(restaurant) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
                     // Permission granted, keep button visible
-                    console.log('Location permission granted');
+                    logger.info('Location permission granted');
                     locationBtn.style.display = 'block';
                 },
                 function(error) {
                     // Only hide button if user explicitly denied permission
                     if (error.code === error.PERMISSION_DENIED) {
-                        console.log('Location permission explicitly denied, hiding button');
+                        logger.info('Location permission explicitly denied, hiding button');
                         locationBtn.style.display = 'none';
                     } else {
                         // Other errors (timeout, unavailable, etc.) - keep button visible
-                        console.log('Location error (not permission denied):', error.message);
+                        logger.info('Location error (not permission denied):', error.message);
                         locationBtn.style.display = 'block';
                     }
                 },
@@ -5036,7 +5208,7 @@ async function showVideoFor(restaurant) {
         const locationBtn = document.getElementById('location-btn');
         if (locationBtn) {
             locationBtn.addEventListener('click', () => {
-                console.log('Location button clicked');
+                logger.info('Location button clicked');
                 // Use mobile-specific function for mobile, desktop function for desktop
                 if (window.innerWidth <= 768) {
                     findUserLocationMobile();
@@ -5089,10 +5261,10 @@ async function showVideoFor(restaurant) {
         const clearCollectionFilters = document.getElementById('clear-collection-filters-desktop');
         if (clearCollectionFilters) {
             clearCollectionFilters.addEventListener('click', () => {
-                console.log('Clear collection filters (desktop) clicked');
-                console.log('Before clear - selectedCollections:', Array.from(selectedCollections));
+                logger.info('Clear collection filters (desktop) clicked');
+                logger.info('Before clear - selectedCollections:', Array.from(selectedCollections));
                 selectedCollections.clear();
-                console.log('After clear - selectedCollections:', Array.from(selectedCollections));
+                logger.info('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
                 
@@ -5112,12 +5284,12 @@ async function showVideoFor(restaurant) {
         const applyCollectionFilterDesktop = document.getElementById('apply-collection-filter-desktop');
         if (applyCollectionFilterDesktop) {
             applyCollectionFilterDesktop.addEventListener('click', () => {
-                console.log('Apply collection filter (desktop) clicked');
-                console.log('Selected collections:', Array.from(selectedCollections));
+                logger.info('Apply collection filter (desktop) clicked');
+                logger.info('Selected collections:', Array.from(selectedCollections));
                 
                 // Apply combined filters
                 if (currentRestaurants && currentRestaurants.length > 0) {
-                    console.log('🚀 Starting combined filter application...');
+                    logger.info('🚀 Starting combined filter application...');
                     applyAllFiltersAndDisplay();
             }
             
@@ -5135,15 +5307,15 @@ async function showVideoFor(restaurant) {
             const card = e.target.closest('.collection-filter-card');
             if (card) {
                 const collectionId = card.dataset.collectionId;
-                console.log('Collection card clicked:', collectionId);
+                logger.info('Collection card clicked:', collectionId);
 
                 // Toggle selection
                 if (selectedCollections.has(collectionId)) {
                     selectedCollections.delete(collectionId);
-                    console.log('Deselected collection:', collectionId);
+                    logger.info('Deselected collection:', collectionId);
                 } else {
                     selectedCollections.add(collectionId);
-                    console.log('Selected collection:', collectionId);
+                    logger.info('Selected collection:', collectionId);
                 }
                 saveFilterStates();
 
@@ -5158,7 +5330,7 @@ async function showVideoFor(restaurant) {
 
                 // Update button appearance
                 updateCollectionFilterButtonAppearance();
-                console.log('Selected collections:', Array.from(selectedCollections));
+                logger.info('Selected collections:', Array.from(selectedCollections));
             }
         });
 
@@ -5169,17 +5341,17 @@ async function showVideoFor(restaurant) {
                 const collectionId = label.dataset.collectionId;
                 const checkbox = label.querySelector('input[type="checkbox"]');
 
-                console.log('Collection checkbox clicked:', collectionId);
+                logger.info('Collection checkbox clicked:', collectionId);
 
                 // Toggle checkbox state
                 checkbox.checked = !checkbox.checked;
 
                 if (checkbox.checked) {
                     selectedCollections.add(collectionId);
-                    console.log('Selected collection:', collectionId);
+                    logger.info('Selected collection:', collectionId);
                 } else {
                     selectedCollections.delete(collectionId);
-                    console.log('Deselected collection:', collectionId);
+                    logger.info('Deselected collection:', collectionId);
                 }
                 saveFilterStates();
 
@@ -5194,7 +5366,7 @@ async function showVideoFor(restaurant) {
 
                 // Update button appearance
                 updateCollectionFilterButtonAppearance();
-                console.log('Selected collections:', Array.from(selectedCollections));
+                logger.info('Selected collections:', Array.from(selectedCollections));
             }
         });
 
@@ -5210,10 +5382,10 @@ async function showVideoFor(restaurant) {
         const clearMobileCollectionFilters = document.getElementById('clear-collection-filters-mobile');
         if (clearMobileCollectionFilters) {
             clearMobileCollectionFilters.addEventListener('click', () => {
-                console.log('Clear collection filters (mobile) clicked');
-                console.log('Before clear - selectedCollections:', Array.from(selectedCollections));
+                logger.info('Clear collection filters (mobile) clicked');
+                logger.info('Before clear - selectedCollections:', Array.from(selectedCollections));
                 selectedCollections.clear();
-                console.log('After clear - selectedCollections:', Array.from(selectedCollections));
+                logger.info('After clear - selectedCollections:', Array.from(selectedCollections));
                 saveFilterStates();
                 updateCollectionFilterButtonAppearance();
                 
@@ -5233,12 +5405,12 @@ async function showVideoFor(restaurant) {
         const applyMobileCollectionFilter = document.getElementById('apply-collection-filter-mobile');
         if (applyMobileCollectionFilter) {
             applyMobileCollectionFilter.addEventListener('click', () => {
-                console.log('Apply collection filter (mobile) clicked');
-                console.log('Selected collections:', Array.from(selectedCollections));
+                logger.info('Apply collection filter (mobile) clicked');
+                logger.info('Selected collections:', Array.from(selectedCollections));
                 
                 // Apply combined filters
                 if (currentRestaurants && currentRestaurants.length > 0) {
-                    console.log('🚀 Starting combined filter application (mobile)...');
+                    logger.info('🚀 Starting combined filter application (mobile)...');
                     applyAllFiltersAndDisplay();
                 }
 
@@ -5303,51 +5475,85 @@ let testResults = {
 function testPass(testName) {
     testResults.passed++;
     testResults.total++;
-    console.log(`✅ ${testName}`);
+    logger.info(`✅ ${testName}`);
 }
 
 // City collage functions
+function showInitialSkeletonLoaders(cityGrid) {
+    // Clear any existing content
+    cityGrid.innerHTML = '';
+    
+    // Add 4 skeleton loaders immediately
+    for (let i = 0; i < 4; i++) {
+        const skeleton = document.createElement('div');
+        skeleton.className = 'city-collage-skeleton';
+        cityGrid.appendChild(skeleton);
+    }
+}
+
+function replaceSkeletonWithCollage(cityGrid, index, cityName, tiktoks) {
+    const skeletons = cityGrid.querySelectorAll('.city-collage-skeleton');
+    
+    if (skeletons[index]) {
+        // Replace existing skeleton
+        const collageHtml = createCityCollage(cityName, tiktoks);
+        skeletons[index].replaceWith(collageHtml);
+    } else {
+        // Add new collage if we have more cities than initial skeletons
+        const collageHtml = createCityCollage(cityName, tiktoks);
+        cityGrid.appendChild(collageHtml);
+    }
+}
+
 async function loadCityCollages() {
     // Only run on homepage and if feature is enabled
     if (!CONFIG.FEATURE_FLAGS.CITY_COLLAGES) {
-        console.log('City collages feature disabled');
+        logger.info('City collages feature disabled');
         return;
     }
 
     if (!window.location.pathname.includes('index.html') && window.location.pathname !== '/') {
-        console.log('Not on homepage, skipping city collages');
+        logger.info('Not on homepage, skipping city collages');
         return;
     }
 
     const cityGrid = document.getElementById('city-grid');
     if (!cityGrid) {
-        console.log('City grid element not found');
+        logger.info('City grid element not found');
         return;
     }
 
-        console.log('Starting city collages load...');
+        logger.info('Starting city collages load...');
 
     try {
-        // Fetch all cities
+        // Show 4 skeleton loaders immediately for better UX
+        showInitialSkeletonLoaders(cityGrid);
+
+        // Fetch all cities in the background
         const { data: cities, error: citiesError } = await supabaseClient
             .from('cities')
             .select('name')
             .order('name', { ascending: true });
 
+        logger.info('Cities fetched:', cities);
+
         if (citiesError) {
-            console.error('Error fetching cities for collages:', citiesError);
+            logger.error('Error fetching cities for collages:', citiesError);
+            // Keep skeleton loaders as fallback
             return;
         }
 
         if (!cities || cities.length === 0) {
-            console.log('No cities found for collages');
+            logger.info('No cities found for collages');
+            // Keep skeleton loaders as fallback
             return;
         }
 
-        // For each city, fetch up to 12 random featured TikToks
+        // Process cities and replace skeletons with real collages
+        let collageIndex = 0;
         for (const cityObj of cities) {
             const cityName = cityObj.name;
-            console.log(`Processing city: ${cityName}`);
+            logger.info(`Processing city: ${cityName}`);
 
             // Fetch restaurants for this city (try exact match first, then case-insensitive)
             let { data: restaurants, error: restaurantsError } = await supabaseClient
@@ -5367,7 +5573,7 @@ async function loadCityCollages() {
             }
 
             if (restaurantsError || !restaurants || restaurants.length === 0) {
-                console.log(`No restaurants found for ${cityName}, skipping collage`);
+                logger.info(`No restaurants found for ${cityName}, skipping collage`);
                 continue;
             }
 
@@ -5382,7 +5588,7 @@ async function loadCityCollages() {
                 .limit(12);
 
             if (tiktoksError || !tiktoks || tiktoks.length === 0) {
-                console.log(`No TikToks found for ${cityName}, skipping collage`);
+                logger.info(`No TikToks found for ${cityName}, skipping collage`);
                 continue;
             }
 
@@ -5390,12 +5596,16 @@ async function loadCityCollages() {
             const shuffledTiktoks = tiktoks.sort(() => Math.random() - 0.5);
             const selectedTiktoks = shuffledTiktoks.slice(0, 12);
 
-            // Create collage HTML
-            const collageHtml = createCityCollage(cityName, selectedTiktoks);
-            cityGrid.appendChild(collageHtml);
+            // Replace skeleton with real collage or add new one
+            replaceSkeletonWithCollage(cityGrid, collageIndex, cityName, selectedTiktoks);
+            collageIndex++;
         }
 
-        console.log('✅ City collages loaded successfully');
+        // Remove any remaining skeleton loaders
+        const remainingSkeletons = cityGrid.querySelectorAll('.city-collage-skeleton');
+        remainingSkeletons.forEach(skeleton => skeleton.remove());
+
+        logger.info('✅ City collages loaded successfully');
 
     } catch (error) {
         console.error('Error loading city collages:', error);
@@ -5416,7 +5626,9 @@ function createCityCollage(cityName, tiktoks) {
                 <img src="${thumbnailUrl}"
                      alt="${cityName} TikTok"
                      loading="lazy"
-                     onerror="this.src='https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬'">
+                     style="opacity: 0; transition: opacity 0.3s ease;"
+                     onload="this.style.opacity = '1'"
+                     onerror="this.src='https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬'; this.style.opacity = '1'">
             </div>
         `;
     }).join('');
@@ -5438,23 +5650,23 @@ function createCityCollage(cityName, tiktoks) {
 function testFail(testName, error = '') {
     testResults.failed++;
     testResults.total++;
-    console.log(`❌ ${testName}${error ? ` - ${error}` : ''}`);
+    logger.info(`❌ ${testName}${error ? ` - ${error}` : ''}`);
 }
 
 function testSummary() {
-    console.log('\n' + '='.repeat(50));
-    console.log('🧪 TEST SUMMARY');
-    console.log('='.repeat(50));
-    console.log(`✅ Passed: ${testResults.passed}`);
-    console.log(`❌ Failed: ${testResults.failed}`);
-    console.log(`📊 Total: ${testResults.total}`);
-    console.log(`📈 Success Rate: ${((testResults.passed / testResults.total) * 100).toFixed(1)}%`);
-    console.log('='.repeat(50));
+    logger.info('\n' + '='.repeat(50));
+    logger.info('🧪 TEST SUMMARY');
+    logger.info('='.repeat(50));
+    logger.info(`✅ Passed: ${testResults.passed}`);
+    logger.info(`❌ Failed: ${testResults.failed}`);
+    logger.info(`📊 Total: ${testResults.total}`);
+    logger.info(`📈 Success Rate: ${((testResults.passed / testResults.total) * 100).toFixed(1)}%`);
+    logger.info('='.repeat(50));
     
     if (testResults.failed === 0) {
-        console.log('🎉 All tests passed!');
+        logger.info('🎉 All tests passed!');
     } else {
-        console.log('⚠️ Some tests failed. Check the details above.');
+        logger.info('⚠️ Some tests failed. Check the details above.');
     }
 }
 
@@ -5607,7 +5819,7 @@ function testRestaurantList() {
 
 // Main test runner
 async function runAllTests() {
-    console.log('🧪 Starting ReelEats Test Suite...\n');
+    logger.info('🧪 Starting ReelEats Test Suite...\n');
     testResults = { passed: 0, failed: 0, total: 0 };
     
     // Core functionality tests
@@ -5633,7 +5845,7 @@ async function runAllTests() {
 async function autoRunTests() {
     // Wait a bit for everything to initialize
     setTimeout(async () => {
-        console.log('🚀 Auto-running tests after page load...\n');
+        logger.info('🚀 Auto-running tests after page load...\n');
         await runAllTests();
     }, 2000); // 2 second delay to ensure everything is loaded
 }
@@ -5643,4 +5855,5 @@ window.runAllTests = runAllTests;
 
 // Auto-run tests on page load
 autoRunTests();
+
 

@@ -93,8 +93,8 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Maps Places API -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBH3tTjAVW8wPk2ojqzmtoKSFzlqeM42ek&libraries=places,marker&v=weekly"></script>
+    <!-- Google Maps Places API - loaded via secure Edge Function -->
+    <script src="https://jsuxrpnfofkigdfpnuua.functions.supabase.co/google-maps-loader?libraries=places,marker&v=weekly"></script>
 </head>
 <body class="h-full">
     <!-- Loading screen shown during authentication check -->
