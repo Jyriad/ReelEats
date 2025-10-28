@@ -5479,6 +5479,32 @@ function testPass(testName) {
 }
 
 // City collage functions
+function showInitialSkeletonLoaders(cityGrid) {
+    // Clear any existing content
+    cityGrid.innerHTML = '';
+    
+    // Add 4 skeleton loaders immediately
+    for (let i = 0; i < 4; i++) {
+        const skeleton = document.createElement('div');
+        skeleton.className = 'city-collage-skeleton';
+        cityGrid.appendChild(skeleton);
+    }
+}
+
+function replaceSkeletonWithCollage(cityGrid, index, cityName, tiktoks) {
+    const skeletons = cityGrid.querySelectorAll('.city-collage-skeleton');
+    
+    if (skeletons[index]) {
+        // Replace existing skeleton
+        const collageHtml = createCityCollage(cityName, tiktoks);
+        skeletons[index].replaceWith(collageHtml);
+    } else {
+        // Add new collage if we have more cities than initial skeletons
+        const collageHtml = createCityCollage(cityName, tiktoks);
+        cityGrid.appendChild(collageHtml);
+    }
+}
+
 async function loadCityCollages() {
     // Only run on homepage and if feature is enabled
     if (!CONFIG.FEATURE_FLAGS.CITY_COLLAGES) {
@@ -5500,27 +5526,31 @@ async function loadCityCollages() {
         logger.info('Starting city collages load...');
 
     try {
-        // Clear skeleton loaders
-        const skeletons = cityGrid.querySelectorAll('.city-collage-skeleton');
-        skeletons.forEach(skeleton => skeleton.remove());
+        // Show 4 skeleton loaders immediately for better UX
+        showInitialSkeletonLoaders(cityGrid);
 
-        // Fetch all cities
+        // Fetch all cities in the background
         const { data: cities, error: citiesError } = await supabaseClient
             .from('cities')
             .select('name')
             .order('name', { ascending: true });
 
+        logger.info('Cities fetched:', cities);
+
         if (citiesError) {
-            console.error('Error fetching cities for collages:', citiesError);
+            logger.error('Error fetching cities for collages:', citiesError);
+            // Keep skeleton loaders as fallback
             return;
         }
 
         if (!cities || cities.length === 0) {
             logger.info('No cities found for collages');
+            // Keep skeleton loaders as fallback
             return;
         }
 
-        // For each city, fetch up to 12 random featured TikToks
+        // Process cities and replace skeletons with real collages
+        let collageIndex = 0;
         for (const cityObj of cities) {
             const cityName = cityObj.name;
             logger.info(`Processing city: ${cityName}`);
@@ -5566,10 +5596,14 @@ async function loadCityCollages() {
             const shuffledTiktoks = tiktoks.sort(() => Math.random() - 0.5);
             const selectedTiktoks = shuffledTiktoks.slice(0, 12);
 
-            // Create collage HTML
-            const collageHtml = createCityCollage(cityName, selectedTiktoks);
-            cityGrid.appendChild(collageHtml);
+            // Replace skeleton with real collage or add new one
+            replaceSkeletonWithCollage(cityGrid, collageIndex, cityName, selectedTiktoks);
+            collageIndex++;
         }
+
+        // Remove any remaining skeleton loaders
+        const remainingSkeletons = cityGrid.querySelectorAll('.city-collage-skeleton');
+        remainingSkeletons.forEach(skeleton => skeleton.remove());
 
         logger.info('✅ City collages loaded successfully');
 
