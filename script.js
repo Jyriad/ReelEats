@@ -3345,14 +3345,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (type === 'error') bgColor = 'bg-red-500';
             if (type === 'warning') bgColor = 'bg-yellow-500';
             
-            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out ${bgColor}`;
+            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transition-transform duration-300 ease-in-out ${bgColor}`;
             
             // Show toast (remove hidden class)
             toast.classList.remove('hidden');
             
-            // Slide in
+            // Slide in from right
             setTimeout(() => {
-                toast.classList.add('show');
+                toast.style.transform = 'translateX(0)';
             }, 100);
             
             // Hide toast after 3 seconds
@@ -3622,10 +3622,96 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const collectionId = collectionOption.dataset.collectionId;
                 const restaurantId = collectionOption.dataset.restaurantId;
 
-                // Add to existing collection
-                const { error } = await supabaseClient
-                    .from('collection_restaurants')
-                    .insert({ collection_id: collectionId, restaurant_id: restaurantId });
+                // Check if restaurant is already in this collection
+                const isAlreadyInCollection = collectedRestaurants.has(restaurantId) || collectedRestaurants.has(parseInt(restaurantId, 10));
+                
+                if (isAlreadyInCollection) {
+                    // Remove from collection
+                    const { error } = await supabaseClient
+                        .from('collection_restaurants')
+                        .delete()
+                        .eq('collection_id', collectionId)
+                        .eq('restaurant_id', restaurantId);
+
+                    if (error) {
+                        console.error(error);
+                        showToast('Error removing from collection. Please try again.', 'error');
+                    } else {
+                        // Show immediate success feedback
+                        showToast('Removed from collection!');
+                        
+                        // Update collection state immediately
+                        collectedRestaurants.delete(restaurantId);
+                        collectedRestaurants.delete(parseInt(restaurantId, 10));
+                        logger.info('Updated collectedRestaurants (removed):', collectedRestaurants);
+                        
+                        // Update the specific restaurant card immediately
+                        const restaurantCard = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+                        if (restaurantCard) {
+                            const bookmarkBtn = restaurantCard.querySelector('.add-to-collection-btn');
+                            if (bookmarkBtn) {
+                                bookmarkBtn.classList.remove('collected');
+                                bookmarkBtn.title = 'Add to Collections';
+                            }
+                        }
+                        
+                        // Update the modal to show the new state
+                        const modal = document.getElementById('collection-selection-modal');
+                        if (modal) {
+                            // Update the modal title back to "Add to Collection"
+                            const modalTitle = modal.querySelector('h3');
+                            if (modalTitle) {
+                                modalTitle.textContent = 'Add to Collection';
+                            }
+                            
+                            // Reset the clicked collection option
+                            const arrowIcon = collectionOption.querySelector('svg');
+                            if (arrowIcon) {
+                                arrowIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>';
+                            }
+                            
+                            // Remove visual indicators
+                            collectionOption.classList.remove('bg-green-50', 'border-green-200');
+                            collectionOption.classList.add('hover:bg-gray-50');
+                            
+                            // Update the text to remove "(Added)" indicator
+                            const collectionName = collectionOption.querySelector('span');
+                            if (collectionName) {
+                                collectionName.textContent = collectionName.textContent.replace(' (Added)', '');
+                            }
+                            
+                            // Add success message
+                            const modalContent = modal.querySelector('.max-h-96');
+                            if (modalContent) {
+                                const existingSuccess = modalContent.querySelector('.success-message');
+                                if (existingSuccess) {
+                                    existingSuccess.remove();
+                                }
+                                
+                                const successDiv = document.createElement('div');
+                                successDiv.className = 'success-message p-4 bg-blue-50 border-b border-blue-200 text-blue-800 text-center';
+                                successDiv.innerHTML = '✅ Removed from collection!';
+                                modalContent.insertBefore(successDiv, modalContent.firstChild);
+                                
+                                setTimeout(() => {
+                                    if (successDiv.parentNode) {
+                                        successDiv.remove();
+                                    }
+                                }, 3000);
+                            }
+                        }
+                        
+                        // Re-display restaurants to show updated collection status
+                        if (currentRestaurants && currentRestaurants.length > 0) {
+                            logger.info('Re-displaying restaurants after removing from collection');
+                            await applyAllFiltersAndDisplay();
+                        }
+                    }
+                } else {
+                    // Add to existing collection
+                    const { error } = await supabaseClient
+                        .from('collection_restaurants')
+                        .insert({ collection_id: collectionId, restaurant_id: restaurantId });
 
                 if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
                     showToast('This restaurant is already in that collection.', 'warning');
@@ -3658,10 +3744,41 @@ document.addEventListener('DOMContentLoaded', async function() {
                         videoCollectionBtn.title = 'Remove from Collections';
                     }
                     
-                    // Update the modal to show success and current state
+                    // Update the modal to show the new state - DON'T CLOSE IT
                     const modal = document.getElementById('collection-selection-modal');
                     if (modal) {
-                        // Add success indicator to the modal
+                        // Update the modal title
+                        const modalTitle = modal.querySelector('h3');
+                        if (modalTitle) {
+                            modalTitle.textContent = 'Remove from Collection';
+                        }
+                        
+                        // Update all collection options to show "Remove" state
+                        const collectionOptions = modal.querySelectorAll('.collection-option');
+                        collectionOptions.forEach(option => {
+                            const collectionId = option.dataset.collectionId;
+                            
+                            // Check if this restaurant is now in this collection
+                            if (collectedRestaurants.has(restaurantId) || collectedRestaurants.has(parseInt(restaurantId, 10))) {
+                                // Update the option to show "Remove" state
+                                const arrowIcon = option.querySelector('svg');
+                                if (arrowIcon) {
+                                    arrowIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+                                }
+                                
+                                // Add visual indicator that it's been added
+                                option.classList.add('bg-green-50', 'border-green-200');
+                                option.classList.remove('hover:bg-gray-50');
+                                
+                                // Update the text to show it's been added
+                                const collectionName = option.querySelector('span');
+                                if (collectionName) {
+                                    collectionName.innerHTML = `${collectionName.textContent} <span class="text-green-600 text-sm">(Added)</span>`;
+                                }
+                            }
+                        });
+                        
+                        // Add a success indicator at the top
                         const modalContent = modal.querySelector('.max-h-96');
                         if (modalContent) {
                             // Clear any existing success messages
@@ -3673,21 +3790,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                             // Add a success indicator at the top
                             const successDiv = document.createElement('div');
                             successDiv.className = 'success-message p-4 bg-green-50 border-b border-green-200 text-green-800 text-center';
-                            successDiv.innerHTML = '✅ Successfully added to collection!';
+                            successDiv.innerHTML = '✅ Successfully added to collection! Click any collection to remove.';
                             modalContent.insertBefore(successDiv, modalContent.firstChild);
                             
-                            // Auto-remove success message after 3 seconds
+                            // Auto-remove success message after 4 seconds
                             setTimeout(() => {
                                 if (successDiv.parentNode) {
                                     successDiv.remove();
                                 }
-                            }, 3000);
-                        }
-                        
-                        // Update the modal title to reflect current state
-                        const modalTitle = modal.querySelector('h3');
-                        if (modalTitle) {
-                            modalTitle.textContent = 'Restaurant Added to Collection';
+                            }, 4000);
                         }
                     }
                     
