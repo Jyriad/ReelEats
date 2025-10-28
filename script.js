@@ -3328,12 +3328,24 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Toast notification function
         function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast-notification');
+            const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toast-message');
+            
+            if (!toast || !toastMessage) {
+                console.log('Toast elements not found, falling back to console');
+                console.log(`Toast: ${message}`);
+                return;
+            }
             
             // Set message and type
             toastMessage.textContent = message;
-            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out ${type}`;
+            
+            // Set background color based on type
+            let bgColor = 'bg-green-500';
+            if (type === 'error') bgColor = 'bg-red-500';
+            if (type === 'warning') bgColor = 'bg-yellow-500';
+            
+            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-[10001] transform translate-x-full transition-transform duration-300 ease-in-out ${bgColor}`;
             
             // Show toast (remove hidden class)
             toast.classList.remove('hidden');
@@ -3621,7 +3633,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     console.error(error);
                     showToast('Error adding to collection. Please try again.', 'error');
                 } else {
+                    // Show immediate success feedback
                     showToast('Added to collection!');
+                    
                     // Update collection state immediately (store both string and numeric versions)
                     collectedRestaurants.add(restaurantId);
                     collectedRestaurants.add(parseInt(restaurantId, 10));
@@ -3633,6 +3647,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const bookmarkBtn = restaurantCard.querySelector('.add-to-collection-btn');
                         if (bookmarkBtn) {
                             bookmarkBtn.classList.add('collected');
+                            bookmarkBtn.title = 'Remove from Collections';
                         }
                     }
                     
@@ -3643,31 +3658,36 @@ document.addEventListener('DOMContentLoaded', async function() {
                         videoCollectionBtn.title = 'Remove from Collections';
                     }
                     
-                    // Update the modal to show "Remove" instead of "Add"
+                    // Update the modal to show success and current state
                     const modal = document.getElementById('collection-selection-modal');
                     if (modal) {
-                        // Update the button text and state
-                        const addToCollectionBtn = document.querySelector(`[data-restaurant-id="${restaurantId}"].add-to-collection-btn`);
-                        if (addToCollectionBtn) {
-                            addToCollectionBtn.classList.add('collected');
-                            addToCollectionBtn.title = 'Remove from Collections';
-                        }
-                        
-                        // Update modal content to show current state
+                        // Add success indicator to the modal
                         const modalContent = modal.querySelector('.max-h-96');
                         if (modalContent) {
-                            // Add a success indicator
+                            // Clear any existing success messages
+                            const existingSuccess = modalContent.querySelector('.success-message');
+                            if (existingSuccess) {
+                                existingSuccess.remove();
+                            }
+                            
+                            // Add a success indicator at the top
                             const successDiv = document.createElement('div');
-                            successDiv.className = 'p-4 bg-green-50 border-b border-green-200 text-green-800 text-center';
-                            successDiv.innerHTML = '✅ Added to collection! Click "Add to Collection" again to remove.';
+                            successDiv.className = 'success-message p-4 bg-green-50 border-b border-green-200 text-green-800 text-center';
+                            successDiv.innerHTML = '✅ Successfully added to collection!';
                             modalContent.insertBefore(successDiv, modalContent.firstChild);
                             
-                            // Auto-remove success message after 2 seconds
+                            // Auto-remove success message after 3 seconds
                             setTimeout(() => {
                                 if (successDiv.parentNode) {
                                     successDiv.remove();
                                 }
-                            }, 2000);
+                            }, 3000);
+                        }
+                        
+                        // Update the modal title to reflect current state
+                        const modalTitle = modal.querySelector('h3');
+                        if (modalTitle) {
+                            modalTitle.textContent = 'Restaurant Added to Collection';
                         }
                     }
                     
