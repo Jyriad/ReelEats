@@ -3813,6 +3813,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         await applyAllFiltersAndDisplay();
                     }
                 }
+                }
             }
             
             // Check if clicked on create collection option
