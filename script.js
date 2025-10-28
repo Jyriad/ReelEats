@@ -5592,7 +5592,9 @@ function createCityCollage(cityName, tiktoks) {
                 <img src="${thumbnailUrl}"
                      alt="${cityName} TikTok"
                      loading="lazy"
-                     onerror="this.src='https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬'">
+                     style="opacity: 0; transition: opacity 0.3s ease;"
+                     onload="this.style.opacity = '1'"
+                     onerror="this.src='https://via.placeholder.com/200x200/6366F1/FFFFFF?text=🎬'; this.style.opacity = '1'">
             </div>
         `;
     }).join('');
