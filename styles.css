@@ -1308,6 +1308,27 @@ body.homepage {
     flex-shrink: 0 !important;
 }
 
+/* Scale SVG icons in dashboard preview restaurant cards */
+#preview-restaurant-list span svg,
+.preview-restaurant-card span svg,
+.preview-restaurant-card .inline-block svg,
+.preview-restaurant-card .cuisine-icon-inline svg {
+    width: 12px !important;
+    height: 12px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 4px !important;
+    flex-shrink: 0 !important;
+    max-width: 12px !important;
+    max-height: 12px !important;
+}
+
+.preview-restaurant-card .cuisine-icon-inline {
+    display: inline-block !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
+}
+
 /* Ensure all SVG elements in cuisine tags are small */
 #restaurant-list span svg {
     width: 12px !important;

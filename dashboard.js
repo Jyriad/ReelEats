@@ -2312,7 +2312,7 @@ function displayPreviewRestaurantCards() {
                 const icon = cuisine.icon || '🍽️';
                 return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1" 
                               style="background-color: ${bgColor}; color: ${textColor};">
-                            ${icon} ${cuisine.name}
+                            <span class="cuisine-icon-inline">${icon}</span> ${cuisine.name}
                         </span>`;
             }).join('')
             : '<span class="text-gray-400 text-xs">No cuisine info</span>';
