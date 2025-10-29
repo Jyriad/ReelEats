@@ -2229,18 +2229,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
 
                 // 2) Find all TikToks authored by this handle (including thumbnails)
+                // Note: We don't filter by is_featured here because creators should see all their content
                 let { data: tiktoks, error: tErr } = await supabaseClient
                     .from('tiktoks')
                     .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
-                    .ilike('author_handle', handleWithAt)
-                    .eq('is_featured', true);
+                    .ilike('author_handle', handleWithAt);
 
                 if (!tErr && tiktoks && tiktoks.length === 0) {
                     const fallbackTik = await supabaseClient
                         .from('tiktoks')
                         .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
-                        .ilike('author_handle', handleLower)
-                        .eq('is_featured', true);
+                        .ilike('author_handle', handleLower);
                     tiktoks = fallbackTik.data;
                     tErr = fallbackTik.error;
                 }
