@@ -2055,14 +2055,19 @@ body.homepage .header {
 
 @media (max-width: 480px) {
     .city-collage-grid {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        padding: 4px;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+        padding: 3px;
+        gap: 1.5px;
     }
 
     .city-collage-title {
-        font-size: 1.25rem;
+        font-size: 1.125rem;
         padding: 0.5rem;
+    }
+    
+    .city-collage-thumbnail {
+        border-radius: 2px;
     }
 }
 
