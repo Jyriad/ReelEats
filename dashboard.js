@@ -556,10 +556,12 @@ async function loadUserContent() {
                 author_handle,
                 created_at,
                 is_featured,
+                thumbnail_url,
                 restaurant_id,
                 restaurants (
                     id,
                     name,
+                    description,
                     city,
                     lat,
                     lon,
@@ -585,7 +587,8 @@ async function loadUserContent() {
                     if (!restaurantMap.has(restaurantId)) {
                         restaurantMap.set(restaurantId, {
                             ...tiktok.restaurants,
-                            tiktoks: []
+                            tiktoks: [],
+                            tiktok_thumbnail_url: tiktok.thumbnail_url || null // Store thumbnail from first TikTok
                         });
                     }
                     restaurantMap.get(restaurantId).tiktoks.push({
@@ -593,13 +596,49 @@ async function loadUserContent() {
                         embed_html: tiktok.embed_html,
                         author_handle: tiktok.author_handle,
                         created_at: tiktok.created_at,
-                        is_featured: tiktok.is_featured
+                        is_featured: tiktok.is_featured,
+                        thumbnail_url: tiktok.thumbnail_url
                     });
+                    // Update thumbnail if this TikTok has one and previous one didn't
+                    if (!restaurantMap.get(restaurantId).tiktok_thumbnail_url && tiktok.thumbnail_url) {
+                        restaurantMap.get(restaurantId).tiktok_thumbnail_url = tiktok.thumbnail_url;
+                    }
                 }
             });
         }
 
         userContent = Array.from(restaurantMap.values());
+        
+        // Fetch cuisines for restaurants
+        if (userContent.length > 0) {
+            const restaurantIds = userContent.map(r => r.id);
+            const { data: restaurantCuisines } = await supabaseClient
+                .from('restaurant_cuisines')
+                .select(`
+                    restaurant_id,
+                    cuisines (name, icon, color_background, color_text)
+                `)
+                .in('restaurant_id', restaurantIds);
+            
+            // Map cuisines to restaurants
+            const cuisineMap = new Map();
+            if (restaurantCuisines) {
+                restaurantCuisines.forEach(rc => {
+                    if (!cuisineMap.has(rc.restaurant_id)) {
+                        cuisineMap.set(rc.restaurant_id, []);
+                    }
+                    if (rc.cuisines) {
+                        cuisineMap.get(rc.restaurant_id).push(rc.cuisines);
+                    }
+                });
+            }
+            
+            // Add cuisines to restaurants
+            userContent.forEach(restaurant => {
+                restaurant.cuisines = cuisineMap.get(restaurant.id) || [];
+            });
+        }
+        
         logger.info('Loaded restaurants with TikToks:', userContent.length);
 
         // Display content (restaurants with TikToks)
@@ -2164,60 +2203,78 @@ function addPreviewRestaurantMarkers() {
     }
 }
 
-// Create preview marker (similar to explore page)
+// Create preview marker (matching profile page styling)
 function createPreviewMarker(restaurant, index) {
-    const number = index + 1;
+    // Check if thumbnail markers feature is enabled
+    const useThumbnails = CONFIG?.FEATURE_FLAGS?.THUMBNAIL_MARKERS;
 
-    // Check if thumbnail markers feature is enabled and restaurant has TikTok thumbnail
+    // Check if restaurant has a TikTok thumbnail
     let markerHtml = '';
-    let iconSize = [32, 32];
-    let iconAnchor = [16, 16];
+    let iconSize = [50, 50];
+    let iconAnchor = [25, 25];
 
-    if (CONFIG?.FEATURE_FLAGS?.THUMBNAIL_MARKERS && restaurant.tiktok_thumbnail_url) {
-        // Use thumbnail as marker
-        markerHtml = `<div class="thumbnail-marker-container" style="
-            width: 32px;
-            height: 32px;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 50%;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        ">
-            <img src="${restaurant.tiktok_thumbnail_url}"
-                 alt="${restaurant.name}"
-                 style="
-                     width: 28px;
-                     height: 28px;
-                     border-radius: 50%;
-                     object-fit: cover;
-                 "
-                 loading="lazy"
-                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"width: 20px; height: 20px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;\">🍽️</div>'">
+    // Helper function to get marker content (cuisine icon or number)
+    function getMarkerContent(restaurant, index) {
+        const firstCuisine = restaurant.cuisines && restaurant.cuisines.length > 0 ? restaurant.cuisines[0] : null;
+        return firstCuisine ? firstCuisine.icon : (index + 1);
+    }
+
+    if (useThumbnails && restaurant.tiktok_thumbnail_url) {
+        // Use thumbnail as marker - 50px circle from 70px image with scale wrapper
+        markerHtml = `<div class="marker-wrapper" style="width: 50px; height: 50px;">
+            <div class="thumbnail-marker-container" style="
+                width: 50px;
+                height: 50px;
+                background: white;
+                border: 2px solid #e5e7eb;
+                border-radius: 50%;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            ">
+                <img src="${restaurant.tiktok_thumbnail_url}"
+                     alt="${restaurant.name}"
+                     style="
+                         width: 70px;
+                         height: 70px;
+                         object-fit: cover;
+                         margin-left: -10px;
+                         margin-top: -10px;
+                     ">
+            </div>
         </div>`;
     } else {
-        // Fallback to number
-        markerHtml = `<div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">${number}</div>`;
+        // Fallback to cuisine icon or number with scale wrapper
+        const displayContent = getMarkerContent(restaurant, index);
+        markerHtml = `<div class="marker-wrapper" style="width: 50px; height: 50px;">
+            <div class="svg-marker-container" style="
+                width: 50px; 
+                height: 50px; 
+                background: white;
+                border: 2px solid #e5e7eb;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                font-size: 18px;
+                font-weight: bold;
+            ">${displayContent}</div>
+        </div>`;
     }
 
     // Create custom icon
     const icon = L.divIcon({
-        className: 'custom-numbered-marker',
+        className: 'restaurant-marker',
         html: markerHtml,
         iconSize: iconSize,
         iconAnchor: iconAnchor
     });
     
-    const marker = L.marker([restaurant.lat, restaurant.lon], { icon })
-        .bindPopup(`
-            <div>
-                <h3 class="font-semibold">${restaurant.name}</h3>
-                <p class="text-sm text-gray-600">${restaurant.city || 'No city'}</p>
-            </div>
-        `);
+    const marker = L.marker([restaurant.lat, restaurant.lon], { 
+        icon: icon,
+        title: restaurant.name,
+        restaurant: restaurant
+    });
     
     // Add click event to open video
     marker.on('click', () => {
@@ -2247,22 +2304,45 @@ function displayPreviewRestaurantCards() {
         const number = index + 1;
         const firstTiktok = restaurant.tiktoks && restaurant.tiktoks[0];
         
+        // Create cuisine tags
+        const cuisineTags = restaurant.cuisines && restaurant.cuisines.length > 0 
+            ? restaurant.cuisines.map(cuisine => {
+                const bgColor = cuisine.color_background || '#E5E7EB';
+                const textColor = cuisine.color_text || '#1F2937';
+                const icon = cuisine.icon || '🍽️';
+                return `<span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1" 
+                              style="background-color: ${bgColor}; color: ${textColor};">
+                            ${icon} ${cuisine.name}
+                        </span>`;
+            }).join('')
+            : '<span class="text-gray-400 text-xs">No cuisine info</span>';
+        
+        // Create thumbnail HTML
+        let thumbnailHtml = '';
+        if (restaurant.tiktok_thumbnail_url) {
+            thumbnailHtml = `
+                <img src="${restaurant.tiktok_thumbnail_url}"
+                     alt="${restaurant.name} TikTok thumbnail"
+                     class="restaurant-thumbnail w-20 h-20 rounded-lg object-cover border border-gray-200"
+                     loading="lazy"
+                     onerror="this.style.display='none'">`;
+        }
+        
         return `
             <div class="bg-white rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 relative touch-manipulation preview-restaurant-card" 
                  data-restaurant-id="${restaurant.id}">
-                <div class="w-full p-3 md:p-4 flex items-start">
-                    <div class="flex-shrink-0 mr-3">
-                        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                            ${number}
+                <div class="w-full p-3 md:p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3 flex flex-col items-center">
+                            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mb-2">
+                                ${number}
+                            </div>
+                            ${thumbnailHtml}
                         </div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
-                        <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
-                        <div class="mt-2.5">
-                            <span class="inline-block text-xs px-2 py-1 rounded-full mr-1 mb-1 bg-gray-100 text-gray-700">
-                                📍 ${restaurant.city || 'No location'}
-                            </span>
+                        <div class="flex-1 min-w-0 pr-16">
+                            <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
+                            <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
+                            <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
                         </div>
                     </div>
                 </div>
