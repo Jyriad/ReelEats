@@ -3713,10 +3713,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                     }
                 } else {
-                    // Add to existing collection
-                    const { error } = await supabaseClient
-                        .from('collection_restaurants')
-                        .insert({ collection_id: collectionId, restaurant_id: restaurantId });
+                // Add to existing collection
+                const { error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .insert({ collection_id: collectionId, restaurant_id: restaurantId });
 
                 if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
                     showToast('This restaurant is already in that collection.', 'warning');
@@ -4221,15 +4221,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <div class="svg-marker-container ${favoritedClass}" style="
                         width: 50px; 
                         height: 50px; 
-                        background: white;
-                        border: 2px solid #e5e7eb;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                         font-size: 18px;
-                        font-weight: bold;
+                    font-weight: bold;
                     ">${displayContent}</div>
                 </div>`;
             }
