@@ -5592,9 +5592,12 @@ async function loadCityCollages() {
                 continue;
             }
 
-            // Shuffle and take up to 12 thumbnails
+            // Shuffle and take appropriate number of thumbnails based on screen size
             const shuffledTiktoks = tiktoks.sort(() => Math.random() - 0.5);
-            const selectedTiktoks = shuffledTiktoks.slice(0, 12);
+            // Mobile (≤480px) shows 3×3 = 9 thumbnails, desktop shows 4×3 = 12 thumbnails
+            const isMobile = window.innerWidth <= 480;
+            const thumbnailCount = isMobile ? 9 : 12;
+            const selectedTiktoks = shuffledTiktoks.slice(0, thumbnailCount);
 
             // Replace skeleton with real collage or add new one
             replaceSkeletonWithCollage(cityGrid, collageIndex, cityName, selectedTiktoks);
