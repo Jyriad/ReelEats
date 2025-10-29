@@ -4656,9 +4656,24 @@ async function showVideoFor(restaurant) {
     // Populate video header with restaurant info
     populateVideoHeader(restaurant);
 
-    // Show the modal with a loading indicator
+    // Show the modal
     videoModal.classList.add('show');
     scrollToRestaurant(restaurant.id);
+
+    // Check if we have a preloaded iframe - use it immediately for instant loading
+    if (restaurant._preloadedIframe) {
+        logger.info('✅ Using preloaded iframe for:', restaurant.name);
+        videoContainer.innerHTML = restaurant._preloadedIframe;
+        
+        // Ensure TikTok embed is interactive if API is available
+        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+            window.tiktokEmbed.load();
+        }
+        
+        return; // Skip the rest of the loading logic
+    }
+
+    // Show loading indicator if no preloaded iframe available
     videoContainer.innerHTML = `
         <div class="w-full h-full flex items-center justify-center text-white">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
