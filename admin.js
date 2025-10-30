@@ -1542,7 +1542,7 @@ async function handleRestaurantSearch(e) {
                 id,
                 name,
                 description,
-                cities (name)
+                city
             `)
             .ilike('name', `%${searchTerm}%`)
             .limit(10);
@@ -1562,7 +1562,7 @@ async function handleRestaurantSearch(e) {
                     <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
                          onclick="${onclickCode}">
                         <div class="font-medium text-gray-900">${restaurant.name}</div>
-                        <div class="text-sm text-gray-600">${restaurant.cities?.name || 'Unknown City'}</div>
+                        <div class="text-sm text-gray-600">${restaurant.city || 'Unknown City'}</div>
                     </div>
                 `;
             }).join('');
@@ -1785,7 +1785,6 @@ async function loadVideosForManagement() {
             .from('restaurants')
             .select(`
                 *,
-                cities (name),
                 restaurant_cuisines (
                     cuisines (name)
                 )
@@ -1826,7 +1825,7 @@ async function loadVideosForManagement() {
         // Populate city filter
         const cityFilter = document.getElementById('video-city-filter-manage');
         if (cityFilter) {
-            const cities = [...new Set(restaurants.map(r => r.cities.name))];
+            const cities = [...new Set(restaurants.map(r => r.city).filter(Boolean))];
             cityFilter.innerHTML = '<option value="">All Cities</option>' + 
                 cities.map(city => `<option value="${city}">${city}</option>`).join('');
         }
@@ -1889,7 +1888,7 @@ function displayRestaurantVideoGroups(restaurantGroups) {
             <div class="flex justify-between items-start mb-4">
                 <div class="flex-1">
                     <h3 class="text-xl font-bold text-gray-900 mb-1">${restaurant.name}</h3>
-                    <p class="text-sm text-gray-600">${restaurant.cities.name}</p>
+                    <p class="text-sm text-gray-600">${restaurant.city || ''}</p>
                     <p class="text-xs ${videoStatusClass} mt-1">${videoCountText}</p>
                 </div>
                 <div class="flex space-x-2">
@@ -2041,7 +2040,7 @@ async function editVideo(videoId) {
                 *,
                 restaurants (
                     name,
-                    cities (name)
+                    city
                 )
             `)
             .eq('id', videoId)
