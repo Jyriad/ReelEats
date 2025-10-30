@@ -13,6 +13,27 @@ const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Lightweight analytics helper (fire-and-forget)
+async function trackEvent(eventType, data = {}) {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        const eventData = {
+            event_type: eventType,
+            user_id: user ? user.id : null,
+            restaurant_id: data.restaurant_id || null,
+            city_name: data.city_name || null,
+            metadata: data.metadata || null
+        };
+        // Do not await to avoid blocking UX
+        supabaseClient.from('analytics_events').insert(eventData)
+            .then(({ error }) => {
+                if (error) console.warn('Analytics tracking error:', error.message);
+            });
+    } catch (err) {
+        console.warn('Analytics helper error:', err?.message || err);
+    }
+}
+
 // --- Configuration Constants ---
 const CONFIG = {
     STORAGE_KEYS: {
@@ -4632,6 +4653,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
 async function showVideoFor(restaurant) {
+    // Analytics: restaurant card/video click
+    try { trackEvent('restaurant_click', { restaurant_id: restaurant.id }); } catch (_) {}
             logger.info('🎬 showVideoFor called with restaurant:', restaurant);
             logger.info('🎬 restaurant.tiktok_embed_html:', restaurant.tiktok_embed_html);
             logger.info('🎬 restaurant.tiktok_embed_html type:', typeof restaurant.tiktok_embed_html);
@@ -5117,6 +5140,8 @@ async function showVideoFor(restaurant) {
             cityList.addEventListener('click', (e) => {
                 if (e.target.tagName === 'LI') {
                     const selectedCity = e.target.dataset.city;
+                    // Analytics: city filter selection
+                    try { trackEvent('city_filter', { city_name: selectedCity || 'Explore All' }); } catch (_) {}
                     logger.info('🏙️ Navigating to city:', selectedCity);
                     
                     // Navigate to the new city URL
