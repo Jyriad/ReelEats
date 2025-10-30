@@ -198,6 +198,17 @@ async function initializeAdminPanel() {
     
     // Set up event listeners
     setupEventListeners();
+
+    // Initialize and load analytics tables
+    try {
+        logger.info('Initializing analytics filters...');
+        await initializeAnalyticsFilters();
+        logger.info('Loading analytics tables...');
+        await loadAnalyticsTables();
+        logger.info('Analytics loaded');
+    } catch (e) {
+        console.error('Failed to initialize/load analytics:', e);
+    }
 }
 
 // Run when DOM is ready or immediately if already ready
@@ -3021,6 +3032,7 @@ function getAnalyticsFilters() {
 
 async function loadAnalyticsTables() {
     const { city, device, fromIso } = getAnalyticsFilters();
+    try { logger.info('🔢 Loading analytics with filters:', { city, device, fromIso }); } catch (_) {}
     await Promise.all([
         loadRestaurantsAnalytics(city, device, fromIso),
         loadCitiesAnalytics(fromIso)
