@@ -2229,18 +2229,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
 
                 // 2) Find all TikToks authored by this handle (including thumbnails)
+                // Note: We don't filter by is_featured here because creators should see all their content
                 let { data: tiktoks, error: tErr } = await supabaseClient
                     .from('tiktoks')
                     .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
-                    .ilike('author_handle', handleWithAt)
-                    .eq('is_featured', true);
+                    .ilike('author_handle', handleWithAt);
 
                 if (!tErr && tiktoks && tiktoks.length === 0) {
                     const fallbackTik = await supabaseClient
                         .from('tiktoks')
                         .select('restaurant_id, embed_html, author_handle, thumbnail_url, is_featured')
-                        .ilike('author_handle', handleLower)
-                        .eq('is_featured', true);
+                        .ilike('author_handle', handleLower);
                     tiktoks = fallbackTik.data;
                     tErr = fallbackTik.error;
                 }
@@ -3713,10 +3712,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                     }
                 } else {
-                    // Add to existing collection
-                    const { error } = await supabaseClient
-                        .from('collection_restaurants')
-                        .insert({ collection_id: collectionId, restaurant_id: restaurantId });
+                // Add to existing collection
+                const { error } = await supabaseClient
+                    .from('collection_restaurants')
+                    .insert({ collection_id: collectionId, restaurant_id: restaurantId });
 
                 if (error && error.code === '23505') { // 23505 is the code for unique constraint violation
                     showToast('This restaurant is already in that collection.', 'warning');
@@ -4102,35 +4101,35 @@ document.addEventListener('DOMContentLoaded', async function() {
                 thumbnailHtml = `
                     <img src="${restaurant.tiktok_thumbnail_url}"
                          alt="${restaurant.name} TikTok thumbnail"
-                         class="restaurant-thumbnail w-20 h-20 rounded-lg object-cover border border-gray-200"
+                         class="restaurant-thumbnail w-20 h-full rounded-r-lg object-cover border-l border-gray-200"
                          loading="lazy"
                          onerror="this.style.display='none'">`;
             }
             
             listItem.innerHTML = `
-                <div class="w-full p-3 md:p-4">
-                    <div class="flex items-start">
+                <div class="w-full p-3 md:p-4 flex items-stretch">
+                    <div class="flex items-start flex-1 min-w-0">
                         <div class="flex-shrink-0 mr-3 flex flex-col items-center">
                             <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mb-2">
-                        ${number}
-                    </div>
-                            ${thumbnailHtml}
-                </div>
-                    <div class="flex-1 min-w-0 pr-16">
-                        <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
-                        <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
-                        <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
-                    ${distanceHtml}
+                                ${number}
+                            </div>
+                            <div class="flex flex-col space-y-1">
+                                <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                                </button>
+                                <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
+                            <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
+                            <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
+                            ${distanceHtml}
                         </div>
                     </div>
-                </div>
-                <div class="absolute top-2 right-2 flex items-center space-x-1">
-                    <button class="add-to-collection-btn ${collectionClass}" data-restaurant-id="${restaurant.id}" title="Add to collection">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-                    </button>
-                    <button class="favorite-btn ${favoriteClass}" data-restaurant-id="${restaurant.id}" title="Add to favorites">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                    </button>
+                    ${thumbnailHtml ? `<div class="flex-shrink-0 ml-3 restaurant-thumbnail-right">${thumbnailHtml}</div>` : ''}
                 </div>
             `;
 
@@ -4221,15 +4220,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <div class="svg-marker-container ${favoritedClass}" style="
                         width: 50px; 
                         height: 50px; 
-                        background: white;
-                        border: 2px solid #e5e7eb;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                         font-size: 18px;
-                        font-weight: bold;
+                    font-weight: bold;
                     ">${displayContent}</div>
                 </div>`;
             }
@@ -4656,9 +4655,24 @@ async function showVideoFor(restaurant) {
     // Populate video header with restaurant info
     populateVideoHeader(restaurant);
 
-    // Show the modal with a loading indicator
+    // Show the modal
     videoModal.classList.add('show');
     scrollToRestaurant(restaurant.id);
+
+    // Check if we have a preloaded iframe - use it immediately for instant loading
+    if (restaurant._preloadedIframe) {
+        logger.info('✅ Using preloaded iframe for:', restaurant.name);
+        videoContainer.innerHTML = restaurant._preloadedIframe;
+        
+        // Ensure TikTok embed is interactive if API is available
+        if (window.tiktokEmbed && typeof window.tiktokEmbed.load === 'function') {
+            window.tiktokEmbed.load();
+        }
+        
+        return; // Skip the rest of the loading logic
+    }
+
+    // Show loading indicator if no preloaded iframe available
     videoContainer.innerHTML = `
         <div class="w-full h-full flex items-center justify-center text-white">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
@@ -5592,7 +5606,7 @@ async function loadCityCollages() {
                 continue;
             }
 
-            // Shuffle and take up to 12 thumbnails
+            // Shuffle and take 12 thumbnails (4x3 grid on all devices)
             const shuffledTiktoks = tiktoks.sort(() => Math.random() - 0.5);
             const selectedTiktoks = shuffledTiktoks.slice(0, 12);
 

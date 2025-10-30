@@ -739,15 +739,24 @@ body.homepage {
     }
 }
     /* Center modal content with better mobile positioning */
-    .modal-content-wrapper { top: -60px; }
-    #video-modal { padding-bottom: 0; padding-top: 40px; }
-    .video-container { height: min(80vh, 585px); width: calc(min(80vh, 585px) * 330 / 585); }
+    #video-modal { 
+        align-items: flex-start; 
+        padding: 0; 
+        /* Add a little breathing space above the header while respecting safe area */
+        padding-top: calc(max(env(safe-area-inset-top, 0px), 0px) + 8px); 
+        height: 100dvh; 
+    }
+    .modal-content-wrapper { top: 0; }
+    /* Size video to fit viewport minus header/actions + top padding */
+    .video-container { height: min(calc(100dvh - 128px), 585px); width: calc(min(calc(100dvh - 128px), 585px) * 330 / 585); }
     #video-modal .video-container iframe { width: 100% !important; height: 100% !important; }
     
     /* Mobile video header styles */
     .video-header {
         padding: 12px 16px;
         border-radius: 8px 8px 0 0;
+        width: calc(min(calc(100dvh - 128px), 585px) * 330 / 585);
+        max-width: calc(min(calc(100dvh - 128px), 585px) * 330 / 585);
     }
     
     .video-restaurant-name {
@@ -1297,6 +1306,64 @@ body.homepage {
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
 }
 
+/* Restaurant card thumbnail on right side - full height */
+.restaurant-thumbnail-right {
+    display: flex;
+    align-items: stretch;
+    margin-left: auto;
+    margin-right: -0.75rem;
+    margin-top: -0.75rem;
+    margin-bottom: -0.75rem;
+}
+
+.restaurant-thumbnail-right .restaurant-thumbnail {
+    width: 80px;
+    height: 100%;
+    min-height: 100%;
+    border-radius: 0 0.5rem 0.5rem 0;
+    border-left: 1px solid #e5e7eb;
+    border-top: none;
+    border-bottom: none;
+    border-right: none;
+    object-fit: cover;
+}
+
+/* Preview restaurant cards also use same styling */
+.preview-restaurant-card .restaurant-thumbnail-right {
+    display: flex;
+    align-items: stretch;
+    margin-left: auto;
+    margin-right: -0.75rem;
+    margin-top: -0.75rem;
+    margin-bottom: -0.75rem;
+}
+
+.preview-restaurant-card .restaurant-thumbnail-right .restaurant-thumbnail {
+    width: 80px;
+    height: 100%;
+    min-height: 100%;
+    border-radius: 0 0.5rem 0.5rem 0;
+    border-left: 1px solid #e5e7eb;
+    border-top: none;
+    border-bottom: none;
+    border-right: none;
+    object-fit: cover;
+}
+
+@media (max-width: 767px) {
+    .restaurant-thumbnail-right,
+    .preview-restaurant-card .restaurant-thumbnail-right {
+        margin-right: -0.75rem;
+        margin-top: -0.75rem;
+        margin-bottom: -0.75rem;
+    }
+    
+    .restaurant-thumbnail-right .restaurant-thumbnail,
+    .preview-restaurant-card .restaurant-thumbnail-right .restaurant-thumbnail {
+        width: 60px;
+    }
+}
+
 /* Scale SVG icons in restaurant card cuisine tags */
 .restaurant-item span svg,
 .restaurant-item .inline-block svg {
@@ -1306,6 +1373,27 @@ body.homepage {
     vertical-align: middle !important;
     margin-right: 4px !important;
     flex-shrink: 0 !important;
+}
+
+/* Scale SVG icons in dashboard preview restaurant cards */
+#preview-restaurant-list span svg,
+.preview-restaurant-card span svg,
+.preview-restaurant-card .inline-block svg,
+.preview-restaurant-card .cuisine-icon-inline svg {
+    width: 12px !important;
+    height: 12px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 4px !important;
+    flex-shrink: 0 !important;
+    max-width: 12px !important;
+    max-height: 12px !important;
+}
+
+.preview-restaurant-card .cuisine-icon-inline {
+    display: inline-block !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
 }
 
 /* Ensure all SVG elements in cuisine tags are small */
@@ -1925,8 +2013,26 @@ body.homepage .header {
     display: block;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    height: 300px;
+    aspect-ratio: 4 / 3;
+    width: 100%;
     background: #f9fafb;
+}
+
+/* Fallback for browsers without aspect-ratio support */
+@supports not (aspect-ratio: 4 / 3) {
+    .city-collage-card::before {
+        content: '';
+        display: block;
+        padding-top: 75%; /* 4:3 aspect ratio */
+    }
+    
+    .city-collage-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
 }
 
 .city-collage-card:hover {
@@ -1954,25 +2060,11 @@ body.homepage .header {
 .city-collage-thumbnail {
     overflow: hidden;
     border-radius: 4px;
-    aspect-ratio: 1;
+    width: 100%;
+    height: 100%;
     min-height: 0;
     background: #f3f4f6;
     position: relative;
-}
-
-/* Fallback for browsers without aspect-ratio support */
-@supports not (aspect-ratio: 1) {
-    .city-collage-thumbnail::before {
-        content: '';
-        display: block;
-        padding-top: 100%; /* 1:1 aspect ratio fallback */
-    }
-    
-    .city-collage-thumbnail img {
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
 }
 
 .city-collage-thumbnail img {
@@ -2037,14 +2129,18 @@ body.homepage .header {
     text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
     text-align: center;
     padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    border-radius: 8px;
+    display: inline-block;
+    margin: 0 auto;
 }
 
-/* Responsive city collages */
+/* Responsive city collages - keep 4x3 grid on all devices, just adjust spacing */
 @media (max-width: 768px) {
     .city-collage-grid {
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(2, 1fr);
-        padding: 6px;
+        padding: 4px;
+        gap: 1.5px;
     }
 
     .city-collage-title {
@@ -2054,15 +2150,22 @@ body.homepage .header {
 }
 
 @media (max-width: 480px) {
+    .city-collage-card {
+        aspect-ratio: 4 / 3; /* Keep consistent aspect ratio */
+    }
+    
     .city-collage-grid {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        padding: 4px;
+        padding: 3px;
+        gap: 1px;
     }
 
     .city-collage-title {
-        font-size: 1.25rem;
+        font-size: 1.125rem;
         padding: 0.5rem;
+    }
+    
+    .city-collage-thumbnail {
+        border-radius: 2px;
     }
 }
 
