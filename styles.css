@@ -754,6 +754,8 @@ body.homepage {
     .video-header {
         padding: 12px 16px;
         border-radius: 8px 8px 0 0;
+        width: calc(min(calc(100dvh - 120px), 585px) * 330 / 585);
+        max-width: calc(min(calc(100dvh - 120px), 585px) * 330 / 585);
     }
     
     .video-restaurant-name {
