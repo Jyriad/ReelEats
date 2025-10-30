@@ -741,13 +741,13 @@ body.homepage {
     /* Center modal content with better mobile positioning */
     #video-modal { 
         align-items: flex-start; 
-        padding-bottom: 0; 
-        padding-top: max(env(safe-area-inset-top, 0px), 6px); 
+        padding: 0; 
+        padding-top: max(env(safe-area-inset-top, 0px), 0px); 
         height: 100dvh; 
     }
     .modal-content-wrapper { top: 0; }
-    /* Size video to fit viewport minus header/actions (~90px) */
-    .video-container { height: min(calc(100dvh - 90px), 585px); width: calc(min(calc(100dvh - 90px), 585px) * 330 / 585); }
+    /* Size video to fit viewport minus header/actions (conservative allowance) */
+    .video-container { height: min(calc(100dvh - 120px), 585px); width: calc(min(calc(100dvh - 120px), 585px) * 330 / 585); }
     #video-modal .video-container iframe { width: 100% !important; height: 100% !important; }
     
     /* Mobile video header styles */
