@@ -739,9 +739,9 @@ body.homepage {
     }
 }
     /* Center modal content with better mobile positioning */
-    .modal-content-wrapper { top: -60px; }
-    #video-modal { padding-bottom: 0; padding-top: 40px; }
-    .video-container { height: min(80vh, 585px); width: calc(min(80vh, 585px) * 330 / 585); }
+    .modal-content-wrapper { top: -100px; }
+    #video-modal { padding-bottom: 0; padding-top: 8px; }
+    .video-container { height: min(75vh, 585px); width: calc(min(75vh, 585px) * 330 / 585); }
     #video-modal .video-container iframe { width: 100% !important; height: 100% !important; }
     
     /* Mobile video header styles */
