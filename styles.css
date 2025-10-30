@@ -1297,6 +1297,64 @@ body.homepage {
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
 }
 
+/* Restaurant card thumbnail on right side - full height */
+.restaurant-thumbnail-right {
+    display: flex;
+    align-items: stretch;
+    margin-left: auto;
+    margin-right: -0.75rem;
+    margin-top: -0.75rem;
+    margin-bottom: -0.75rem;
+}
+
+.restaurant-thumbnail-right .restaurant-thumbnail {
+    width: 80px;
+    height: 100%;
+    min-height: 100%;
+    border-radius: 0 0.5rem 0.5rem 0;
+    border-left: 1px solid #e5e7eb;
+    border-top: none;
+    border-bottom: none;
+    border-right: none;
+    object-fit: cover;
+}
+
+/* Preview restaurant cards also use same styling */
+.preview-restaurant-card .restaurant-thumbnail-right {
+    display: flex;
+    align-items: stretch;
+    margin-left: auto;
+    margin-right: -0.75rem;
+    margin-top: -0.75rem;
+    margin-bottom: -0.75rem;
+}
+
+.preview-restaurant-card .restaurant-thumbnail-right .restaurant-thumbnail {
+    width: 80px;
+    height: 100%;
+    min-height: 100%;
+    border-radius: 0 0.5rem 0.5rem 0;
+    border-left: 1px solid #e5e7eb;
+    border-top: none;
+    border-bottom: none;
+    border-right: none;
+    object-fit: cover;
+}
+
+@media (max-width: 767px) {
+    .restaurant-thumbnail-right,
+    .preview-restaurant-card .restaurant-thumbnail-right {
+        margin-right: -0.75rem;
+        margin-top: -0.75rem;
+        margin-bottom: -0.75rem;
+    }
+    
+    .restaurant-thumbnail-right .restaurant-thumbnail,
+    .preview-restaurant-card .restaurant-thumbnail-right .restaurant-thumbnail {
+        width: 60px;
+    }
+}
+
 /* Scale SVG icons in restaurant card cuisine tags */
 .restaurant-item span svg,
 .restaurant-item .inline-block svg {
@@ -2062,6 +2120,11 @@ body.homepage .header {
     text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
     text-align: center;
     padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    border-radius: 8px;
+    display: inline-block;
+    margin: 0 auto;
 }
 
 /* Responsive city collages - keep 4x3 grid on all devices, just adjust spacing */

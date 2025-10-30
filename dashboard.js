@@ -2323,7 +2323,7 @@ function displayPreviewRestaurantCards() {
             thumbnailHtml = `
                 <img src="${restaurant.tiktok_thumbnail_url}"
                      alt="${restaurant.name} TikTok thumbnail"
-                     class="restaurant-thumbnail w-20 h-20 rounded-lg object-cover border border-gray-200"
+                     class="restaurant-thumbnail w-20 h-full rounded-r-lg object-cover border-l border-gray-200"
                      loading="lazy"
                      onerror="this.style.display='none'">`;
         }
@@ -2331,20 +2331,20 @@ function displayPreviewRestaurantCards() {
         return `
             <div class="bg-white rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 relative touch-manipulation preview-restaurant-card" 
                  data-restaurant-id="${restaurant.id}">
-                <div class="w-full p-3 md:p-4">
-                    <div class="flex items-start">
+                <div class="w-full p-3 md:p-4 flex items-stretch">
+                    <div class="flex items-start flex-1 min-w-0">
                         <div class="flex-shrink-0 mr-3 flex flex-col items-center">
                             <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mb-2">
                                 ${number}
                             </div>
-                            ${thumbnailHtml}
                         </div>
-                        <div class="flex-1 min-w-0 pr-16">
+                        <div class="flex-1 min-w-0">
                             <h3 class="text-gray-900 text-base md:text-lg font-semibold leading-tight">${restaurant.name}</h3>
                             <p class="text-gray-600 text-sm md:text-sm mt-1.5 line-clamp-2 leading-relaxed">${restaurant.description || ''}</p>
                             <div class="mt-2.5 flex flex-wrap gap-1">${cuisineTags}</div>
                         </div>
                     </div>
+                    ${thumbnailHtml ? `<div class="flex-shrink-0 ml-3 restaurant-thumbnail-right">${thumbnailHtml}</div>` : ''}
                 </div>
             </div>
         `;
