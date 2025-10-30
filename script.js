@@ -17,12 +17,31 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 async function trackEvent(eventType, data = {}) {
     try {
         const { data: { user } } = await supabaseClient.auth.getUser();
+        // Derive city from URL if not provided
+        let derivedCity = null;
+        try {
+            const usp = new URL(window.location.href).searchParams;
+            const cityParam = usp.get('city');
+            if (cityParam && cityParam.trim().length > 0) {
+                derivedCity = decodeURIComponent(cityParam);
+            }
+        } catch (_) {}
+
+        // Provide default metadata if not supplied
+        const defaultMeta = {
+            path: window.location.pathname,
+            href: window.location.href,
+            referrer: document.referrer || null,
+            ua: navigator.userAgent,
+            ts: Date.now()
+        };
+
         const eventData = {
             event_type: eventType,
             user_id: user ? user.id : null,
             restaurant_id: data.restaurant_id || null,
-            city_name: data.city_name || null,
-            metadata: data.metadata || null
+            city_name: data.city_name || derivedCity || null,
+            metadata: data.metadata || defaultMeta
         };
         // Do not await to avoid blocking UX
         supabaseClient.from('analytics_events').insert(eventData)
@@ -239,6 +258,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                     document.title = `ReelGrub - ${formattedHeading}`;
                     logger.info(`🏙️ Loading restaurants for city (query): ${formattedHeading}`);
+                    try { trackEvent('city_view', { city_name: city }); } catch (_) {}
                 } else {
                 formattedHeading = 'Explore All';
                 document.title = 'ReelGrub - Discover Your Next Spot';
@@ -252,6 +272,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                     document.title = `ReelGrub - ${formattedHeading}`;
                     logger.info(`🏙️ Loading restaurants for city: ${formattedHeading}`);
+                    try { trackEvent('city_view', { city_name: city }); } catch (_) {}
                 }
             } else if (firstSegment.startsWith('@')) {
                 // Creator route: /@handle
