@@ -2051,7 +2051,8 @@ async function editVideo(videoId) {
                 *,
                 restaurants (
                     name,
-                    city
+                    city,
+                    city_id
                 )
             `)
             .eq('id', videoId)
@@ -2059,20 +2060,52 @@ async function editVideo(videoId) {
 
         if (error) throw error;
 
+        // Check if video can be edited (only if created by admin)
+        let canEditVideo = false;
+        let videoCreatorType = 'Unknown';
+        
+        if (video.submitted_by_user_id) {
+            const { data: creatorRole } = await supabaseClient
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', video.submitted_by_user_id)
+                .single();
+            
+            if (creatorRole) {
+                videoCreatorType = creatorRole.role === 'admin' ? 'Admin' : 'Creator';
+                canEditVideo = creatorRole.role === 'admin';
+            } else {
+                videoCreatorType = 'User (no role)';
+            }
+        } else {
+            videoCreatorType = 'System/Unknown';
+            canEditVideo = true; // Legacy videos default to editable
+        }
+
+        if (!canEditVideo) {
+            showStatus('This video cannot be edited (created by a Creator).', 'error');
+            return;
+        }
+
         // Create edit modal
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
         modal.innerHTML = `
             <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
                 <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit TikTok Video</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Edit TikTok Video</h3>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">Created by ${videoCreatorType}</span>
+                        </div>
+                    </div>
                     
                     <form id="edit-video-form" class="space-y-4">
                         <input type="hidden" id="edit-video-id" value="${video.id}">
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant</label>
-                            <input type="text" value="${video.restaurants.name} (${video.restaurants.cities.name})" disabled
+                            <input type="text" value="${video.restaurants.name}${video.restaurants.city ? ' (' + video.restaurants.city + ')' : ''}" disabled
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100">
                         </div>
                         
@@ -2260,7 +2293,7 @@ function filterVideos() {
 // Edit restaurant function
 async function editRestaurant(restaurantId) {
     try {
-        // Fetch restaurant details
+        // Fetch restaurant details with creator info
         const { data: restaurant, error } = await supabaseClient
             .from('restaurants')
             .select(`
@@ -2275,6 +2308,84 @@ async function editRestaurant(restaurantId) {
 
         if (error) throw error;
 
+        // Check if restaurant was created by admin or creator
+        let restaurantCreatorType = 'Unknown';
+        let canEditRestaurant = false;
+        
+        if (restaurant.submitted_by_user_id) {
+            const { data: creatorRole } = await supabaseClient
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', restaurant.submitted_by_user_id)
+                .single();
+            
+            if (creatorRole) {
+                restaurantCreatorType = creatorRole.role === 'admin' ? 'Admin' : 'Creator';
+                canEditRestaurant = creatorRole.role === 'admin';
+            } else {
+                restaurantCreatorType = 'User (no role)';
+            }
+        } else {
+            restaurantCreatorType = 'System/Unknown';
+            // Allow editing if no creator specified (legacy data)
+            canEditRestaurant = true;
+        }
+
+        // Fetch all videos for this restaurant with creator info
+        const { data: videos, error: videosError } = await supabaseClient
+            .from('tiktoks')
+            .select(`
+                *,
+                submitted_by_user_id
+            `)
+            .eq('restaurant_id', restaurantId)
+            .order('created_at', { ascending: false });
+
+        if (videosError) throw videosError;
+
+        // Categorize videos by creator type
+        let videosByAdmin = 0;
+        let videosByCreator = 0;
+        const videoCreatorInfo = [];
+        
+        for (const video of videos || []) {
+            if (video.submitted_by_user_id) {
+                const { data: videoCreatorRole } = await supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', video.submitted_by_user_id)
+                    .single();
+                
+                if (videoCreatorRole) {
+                    const isAdmin = videoCreatorRole.role === 'admin';
+                    if (isAdmin) {
+                        videosByAdmin++;
+                    } else {
+                        videosByCreator++;
+                    }
+                    videoCreatorInfo.push({
+                        ...video,
+                        creatorType: isAdmin ? 'Admin' : 'Creator',
+                        canEdit: isAdmin
+                    });
+                } else {
+                    videosByCreator++; // Default to creator if no role found
+                    videoCreatorInfo.push({
+                        ...video,
+                        creatorType: 'User (no role)',
+                        canEdit: false
+                    });
+                }
+            } else {
+                videosByAdmin++; // Legacy videos default to admin-created
+                videoCreatorInfo.push({
+                    ...video,
+                    creatorType: 'System/Unknown',
+                    canEdit: true
+                });
+            }
+        }
+
         // Get current cuisines for this restaurant
         const currentCuisines = restaurant.restaurant_cuisines ? 
             restaurant.restaurant_cuisines.map(rc => rc.cuisines.name) : [];
@@ -2286,7 +2397,24 @@ async function editRestaurant(restaurantId) {
             <div class="relative top-0 mx-auto p-5 border w-full h-full shadow-lg rounded-md bg-white overflow-y-auto">
                 <div class="mt-3">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">Edit Restaurant</h3>
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Edit Restaurant: ${restaurant.name}</h3>
+                            <div class="mt-2 space-y-1 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-gray-700">Created by:</span>
+                                    <span class="px-2 py-1 rounded ${restaurantCreatorType === 'Admin' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
+                                        ${restaurantCreatorType}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-gray-700">Videos:</span>
+                                    <span class="text-gray-600">${videos?.length || 0} total</span>
+                                    ${videosByAdmin > 0 ? `<span class="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs">${videosByAdmin} by Admin</span>` : ''}
+                                    ${videosByCreator > 0 ? `<span class="px-2 py-1 rounded bg-orange-100 text-orange-800 text-xs">${videosByCreator} by Creator</span>` : ''}
+                                </div>
+                                ${!canEditRestaurant ? '<div class="text-orange-600 text-sm font-medium">⚠️ This restaurant cannot be edited (created by a Creator)</div>' : ''}
+                            </div>
+                        </div>
                         <button type="button" onclick="closeEditModal()" 
                                 class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
                             ×
@@ -2301,10 +2429,12 @@ async function editRestaurant(restaurantId) {
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
                                 <input type="text" id="edit-restaurant-name" value="${restaurant.name}" required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                       ${!canEditRestaurant ? 'disabled' : ''}
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${!canEditRestaurant ? 'bg-gray-100 cursor-not-allowed' : ''}">
                             </div>
                             <div class="flex flex-col justify-end">
-                                <button type="button" id="edit-find-on-map-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                <button type="button" id="edit-find-on-map-btn" ${!canEditRestaurant ? 'disabled' : ''}
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${!canEditRestaurant ? 'opacity-50 cursor-not-allowed' : ''}">
                                     <span style="font-size: 16px; line-height: 1;">🗺️</span>
                                     Find on Map
                                 </button>
@@ -2387,12 +2517,48 @@ async function editRestaurant(restaurantId) {
                                     class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-medium transition-colors">
                                 Cancel
                             </button>
-                            <button type="submit" 
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                            <button type="submit" ${!canEditRestaurant ? 'disabled' : ''}
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors ${!canEditRestaurant ? 'opacity-50 cursor-not-allowed' : ''}">
                                 Save Changes
                             </button>
                         </div>
                     </form>
+                    
+                    <!-- Videos Section -->
+                    <div class="mt-8 border-t pt-6">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">TikTok Videos (${videos?.length || 0})</h4>
+                        ${videoCreatorInfo.length === 0 ? `
+                            <p class="text-gray-500 text-sm">No videos associated with this restaurant.</p>
+                        ` : `
+                            <div class="space-y-3">
+                                ${videoCreatorInfo.map((video, index) => `
+                                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <span class="px-2 py-1 rounded text-xs ${video.creatorType === 'Admin' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
+                                                        ${video.creatorType}
+                                                    </span>
+                                                    ${video.is_featured ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">⭐ Featured</span>' : ''}
+                                                    <span class="text-xs text-gray-500">${new Date(video.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                ${video.author_handle ? `<p class="text-sm text-gray-600">@${video.author_handle}</p>` : ''}
+                                                ${video.thumbnail_url ? `<img src="${video.thumbnail_url}" alt="Video thumbnail" class="mt-2 w-32 h-32 object-cover rounded">` : ''}
+                                            </div>
+                                            ${video.canEdit ? `
+                                                <button onclick="editVideo('${video.id}')" 
+                                                        class="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                                                    Edit Video
+                                                </button>
+                                            ` : `
+                                                <span class="ml-4 text-xs text-gray-500">Cannot edit (created by Creator)</span>
+                                            `}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
                 </div>
             </div>
         `;
@@ -2412,11 +2578,48 @@ async function editRestaurant(restaurantId) {
         setTimeout(() => {
             logger.info('🍽️ Setting up edit cuisine selection after delay...');
             setupEditCuisineSelection();
+            
+            // Disable cuisine buttons if editing is not allowed (run after cuisine selection is set up)
+            if (!canEditRestaurant) {
+                setTimeout(() => {
+                    const cuisineButtons = document.querySelectorAll('#edit-cuisine-selection button');
+                    cuisineButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    });
+                }, 100);
+            }
         }, 200);
+        
+        // Disable all form fields if editing is not allowed
+        if (!canEditRestaurant) {
+            const form = document.getElementById('edit-restaurant-form');
+            const inputs = form.querySelectorAll('input, textarea, select, button[type="submit"]');
+            inputs.forEach(input => {
+                if (input.type !== 'hidden' && input.type !== 'button') {
+                    input.disabled = true;
+                    if (input.tagName !== 'BUTTON') {
+                        input.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    }
+                }
+            });
+            // Also disable cuisine selection
+            const cuisineButtons = form.querySelectorAll('#edit-cuisine-selection button');
+            cuisineButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+        }
         
         // Set up form submission
         document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            if (!canEditRestaurant) {
+                showStatus('Cannot save changes: This restaurant was created by a Creator and cannot be edited.', 'error');
+                return;
+            }
+            
             logger.info('🍽️ Edit form submitted, calling saveRestaurantChanges...');
             
             // Debug: Log current form values
@@ -3145,8 +3348,7 @@ function renderRestaurantsTable(data, sortColumn = 'total', sortDirection = 'des
         btn.addEventListener('click', () => {
             const id = parseInt(btn.dataset.id, 10);
             console.log(`📊 Edit button clicked for restaurant ID: ${id}`);
-            showStatus('Open editor for restaurant ID: ' + id, 'info');
-            // TODO: Wire this to the actual edit restaurant function
+            editRestaurant(id);
         });
     });
     
