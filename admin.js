@@ -1646,12 +1646,15 @@ function selectRestaurant(id, name) {
 window.selectRestaurant = selectRestaurant;
 window.selectLocation = selectLocation;
 window.editRestaurant = editRestaurant;
+window.editVideo = editVideo;
 window.closeEditModal = closeEditModal;
+window.closeEditVideoModal = closeEditVideoModal;
 
 logger.info('🌐 Global functions registered:', {
     selectRestaurant: typeof window.selectRestaurant,
     selectLocation: typeof window.selectLocation,
     editRestaurant: typeof window.editRestaurant,
+    editVideo: typeof window.editVideo,
     closeEditModal: typeof window.closeEditModal
 });
 
@@ -2045,6 +2048,7 @@ function displayRestaurantVideoGroups(restaurantGroups) {
 
 // Edit video function
 async function editVideo(videoId) {
+    console.log('🎬 editVideo called with videoId:', videoId);
     try {
         // Fetch video details
         const { data: video, error } = await supabaseClient
@@ -2091,14 +2095,19 @@ async function editVideo(videoId) {
 
         // Create edit modal
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.id = 'edit-video-modal';
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
         modal.innerHTML = `
-            <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
                 <div class="mt-3">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Edit TikTok Video</h3>
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">Created by ${videoCreatorType}</span>
+                            <button type="button" onclick="closeEditVideoModal()" 
+                                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                                ×
+                            </button>
                         </div>
                     </div>
                     
@@ -2143,6 +2152,13 @@ async function editVideo(videoId) {
         
         document.body.appendChild(modal);
         
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeEditVideoModal();
+            }
+        });
+        
         // Extract URL from existing embed HTML and populate the form
         const urlInput = document.getElementById('edit-video-url');
         if (video.embed_html) {
@@ -2167,20 +2183,61 @@ async function editVideo(videoId) {
 // Save video changes
 async function saveVideoChanges(videoId) {
     try {
-        const videoUrl = document.getElementById('edit-video-url').value;
+        const videoUrl = document.getElementById('edit-video-url').value.trim();
         
         if (!videoUrl) {
             showStatus('Please enter a TikTok video URL', 'error');
             return;
         }
 
+        // Extract video ID and author handle
+        const videoIdExtracted = extractTikTokVideoId(videoUrl);
+        const authorHandle = extractTikTokCreatorHandle(videoUrl);
+        
+        if (!videoIdExtracted) {
+            showStatus('Invalid TikTok URL - could not extract video ID', 'error');
+            return;
+        }
+
         // Generate embed HTML from URL
         const embedHtml = generateTikTokEmbed(videoUrl);
         
+        // Fetch and cache new thumbnail if URL changed
+        let thumbnailUrl = null;
+        try {
+            // Get current video to check if URL changed
+            const { data: currentVideo } = await supabaseClient
+                .from('tiktoks')
+                .select('embed_html')
+                .eq('id', videoId)
+                .single();
+            
+            const currentUrlMatch = currentVideo?.embed_html?.match(/cite="([^"]+)"/);
+            const currentUrl = currentUrlMatch ? currentUrlMatch[1] : null;
+            
+            // Only fetch thumbnail if URL changed
+            if (currentUrl !== videoUrl) {
+                const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('cache-tiktok-thumbnail', {
+                    body: { url: videoUrl }
+                });
+
+                if (!thumbnailError && thumbnailData && (thumbnailData.public_url || thumbnailData.thumbnail_url)) {
+                    thumbnailUrl = thumbnailData.public_url || thumbnailData.thumbnail_url;
+                }
+            }
+        } catch (err) {
+            logger.warn('Could not fetch thumbnail:', err);
+        }
+        
         const formData = {
             embed_html: embedHtml,
+            author_handle: authorHandle,
             is_featured: document.getElementById('edit-is-featured').checked
         };
+        
+        if (thumbnailUrl) {
+            formData.thumbnail_url = thumbnailUrl;
+        }
 
         const { error } = await supabaseClient
             .from('tiktoks')
@@ -2191,7 +2248,19 @@ async function saveVideoChanges(videoId) {
 
         showStatus('Video updated successfully!', 'success');
         closeEditVideoModal();
-        await loadVideosForManagement();
+        
+        // Refresh restaurant editor if it's open, otherwise refresh video management
+        const restaurantEditorModal = document.getElementById('restaurant-edit-modal');
+        if (restaurantEditorModal) {
+            const restaurantIdInput = document.getElementById('edit-restaurant-id');
+            if (restaurantIdInput) {
+                const restaurantId = parseInt(restaurantIdInput.value);
+                closeEditModal();
+                setTimeout(() => editRestaurant(restaurantId), 300);
+            }
+        } else {
+            await loadVideosForManagement();
+        }
         
     } catch (error) {
         console.error('Error updating video:', error);
@@ -2202,17 +2271,17 @@ async function saveVideoChanges(videoId) {
 // Generate TikTok embed HTML from URL
 function generateTikTokEmbed(url) {
     // Extract video ID from TikTok URL
-    const videoIdMatch = url.match(/\/video\/(\d+)/);
-    if (!videoIdMatch) {
+    const videoId = extractTikTokVideoId(url);
+    const authorHandle = extractTikTokCreatorHandle(url);
+    
+    if (!videoId) {
         throw new Error('Invalid TikTok URL format');
     }
-    
-    const videoId = videoIdMatch[1];
     
     // Generate the embed HTML
     return `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px; position: relative; overflow: hidden;">
         <section>
-            <a target="_blank" title="@username" href="${url}">@username</a>
+            <a target="_blank" title="${authorHandle || '@username'}" href="${url}">${authorHandle || '@username'}</a>
         </section>
     </blockquote>
     <script async src="https://www.tiktok.com/embed.js"></script>`;
@@ -2262,7 +2331,7 @@ async function deleteVideo(videoId, restaurantName) {
 
 // Close edit video modal
 function closeEditVideoModal() {
-    const modal = document.querySelector('.fixed.inset-0');
+    const modal = document.getElementById('edit-video-modal');
     if (modal) {
         modal.remove();
     }
@@ -3365,6 +3434,10 @@ async function viewCreatorApplication(applicationId) {
 if (typeof window !== 'undefined') {
     window.selectLocation = selectLocation;
     window.selectRestaurant = selectRestaurant;
+    window.editRestaurant = editRestaurant;
+    window.editVideo = editVideo;
+    window.closeEditModal = closeEditModal;
+    window.closeEditVideoModal = closeEditVideoModal;
     window.toggleCreatorApplications = toggleCreatorApplications;
     window.approveCreatorApplication = approveCreatorApplication;
     window.rejectCreatorApplication = rejectCreatorApplication;
@@ -3373,6 +3446,9 @@ if (typeof window !== 'undefined') {
     logger.info('🔧 Fallback: Global functions registered at end of file:', {
         selectLocation: typeof window.selectLocation,
         selectRestaurant: typeof window.selectRestaurant,
+        editRestaurant: typeof window.editRestaurant,
+        editVideo: typeof window.editVideo,
+        closeEditModal: typeof window.closeEditModal,
         toggleCreatorApplications: typeof window.toggleCreatorApplications,
         approveCreatorApplication: typeof window.approveCreatorApplication,
         rejectCreatorApplication: typeof window.rejectCreatorApplication,
