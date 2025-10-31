@@ -3061,6 +3061,9 @@ function renderRestaurantsTable(data, sortColumn = 'total', sortDirection = 'des
     const tbody = document.getElementById('analytics-restaurants-body');
     if (!tbody) return;
     
+    const table = tbody.closest('table');
+    if (!table) return;
+    
     // Update sort state
     window.__restaurantsSortState = { column: sortColumn, direction: sortDirection };
     
@@ -3107,14 +3110,16 @@ function renderRestaurantsTable(data, sortColumn = 'total', sortDirection = 'des
     });
     
     // Update sort arrows in headers
-    document.querySelectorAll('#analytics-restaurants-body').closest('table')?.querySelectorAll('th[data-sort]').forEach(th => {
+    table.querySelectorAll('th[data-sort]').forEach(th => {
         const arrow = th.querySelector('.sort-arrow');
-        if (th.dataset.sort === sortColumn) {
-            arrow.textContent = sortDirection === 'asc' ? '↑' : '↓';
-            arrow.style.opacity = '1';
-        } else {
-            arrow.textContent = '';
-            arrow.style.opacity = '0.3';
+        if (arrow) {
+            if (th.dataset.sort === sortColumn) {
+                arrow.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                arrow.style.opacity = '1';
+            } else {
+                arrow.textContent = '';
+                arrow.style.opacity = '0.3';
+            }
         }
     });
     
@@ -3146,25 +3151,22 @@ function renderRestaurantsTable(data, sortColumn = 'total', sortDirection = 'des
     });
     
     // Wire up sort headers
-    const table = tbody.closest('table');
-    if (table) {
-        table.querySelectorAll('th[data-sort]').forEach(th => {
-            th.onclick = () => {
-                const column = th.dataset.sort;
-                const currentState = window.__restaurantsSortState;
-                // Toggle direction if clicking the same column, otherwise default to desc for numbers, asc for strings
-                let newDirection = 'desc';
-                if (column === currentState.column) {
-                    newDirection = currentState.direction === 'asc' ? 'desc' : 'asc';
-                } else {
-                    // Default sorting: desc for numbers/dates, asc for strings
-                    const sortType = th.dataset.sortType;
-                    newDirection = (sortType === 'string') ? 'asc' : 'desc';
-                }
-                renderRestaurantsTable(window.__restaurantsAnalyticsData || [], column, newDirection);
-            };
-        });
-    }
+    table.querySelectorAll('th[data-sort]').forEach(th => {
+        th.onclick = () => {
+            const column = th.dataset.sort;
+            const currentState = window.__restaurantsSortState;
+            // Toggle direction if clicking the same column, otherwise default to desc for numbers, asc for strings
+            let newDirection = 'desc';
+            if (column === currentState.column) {
+                newDirection = currentState.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Default sorting: desc for numbers/dates, asc for strings
+                const sortType = th.dataset.sortType;
+                newDirection = (sortType === 'string') ? 'asc' : 'desc';
+            }
+            renderRestaurantsTable(window.__restaurantsAnalyticsData || [], column, newDirection);
+        };
+    });
 }
 
 async function loadRestaurantsAnalytics(city, device, fromIso, days) {
