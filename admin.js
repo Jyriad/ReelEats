@@ -3029,15 +3029,16 @@ function getAnalyticsFilters() {
     
     const city = (cityEl?.value || '').trim();
     const device = (deviceEl?.value || '').trim();
-    const days = parseInt(rangeEl?.value || '30', 10);
-    const fromIso = new Date(Date.now() - days*24*60*60*1000).toISOString();
+    const rangeValue = rangeEl?.value || '30';
+    const days = rangeValue === 'all' ? null : parseInt(rangeValue, 10);
+    const fromIso = days ? new Date(Date.now() - days*24*60*60*1000).toISOString() : null;
     
     console.log('📊 Analytics Filters:', {
         city: city || '(All Cities)',
         device: device || '(All Devices)',
-        days: days,
-        fromIso: fromIso,
-        fromDate: new Date(fromIso).toLocaleString()
+        days: days || 'all',
+        fromIso: fromIso || '(All Time)',
+        fromDate: fromIso ? new Date(fromIso).toLocaleString() : '(All Time)'
     });
     
     return { city, device, fromIso, days };
@@ -3050,6 +3051,120 @@ async function loadAnalyticsTables() {
         loadRestaurantsAnalytics(city, device, fromIso, days),
         loadCitiesAnalytics(fromIso)
     ]);
+}
+
+// Global sort state for restaurants table
+window.__restaurantsSortState = { column: 'total', direction: 'desc' };
+
+// Render restaurants table with sorting
+function renderRestaurantsTable(data, sortColumn = 'total', sortDirection = 'desc') {
+    const tbody = document.getElementById('analytics-restaurants-body');
+    if (!tbody) return;
+    
+    // Update sort state
+    window.__restaurantsSortState = { column: sortColumn, direction: sortDirection };
+    
+    // Sort the data
+    const sorted = [...data].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (sortColumn) {
+            case 'name':
+                aVal = (a.name || '').toLowerCase();
+                bVal = (b.name || '').toLowerCase();
+                return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            case 'city':
+                aVal = (a.city || '').toLowerCase();
+                bVal = (b.city || '').toLowerCase();
+                return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            case 'total':
+                aVal = a.total || 0;
+                bVal = b.total || 0;
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            case 'card':
+                aVal = a.card || 0;
+                bVal = b.card || 0;
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            case 'marker':
+                aVal = a.marker || 0;
+                bVal = b.marker || 0;
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            case 'mobilePct':
+                aVal = a.mobilePct || 0;
+                bVal = b.mobilePct || 0;
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            case 'desktopPct':
+                aVal = a.desktopPct || 0;
+                bVal = b.desktopPct || 0;
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            case 'last':
+                aVal = a.lastTimestamp || 0;
+                bVal = b.lastTimestamp || 0;
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            default:
+                return 0;
+        }
+    });
+    
+    // Update sort arrows in headers
+    document.querySelectorAll('#analytics-restaurants-body').closest('table')?.querySelectorAll('th[data-sort]').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (th.dataset.sort === sortColumn) {
+            arrow.textContent = sortDirection === 'asc' ? '↑' : '↓';
+            arrow.style.opacity = '1';
+        } else {
+            arrow.textContent = '';
+            arrow.style.opacity = '0.3';
+        }
+    });
+    
+    // Render rows
+    const rows = sorted.slice(0, 500).map(stats => {
+        return `<tr>
+            <td class="px-4 py-2">${stats.name || 'Unknown'}</td>
+            <td class="px-4 py-2">${stats.city || ''}</td>
+            <td class="px-4 py-2 text-right">${stats.total}</td>
+            <td class="px-4 py-2 text-right">${stats.card}</td>
+            <td class="px-4 py-2 text-right">${stats.marker}</td>
+            <td class="px-4 py-2 text-right">${stats.mobilePct}%</td>
+            <td class="px-4 py-2 text-right">${stats.desktopPct}%</td>
+            <td class="px-4 py-2">${stats.lastDisplay}</td>
+            <td class="px-4 py-2"><button class="text-indigo-600 hover:text-indigo-800 text-sm" data-action="edit-restaurant" data-id="${stats.id}">Edit</button></td>
+        </tr>`;
+    }).join('');
+    
+    tbody.innerHTML = rows || '<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No restaurants found</td></tr>';
+    
+    // Wire up edit buttons
+    tbody.querySelectorAll('button[data-action="edit-restaurant"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = parseInt(btn.dataset.id, 10);
+            console.log(`📊 Edit button clicked for restaurant ID: ${id}`);
+            showStatus('Open editor for restaurant ID: ' + id, 'info');
+            // TODO: Wire this to the actual edit restaurant function
+        });
+    });
+    
+    // Wire up sort headers
+    const table = tbody.closest('table');
+    if (table) {
+        table.querySelectorAll('th[data-sort]').forEach(th => {
+            th.onclick = () => {
+                const column = th.dataset.sort;
+                const currentState = window.__restaurantsSortState;
+                // Toggle direction if clicking the same column, otherwise default to desc for numbers, asc for strings
+                let newDirection = 'desc';
+                if (column === currentState.column) {
+                    newDirection = currentState.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    // Default sorting: desc for numbers/dates, asc for strings
+                    const sortType = th.dataset.sortType;
+                    newDirection = (sortType === 'string') ? 'asc' : 'desc';
+                }
+                renderRestaurantsTable(window.__restaurantsAnalyticsData || [], column, newDirection);
+            };
+        });
+    }
 }
 
 async function loadRestaurantsAnalytics(city, device, fromIso, days) {
@@ -3082,26 +3197,60 @@ async function loadRestaurantsAnalytics(city, device, fromIso, days) {
         }
 
         // Step 2: Fetch analytics events for the date range
-        console.log(`📊 Step 2: Fetching analytics events since ${new Date(fromIso).toLocaleString()}...`);
+        console.log(`📊 Step 2: Fetching analytics events${fromIso ? ` since ${new Date(fromIso).toLocaleString()}...` : ' (All Time)...'}`);
+        console.log(`📊 Filter date ISO: ${fromIso || '(All Time)'}`);
+        
+        // First, check if ANY events exist (for debugging)
+        const { count: totalEventsCount } = await supabaseClient
+            .from('analytics_events')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_type', 'restaurant_click');
+        console.log(`📊 Total restaurant_click events in database: ${totalEventsCount || 0}`);
+        
+        // Get a sample of the most recent events to see their dates
+        const { data: sampleEvents } = await supabaseClient
+            .from('analytics_events')
+            .select('created_at')
+            .eq('event_type', 'restaurant_click')
+            .order('created_at', { ascending: false })
+            .limit(5);
+        if (sampleEvents && sampleEvents.length > 0) {
+            console.log('📊 Sample event dates:', sampleEvents.map(e => e.created_at));
+            console.log('📊 Filter date:', fromIso || '(All Time)');
+            console.log('📊 Most recent event:', sampleEvents[0].created_at);
+            if (fromIso) {
+                console.log('📊 Is filter date before most recent?', fromIso < sampleEvents[0].created_at);
+            }
+        }
+        
         let eventsQuery = supabaseClient
             .from('analytics_events')
             .select('restaurant_id,created_at,metadata')
-            .eq('event_type', 'restaurant_click')
-            .gte('created_at', fromIso)
-            .order('created_at', { ascending: false })
-            .limit(10000);
+            .eq('event_type', 'restaurant_click');
+        
+        // Only apply date filter if not "All Time"
+        if (fromIso) {
+            eventsQuery = eventsQuery.gte('created_at', fromIso);
+        }
+        
+        eventsQuery = eventsQuery.order('created_at', { ascending: false }).limit(10000);
         
         const { data: events, error: eventsError } = await eventsQuery;
-        if (eventsError) throw eventsError;
+        if (eventsError) {
+            console.error('❌ Events query error:', eventsError);
+            throw eventsError;
+        }
         
-        console.log(`✅ Fetched ${events?.length || 0} click events`);
+        console.log(`✅ Fetched ${events?.length || 0} click events matching date filter`);
         if (events && events.length > 0) {
-            console.log('📊 Sample events:', events.slice(0, 3).map(e => ({
+            console.log('📊 Sample filtered events:', events.slice(0, 3).map(e => ({
                 restaurant_id: e.restaurant_id,
                 created_at: e.created_at,
                 device: e.metadata?.device,
                 source: e.metadata?.source
             })));
+        } else {
+            console.warn('⚠️ No events matched the date filter. Try selecting "All Time" or a longer date range.');
         }
 
         // Step 3: Aggregate analytics per restaurant
@@ -3179,40 +3328,27 @@ async function loadRestaurantsAnalytics(city, device, fromIso, days) {
         console.log(`📊 Restaurants with clicks: ${Array.from(analyticsMap.values()).filter(s => s.total > 0).length}`);
         console.log(`📊 Restaurants with zero clicks: ${Array.from(analyticsMap.values()).filter(s => s.total === 0).length}`);
 
-        // Step 4: Convert to array, sort by total clicks (desc), and render
-        console.log('📊 Step 4: Rendering table...');
-        const rows = Array.from(analyticsMap.values())
-            .sort((a, b) => b.total - a.total) // Sort by total clicks descending
-            .slice(0, 500) // Limit to 500 rows
-            .map(stats => {
-                const mobilePct = stats.total ? Math.round((stats.mobile / stats.total) * 100) : 0;
-                const desktopPct = stats.total ? Math.round((stats.desktop / stats.total) * 100) : 0;
-                const last = stats.last ? new Date(stats.last).toLocaleString() : '-';
-                return `<tr>
-                    <td class="px-4 py-2">${stats.name || 'Unknown'}</td>
-                    <td class="px-4 py-2">${stats.city || ''}</td>
-                    <td class="px-4 py-2 text-right">${stats.total}</td>
-                    <td class="px-4 py-2 text-right">${stats.card}</td>
-                    <td class="px-4 py-2 text-right">${stats.marker}</td>
-                    <td class="px-4 py-2 text-right">${mobilePct}%</td>
-                    <td class="px-4 py-2 text-right">${desktopPct}%</td>
-                    <td class="px-4 py-2">${last}</td>
-                    <td class="px-4 py-2"><button class="text-indigo-600 hover:text-indigo-800 text-sm" data-action="edit-restaurant" data-id="${stats.id}">Edit</button></td>
-                </tr>`;
-            }).join('');
-        
-        tbody.innerHTML = rows || '<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No restaurants found</td></tr>';
-        console.log(`✅ Rendered ${rows.split('</tr>').length - 1} rows in table`);
-
-        // Step 5: Wire up edit buttons
-        tbody.querySelectorAll('button[data-action="edit-restaurant"]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = parseInt(btn.dataset.id, 10);
-                console.log(`📊 Edit button clicked for restaurant ID: ${id}`);
-                showStatus('Open editor for restaurant ID: ' + id, 'info');
-                // TODO: Wire this to the actual edit restaurant function
-            });
+        // Step 4: Convert to array and prepare data with calculated percentages
+        console.log('📊 Step 4: Preparing data for rendering...');
+        let allRestaurantsData = Array.from(analyticsMap.values()).map(stats => {
+            const mobilePct = stats.total ? Math.round((stats.mobile / stats.total) * 100) : 0;
+            const desktopPct = stats.total ? Math.round((stats.desktop / stats.total) * 100) : 0;
+            const lastTimestamp = stats.last ? new Date(stats.last).getTime() : 0;
+            const lastDisplay = stats.last ? new Date(stats.last).toLocaleString() : '-';
+            return {
+                ...stats,
+                mobilePct,
+                desktopPct,
+                lastTimestamp,
+                lastDisplay
+            };
         });
+        
+        // Store in global scope for sorting
+        window.__restaurantsAnalyticsData = allRestaurantsData;
+        
+        // Initial sort by total clicks (descending)
+        renderRestaurantsTable(allRestaurantsData, 'total', 'desc');
         
         console.log('✅ Analytics table loading complete');
     } catch (e) {
@@ -3235,12 +3371,18 @@ async function loadCitiesAnalytics(fromIso) {
     tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading…</td></tr>';
     
     try {
-        console.log(`📊 Cities Analytics: Fetching city_view events since ${new Date(fromIso).toLocaleString()}...`);
-        const { data: events, error: eventsError } = await supabaseClient
+        console.log(`📊 Cities Analytics: Fetching city_view events${fromIso ? ` since ${new Date(fromIso).toLocaleString()}...` : ' (All Time)...'}`);
+        let citiesQuery = supabaseClient
             .from('analytics_events')
             .select('city_name,created_at,metadata')
-            .eq('event_type', 'city_view')
-            .gte('created_at', fromIso)
+            .eq('event_type', 'city_view');
+        
+        // Only apply date filter if not "All Time"
+        if (fromIso) {
+            citiesQuery = citiesQuery.gte('created_at', fromIso);
+        }
+        
+        const { data: events, error: eventsError } = await citiesQuery
             .order('created_at', { ascending: false })
             .limit(10000);
         

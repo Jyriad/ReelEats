@@ -235,6 +235,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
                                     <select id="analytics-range" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                        <option value="all">All Time</option>
                                         <option value="7">Last 7 days</option>
                                         <option value="30" selected>Last 30 days</option>
                                         <option value="90">Last 90 days</option>
@@ -251,14 +252,30 @@
                                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                                     <thead class="bg-gray-50">
                                         <tr>
-                                            <th class="px-4 py-2 text-left font-medium text-gray-700">Restaurant</th>
-                                            <th class="px-4 py-2 text-left font-medium text-gray-700">City</th>
-                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Total</th>
-                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Card</th>
-                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Marker</th>
-                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Mobile%</th>
-                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Desktop%</th>
-                                            <th class="px-4 py-2 text-left font-medium text-gray-700">Last Click</th>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="name" data-sort-type="string">
+                                                Restaurant <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="city" data-sort-type="string">
+                                                City <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="total" data-sort-type="number">
+                                                Total <span class="sort-arrow">↓</span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="card" data-sort-type="number">
+                                                Card <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="marker" data-sort-type="number">
+                                                Marker <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="mobilePct" data-sort-type="number">
+                                                Mobile% <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="desktopPct" data-sort-type="number">
+                                                Desktop% <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="last" data-sort-type="date">
+                                                Last Click <span class="sort-arrow"></span>
+                                            </th>
                                             <th class="px-4 py-2 text-left font-medium text-gray-700">Actions</th>
                                         </tr>
                                     </thead>
