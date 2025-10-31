@@ -766,6 +766,7 @@ async function handleAddRestaurant(e) {
         city_id: parseInt(document.getElementById('restaurant-city').value),
         google_place_id: document.getElementById('google-place-id').value || null,
         google_maps_url: document.getElementById('google-maps-url').value || null,
+        is_publicly_approved: true, // Admins can add restaurants directly to the public explore page
         created_at: new Date().toISOString()
     };
     
@@ -2550,6 +2551,30 @@ async function editRestaurant(restaurantId) {
                                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">${restaurant.description || ''}</textarea>
                         </div>
 
+                        <!-- Public Approval Toggle (always enabled for admins) -->
+                        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-900 mb-1">Public Approval</label>
+                                    <p class="text-xs text-gray-600">Toggle to make this restaurant visible on the explore page</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="edit-is-publicly-approved" ${restaurant.is_publicly_approved ? 'checked' : ''}
+                                           class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            ${!restaurant.is_publicly_approved ? `
+                                <p class="text-xs text-orange-600 mt-2">⚠️ This restaurant is currently hidden from the explore page</p>
+                            ` : ''}
+                            ${restaurantCreatorType === 'Creator' && !restaurant.is_publicly_approved ? `
+                                <p class="text-xs text-gray-500 mt-1">This restaurant was added by a creator and requires approval to appear on the explore page.</p>
+                            ` : ''}
+                            ${restaurantCreatorType === 'Creator' && restaurant.is_publicly_approved ? `
+                                <p class="text-xs text-green-600 mt-1">✓ This creator-added restaurant is approved and visible on the explore page.</p>
+                            ` : ''}
+                        </div>
+
                         <!-- Cuisine Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-3">Cuisines (Select all that apply)</label>
@@ -2678,12 +2703,13 @@ async function editRestaurant(restaurantId) {
             }
         }, 200);
         
-        // Disable all form fields if editing is not allowed
+        // Disable all form fields if editing is not allowed (except approval toggle)
         if (!canEditRestaurant) {
             const form = document.getElementById('edit-restaurant-form');
             const inputs = form.querySelectorAll('input, textarea, select, button[type="submit"]');
             inputs.forEach(input => {
-                if (input.type !== 'hidden' && input.type !== 'button') {
+                // Don't disable the approval toggle checkbox
+                if (input.id !== 'edit-is-publicly-approved' && input.type !== 'hidden' && input.type !== 'button') {
                     input.disabled = true;
                     if (input.tagName !== 'BUTTON') {
                         input.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -2702,11 +2728,6 @@ async function editRestaurant(restaurantId) {
         document.getElementById('edit-restaurant-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            if (!canEditRestaurant) {
-                showStatus('Cannot save changes: This restaurant was created by a Creator and cannot be edited.', 'error');
-                return;
-            }
-            
             logger.info('🍽️ Edit form submitted, calling saveRestaurantChanges...');
             
             // Debug: Log current form values
@@ -2715,7 +2736,7 @@ async function editRestaurant(restaurantId) {
             const cityName = citySelect && citySelect.selectedIndex >= 0 ? citySelect.options[citySelect.selectedIndex].text : 'not found';
             logger.info('🍽️ Current city selection - ID:', cityId, 'Name:', cityName);
             
-            await saveRestaurantChanges(restaurantId);
+            await saveRestaurantChanges(restaurantId, canEditRestaurant);
         });
         
     } catch (error) {
@@ -2725,27 +2746,40 @@ async function editRestaurant(restaurantId) {
 }
 
 // Save restaurant changes
-async function saveRestaurantChanges(restaurantId) {
+async function saveRestaurantChanges(restaurantId, canEditRestaurant = true) {
     try {
-        const cityId = parseInt(document.getElementById('edit-restaurant-city').value);
-        const citySelect = document.getElementById('edit-restaurant-city');
-        const selectedCityName = citySelect.options[citySelect.selectedIndex].text;
+        const isPubliclyApprovedCheckbox = document.getElementById('edit-is-publicly-approved');
+        const isPubliclyApproved = isPubliclyApprovedCheckbox ? isPubliclyApprovedCheckbox.checked : false;
+
+        let formData = {};
         
-        const formData = {
-            name: document.getElementById('edit-restaurant-name').value,
-            description: document.getElementById('edit-restaurant-description').value,
-            lat: parseFloat(document.getElementById('edit-restaurant-lat').value),
-            lon: parseFloat(document.getElementById('edit-restaurant-lon').value),
-            city_id: cityId,
-            city: selectedCityName,
-            google_place_id: document.getElementById('edit-google-place-id').value || null,
-            google_maps_url: document.getElementById('edit-google-maps-url').value || null
-        };
+        // If restaurant can be edited, include all fields
+        if (canEditRestaurant) {
+            const cityId = parseInt(document.getElementById('edit-restaurant-city').value);
+            const citySelect = document.getElementById('edit-restaurant-city');
+            const selectedCityName = citySelect.options[citySelect.selectedIndex].text;
+
+            formData = {
+                name: document.getElementById('edit-restaurant-name').value,
+                description: document.getElementById('edit-restaurant-description').value,
+                lat: parseFloat(document.getElementById('edit-restaurant-lat').value),
+                lon: parseFloat(document.getElementById('edit-restaurant-lon').value),
+                city_id: cityId,
+                city: selectedCityName,
+                google_place_id: document.getElementById('edit-google-place-id').value || null,
+                google_maps_url: document.getElementById('edit-google-maps-url').value || null,
+                is_publicly_approved: isPubliclyApproved
+            };
+        } else {
+            // If restaurant cannot be edited, only update approval status
+            formData = {
+                is_publicly_approved: isPubliclyApproved
+            };
+        }
 
         logger.info('🍽️ Updating restaurant with ID:', restaurantId);
-        logger.info('🍽️ City ID:', cityId);
-        logger.info('🍽️ City Name:', selectedCityName);
         logger.info('🍽️ Form data being sent:', formData);
+        logger.info('🍽️ Can edit restaurant:', canEditRestaurant);
 
         const { data, error } = await supabaseClient
             .from('restaurants')
@@ -2760,30 +2794,32 @@ async function saveRestaurantChanges(restaurantId) {
 
         logger.info('🍽️ Database update successful:', data);
 
-        // Update cuisine relationships
-        const selectedCuisines = getSelectedEditCuisines();
-        logger.info('🍽️ Edit form selected cuisines:', selectedCuisines);
-        
-        if (selectedCuisines.length >= 0) { // Always update cuisines, even if none selected
-            logger.info('🍽️ Deleting existing cuisine relationships for restaurant:', restaurantId);
-            // First, delete existing cuisine relationships
-            const { error: deleteError } = await supabaseClient
-                .from('restaurant_cuisines')
-                .delete()
-                .eq('restaurant_id', restaurantId);
-                
-            if (deleteError) {
-                console.error('Error deleting existing cuisine relationships:', deleteError);
-            } else {
-                logger.info('✅ Successfully deleted existing cuisine relationships');
-            }
+        // Update cuisine relationships (only if restaurant can be edited)
+        if (canEditRestaurant) {
+            const selectedCuisines = getSelectedEditCuisines();
+            logger.info('🍽️ Edit form selected cuisines:', selectedCuisines);
             
-            // Then add new ones if any selected
-            if (selectedCuisines.length > 0) {
-                logger.info('🍽️ Adding new cuisine relationships:', selectedCuisines);
-                await addRestaurantCuisines(restaurantId, selectedCuisines);
-            } else {
-                logger.info('🍽️ No cuisines selected, restaurant will have no cuisine relationships');
+            if (selectedCuisines.length >= 0) { // Always update cuisines, even if none selected
+                logger.info('🍽️ Deleting existing cuisine relationships for restaurant:', restaurantId);
+                // First, delete existing cuisine relationships
+                const { error: deleteError } = await supabaseClient
+                    .from('restaurant_cuisines')
+                    .delete()
+                    .eq('restaurant_id', restaurantId);
+                    
+                if (deleteError) {
+                    console.error('Error deleting existing cuisine relationships:', deleteError);
+                } else {
+                    logger.info('✅ Successfully deleted existing cuisine relationships');
+                }
+                
+                // Then add new ones if any selected
+                if (selectedCuisines.length > 0) {
+                    logger.info('🍽️ Adding new cuisine relationships:', selectedCuisines);
+                    await addRestaurantCuisines(restaurantId, selectedCuisines);
+                } else {
+                    logger.info('🍽️ No cuisines selected, restaurant will have no cuisine relationships');
+                }
             }
         }
 

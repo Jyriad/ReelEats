@@ -2143,7 +2143,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             let query = supabaseClient
                 .from('restaurants')
-                .select('*');
+                .select('*')
+                .eq('is_publicly_approved', true); // Only show approved restaurants on explore page
 
             // If a city is provided, filter by city name (try multiple approaches)
             if (city) {
@@ -2164,6 +2165,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const { data: broaderRestaurants, error: broaderError } = await supabaseClient
                     .from('restaurants')
                     .select('*')
+                    .eq('is_publicly_approved', true) // Only show approved restaurants
                     .ilike('city', `%${city}%`); // Contains search
 
                 if (!broaderError && broaderRestaurants && broaderRestaurants.length > restaurants.length) {
@@ -5701,9 +5703,11 @@ async function loadCityCollages() {
             logger.info(`Processing city: ${cityName}`);
 
             // Fetch restaurants for this city (try exact match first, then case-insensitive)
+            // Only include publicly approved restaurants for city collages
             let { data: restaurants, error: restaurantsError } = await supabaseClient
                 .from('restaurants')
                 .select('id')
+                .eq('is_publicly_approved', true)
                 .ilike('city', cityName);
 
             // If no exact match, try case-insensitive search
@@ -5711,6 +5715,7 @@ async function loadCityCollages() {
                 const { data: fallbackRestaurants, error: fallbackError } = await supabaseClient
                     .from('restaurants')
                     .select('id')
+                    .eq('is_publicly_approved', true)
                     .ilike('city', cityName.toLowerCase());
 
                 restaurants = fallbackRestaurants;
