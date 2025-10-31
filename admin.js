@@ -718,11 +718,13 @@ function setupEventListeners() {
     // Analytics filters
     const analyticsCity = document.getElementById('analytics-city-filter');
     const analyticsDevice = document.getElementById('analytics-device-filter');
+    const analyticsCreator = document.getElementById('analytics-creator-filter');
     const analyticsRange = document.getElementById('analytics-range');
     const analyticsRefresh = document.getElementById('analytics-refresh');
     const onAnalyticsChange = async () => { await loadAnalyticsTables(); };
     if (analyticsCity) analyticsCity.addEventListener('change', onAnalyticsChange);
     if (analyticsDevice) analyticsDevice.addEventListener('change', onAnalyticsChange);
+    if (analyticsCreator) analyticsCreator.addEventListener('change', onAnalyticsChange);
     if (analyticsRange) analyticsRange.addEventListener('change', onAnalyticsChange);
     if (analyticsRefresh) analyticsRefresh.addEventListener('click', onAnalyticsChange);
     
@@ -2392,9 +2394,10 @@ async function editRestaurant(restaurantId) {
 
         // Create edit modal with similar UI to create form
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.id = 'restaurant-edit-modal';
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
         modal.innerHTML = `
-            <div class="relative top-0 mx-auto p-5 border w-full h-full shadow-lg rounded-md bg-white overflow-y-auto">
+            <div class="relative top-0 mx-auto p-6 border w-full max-w-4xl max-h-[90vh] shadow-xl rounded-lg bg-white overflow-y-auto">
                 <div class="mt-3">
                     <div class="flex justify-between items-center mb-4">
                         <div>
@@ -2526,7 +2529,15 @@ async function editRestaurant(restaurantId) {
                     
                     <!-- Videos Section -->
                     <div class="mt-8 border-t pt-6">
-                        <h4 class="text-lg font-medium text-gray-900 mb-4">TikTok Videos (${videos?.length || 0})</h4>
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-lg font-medium text-gray-900">TikTok Videos (${videos?.length || 0})</h4>
+                            ${canEditRestaurant ? `
+                                <button onclick="addNewVideoToRestaurant(${restaurant.id}, '${restaurant.name.replace(/'/g, "\\'")}')" 
+                                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2">
+                                    <span>➕</span> Add Video
+                                </button>
+                            ` : ''}
+                        </div>
                         ${videoCreatorInfo.length === 0 ? `
                             <p class="text-gray-500 text-sm">No videos associated with this restaurant.</p>
                         ` : `
@@ -2536,13 +2547,13 @@ async function editRestaurant(restaurantId) {
                                         <div class="flex justify-between items-start">
                                             <div class="flex-1">
                                                 <div class="flex items-center gap-2 mb-2">
-                                                    <span class="px-2 py-1 rounded text-xs ${video.creatorType === 'Admin' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
-                                                        ${video.creatorType}
+                                                    <span class="px-2 py-1 rounded text-xs font-medium ${video.creatorType === 'Admin' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
+                                                        Added by: ${video.creatorType}
                                                     </span>
                                                     ${video.is_featured ? '<span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">⭐ Featured</span>' : ''}
                                                     <span class="text-xs text-gray-500">${new Date(video.created_at).toLocaleDateString()}</span>
                                                 </div>
-                                                ${video.author_handle ? `<p class="text-sm text-gray-600">@${video.author_handle}</p>` : ''}
+                                                ${video.author_handle ? `<p class="text-sm text-gray-600 mb-2">@${video.author_handle}</p>` : ''}
                                                 ${video.thumbnail_url ? `<img src="${video.thumbnail_url}" alt="Video thumbnail" class="mt-2 w-32 h-32 object-cover rounded">` : ''}
                                             </div>
                                             ${video.canEdit ? `
@@ -2564,6 +2575,13 @@ async function editRestaurant(restaurantId) {
         `;
         
         document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeEditModal();
+            }
+        });
         
         // Populate city dropdown
         await populateCityDropdown('edit-restaurant-city', restaurant.city_id);
@@ -2947,6 +2965,159 @@ function addVideoToRestaurant(restaurantId, restaurantName) {
     }
 }
 
+// Add new video to restaurant from edit modal
+async function addNewVideoToRestaurant(restaurantId, restaurantName) {
+    // Create a simple modal for adding video
+    const modal = document.createElement('div');
+    modal.id = 'add-video-modal';
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add TikTok Video</h3>
+                <button type="button" onclick="closeAddVideoModal()" 
+                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                    ×
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">Adding video to: <strong>${restaurantName}</strong></p>
+            <form id="add-video-to-restaurant-form" class="space-y-4">
+                <input type="hidden" id="add-video-restaurant-id" value="${restaurantId}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">TikTok Video URL</label>
+                    <input type="url" id="add-video-url" placeholder="https://www.tiktok.com/@username/video/1234567890" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Enter the full TikTok video URL</p>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="add-video-is-featured"
+                           class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="add-video-is-featured" class="ml-2 block text-sm text-gray-900">
+                        Featured Video
+                    </label>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeAddVideoModal()" 
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                        Add Video
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeAddVideoModal();
+        }
+    });
+    
+    // Handle form submission
+    document.getElementById('add-video-to-restaurant-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleAddVideoToRestaurant(restaurantId);
+    });
+}
+
+// Handle adding video to restaurant
+async function handleAddVideoToRestaurant(restaurantId) {
+    const tiktokUrl = document.getElementById('add-video-url').value.trim();
+    const isFeatured = document.getElementById('add-video-is-featured').checked;
+    
+    if (!tiktokUrl) {
+        showStatus('Please enter a TikTok URL', 'error');
+        return;
+    }
+    
+    try {
+        const videoId = extractTikTokVideoId(tiktokUrl);
+        const authorHandle = extractTikTokCreatorHandle(tiktokUrl);
+        
+        if (!videoId) {
+            showStatus('Invalid TikTok URL - could not extract video ID', 'error');
+            return;
+        }
+
+        // Get current user
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            showStatus('You must be logged in to add videos', 'error');
+            return;
+        }
+
+        // Generate embed HTML (simplified - you might want to use the oEmbed API)
+        const embedHtml = `<blockquote class="tiktok-embed" cite="${tiktokUrl}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px;">
+            <section> 
+                <a target="_blank" title="@${authorHandle}" href="${tiktokUrl}"></a>
+            </section>
+        </blockquote> 
+        <script async src="https://www.tiktok.com/embed.js"></script>`;
+
+        // Fetch and cache thumbnail
+        let thumbnailUrl = null;
+        try {
+            const { data: thumbnailData, error: thumbnailError } = await supabaseClient.functions.invoke('cache-tiktok-thumbnail', {
+                body: { url: tiktokUrl }
+            });
+
+            if (!thumbnailError && thumbnailData && (thumbnailData.public_url || thumbnailData.thumbnail_url)) {
+                thumbnailUrl = thumbnailData.public_url || thumbnailData.thumbnail_url;
+            }
+        } catch (err) {
+            logger.warn('Could not fetch thumbnail:', err);
+        }
+
+        // Insert video
+        const { error: insertError } = await supabaseClient
+            .from('tiktoks')
+            .insert({
+                restaurant_id: restaurantId,
+                embed_html: embedHtml,
+                author_handle: authorHandle,
+                is_featured: isFeatured,
+                submitted_by_user_id: user.id,
+                thumbnail_url: thumbnailUrl
+            });
+
+        if (insertError) throw insertError;
+
+        showStatus('Video added successfully!', 'success');
+        closeAddVideoModal();
+        
+        // Reload the restaurant editor to show the new video
+        // Close current modal and reopen with fresh data
+        const currentModal = document.getElementById('restaurant-edit-modal');
+        if (currentModal) {
+            const restaurantIdInput = document.getElementById('edit-restaurant-id');
+            const restaurantIdToReload = restaurantIdInput ? parseInt(restaurantIdInput.value) : restaurantId;
+            closeEditModal();
+            setTimeout(() => editRestaurant(restaurantIdToReload), 300);
+        }
+        
+    } catch (error) {
+        console.error('Error adding video:', error);
+        showStatus('Failed to add video: ' + error.message, 'error');
+    }
+}
+
+function closeAddVideoModal() {
+    const modal = document.getElementById('add-video-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Make functions globally accessible
+window.addNewVideoToRestaurant = addNewVideoToRestaurant;
+window.closeAddVideoModal = closeAddVideoModal;
+
 // Load creator applications
 async function loadCreatorApplications() {
     try {
@@ -3212,14 +3383,33 @@ if (typeof window !== 'undefined') {
 // -------------------- Analytics Tables --------------------
 async function initializeAnalyticsFilters() {
     const citySel = document.getElementById('analytics-city-filter');
-    if (!citySel) return;
+    const creatorSel = document.getElementById('analytics-creator-filter');
+    
     try {
-        const { data: restaurants } = await supabaseClient
-            .from('restaurants')
-            .select('city')
-            .limit(5000);
-        const cities = [...new Set((restaurants || []).map(r => r.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-        citySel.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+        // Populate city filter
+        if (citySel) {
+            const { data: restaurants } = await supabaseClient
+                .from('restaurants')
+                .select('city')
+                .limit(5000);
+            const cities = [...new Set((restaurants || []).map(r => r.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+            citySel.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+        
+        // Populate creator filter
+        if (creatorSel) {
+            const { data: creators } = await supabaseClient
+                .from('user_roles')
+                .select('tiktok_handle, username')
+                .eq('role', 'creator')
+                .order('tiktok_handle', { ascending: true });
+            
+            creatorSel.innerHTML = '<option value="">All Creators</option>' + 
+                (creators || []).map(c => {
+                    const display = c.tiktok_handle || c.username || 'Unknown';
+                    return `<option value="${c.tiktok_handle || ''}">${display}</option>`;
+                }).join('');
+        }
     } catch (e) {
         console.warn('initializeAnalyticsFilters error:', e);
     }
@@ -3228,10 +3418,12 @@ async function initializeAnalyticsFilters() {
 function getAnalyticsFilters() {
     const cityEl = document.getElementById('analytics-city-filter');
     const deviceEl = document.getElementById('analytics-device-filter');
+    const creatorEl = document.getElementById('analytics-creator-filter');
     const rangeEl = document.getElementById('analytics-range');
     
     const city = (cityEl?.value || '').trim();
     const device = (deviceEl?.value || '').trim();
+    const creator = (creatorEl?.value || '').trim();
     const rangeValue = rangeEl?.value || '30';
     const days = rangeValue === 'all' ? null : parseInt(rangeValue, 10);
     const fromIso = days ? new Date(Date.now() - days*24*60*60*1000).toISOString() : null;
@@ -3239,19 +3431,20 @@ function getAnalyticsFilters() {
     console.log('📊 Analytics Filters:', {
         city: city || '(All Cities)',
         device: device || '(All Devices)',
+        creator: creator || '(All Creators)',
         days: days || 'all',
         fromIso: fromIso || '(All Time)',
         fromDate: fromIso ? new Date(fromIso).toLocaleString() : '(All Time)'
     });
     
-    return { city, device, fromIso, days };
+    return { city, device, creator, fromIso, days };
 }
 
 async function loadAnalyticsTables() {
-    const { city, device, fromIso, days } = getAnalyticsFilters();
-    try { logger.info('🔢 Loading analytics with filters:', { city, device, fromIso, days }); } catch (_) {}
+    const { city, device, creator, fromIso, days } = getAnalyticsFilters();
+    try { logger.info('🔢 Loading analytics with filters:', { city, device, creator, fromIso, days }); } catch (_) {}
     await Promise.all([
-        loadRestaurantsAnalytics(city, device, fromIso, days),
+        loadRestaurantsAnalytics(city, device, creator, fromIso, days),
         loadCitiesAnalytics(fromIso)
     ]);
 }
@@ -3326,9 +3519,19 @@ function renderRestaurantsTable(data, sortColumn = 'total', sortDirection = 'des
         }
     });
     
-    // Render rows
+    // Render rows with color coding based on creator type
     const rows = sorted.slice(0, 500).map(stats => {
-        return `<tr>
+        // Determine background color based on creator type
+        let rowBgClass = '';
+        if (stats.creatorType === 'admin') {
+            rowBgClass = 'bg-blue-50';
+        } else if (stats.creatorType === 'creator') {
+            rowBgClass = 'bg-orange-50';
+        } else {
+            rowBgClass = 'bg-white';
+        }
+        
+        return `<tr class="${rowBgClass} hover:bg-opacity-75">
             <td class="px-4 py-2">${stats.name || 'Unknown'}</td>
             <td class="px-4 py-2">${stats.city || ''}</td>
             <td class="px-4 py-2 text-right">${stats.total}</td>
@@ -3371,7 +3574,7 @@ function renderRestaurantsTable(data, sortColumn = 'total', sortDirection = 'des
     });
 }
 
-async function loadRestaurantsAnalytics(city, device, fromIso, days) {
+async function loadRestaurantsAnalytics(city, device, creator, fromIso, days) {
     const tbody = document.getElementById('analytics-restaurants-body');
     if (!tbody) {
         console.warn('⚠️ Analytics restaurants table body not found');
@@ -3384,7 +3587,7 @@ async function loadRestaurantsAnalytics(city, device, fromIso, days) {
         // Step 1: Fetch ALL restaurants (filter by city if specified)
         let restaurantQuery = supabaseClient
             .from('restaurants')
-            .select('id,name,city')
+            .select('id,name,city,submitted_by_user_id')
             .limit(5000);
         
         if (city) {
@@ -3398,6 +3601,32 @@ async function loadRestaurantsAnalytics(city, device, fromIso, days) {
         console.log(`✅ Fetched ${restaurants?.length || 0} restaurants`);
         if (restaurants && restaurants.length > 0) {
             console.log('📊 Sample restaurants:', restaurants.slice(0, 3).map(r => ({ id: r.id, name: r.name, city: r.city })));
+        }
+        
+        // Step 1.5: If creator filter is set, get restaurants that have videos by that creator
+        let restaurantsWithCreatorVideos = new Set();
+        if (creator) {
+            console.log(`📊 Filtering by creator: "${creator}"`);
+            // Get creator's user_id
+            const { data: creatorRole } = await supabaseClient
+                .from('user_roles')
+                .select('user_id')
+                .eq('role', 'creator')
+                .eq('tiktok_handle', creator)
+                .single();
+            
+            if (creatorRole) {
+                // Get all videos by this creator
+                const { data: creatorVideos } = await supabaseClient
+                    .from('tiktoks')
+                    .select('restaurant_id')
+                    .eq('submitted_by_user_id', creatorRole.user_id);
+                
+                if (creatorVideos) {
+                    creatorVideos.forEach(v => restaurantsWithCreatorVideos.add(v.restaurant_id));
+                    console.log(`✅ Found ${restaurantsWithCreatorVideos.size} restaurants with videos by this creator`);
+                }
+            }
         }
 
         // Step 2: Fetch analytics events for the date range
@@ -3457,16 +3686,57 @@ async function loadRestaurantsAnalytics(city, device, fromIso, days) {
             console.warn('⚠️ No events matched the date filter. Try selecting "All Time" or a longer date range.');
         }
 
-        // Step 3: Aggregate analytics per restaurant
-        console.log('📊 Step 3: Aggregating analytics per restaurant...');
+        // Step 3: Determine creator type for each restaurant and filter by creator if needed
+        console.log('📊 Step 3: Determining creator types and filtering...');
+        const restaurantCreatorMap = new Map(); // restaurant_id -> 'admin' | 'creator' | 'system'
+        
+        // Batch fetch creator roles for all restaurant creators
+        const restaurantCreatorIds = [...new Set((restaurants || []).map(r => r.submitted_by_user_id).filter(Boolean))];
+        if (restaurantCreatorIds.length > 0) {
+            const { data: creatorRoles } = await supabaseClient
+                .from('user_roles')
+                .select('user_id, role')
+                .in('user_id', restaurantCreatorIds);
+            
+            const roleMap = new Map();
+            (creatorRoles || []).forEach(cr => {
+                roleMap.set(cr.user_id, cr.role);
+            });
+            
+            (restaurants || []).forEach(r => {
+                if (r.submitted_by_user_id) {
+                    const role = roleMap.get(r.submitted_by_user_id);
+                    restaurantCreatorMap.set(r.id, role === 'admin' ? 'admin' : role === 'creator' ? 'creator' : 'user');
+                } else {
+                    restaurantCreatorMap.set(r.id, 'system');
+                }
+            });
+        }
+        
+        // Step 4: Aggregate analytics per restaurant
+        console.log('📊 Step 4: Aggregating analytics per restaurant...');
         const analyticsMap = new Map(); // restaurant_id -> stats
         
-        // Initialize ALL restaurants with zero stats
+        // Initialize restaurants with zero stats (apply creator filter here)
         (restaurants || []).forEach(r => {
+            // Skip if creator filter is set and restaurant doesn't have videos by that creator
+            // Only apply filter if we found restaurants with creator videos (otherwise show all)
+            if (creator) {
+                if (restaurantsWithCreatorVideos.size === 0) {
+                    // Creator filter was set but no videos found by that creator - hide all
+                    return;
+                }
+                if (!restaurantsWithCreatorVideos.has(r.id)) {
+                    // Creator filter is set and this restaurant doesn't have videos by that creator
+                    return;
+                }
+            }
+            
             analyticsMap.set(r.id, {
                 id: r.id,
                 name: r.name,
                 city: r.city,
+                creatorType: restaurantCreatorMap.get(r.id) || 'unknown',
                 total: 0,
                 card: 0,
                 marker: 0,
@@ -3532,8 +3802,8 @@ async function loadRestaurantsAnalytics(city, device, fromIso, days) {
         console.log(`📊 Restaurants with clicks: ${Array.from(analyticsMap.values()).filter(s => s.total > 0).length}`);
         console.log(`📊 Restaurants with zero clicks: ${Array.from(analyticsMap.values()).filter(s => s.total === 0).length}`);
 
-        // Step 4: Convert to array and prepare data with calculated percentages
-        console.log('📊 Step 4: Preparing data for rendering...');
+        // Step 5: Convert to array and prepare data with calculated percentages
+        console.log('📊 Step 5: Preparing data for rendering...');
         let allRestaurantsData = Array.from(analyticsMap.values()).map(stats => {
             const mobilePct = stats.total ? Math.round((stats.mobile / stats.total) * 100) : 0;
             const desktopPct = stats.total ? Math.round((stats.desktop / stats.total) * 100) : 0;
