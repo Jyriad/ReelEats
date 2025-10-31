@@ -3023,134 +3023,285 @@ async function initializeAnalyticsFilters() {
 }
 
 function getAnalyticsFilters() {
-    const city = (document.getElementById('analytics-city-filter')?.value || '').trim();
-    const device = (document.getElementById('analytics-device-filter')?.value || '').trim();
-    const days = parseInt(document.getElementById('analytics-range')?.value || '30', 10);
+    const cityEl = document.getElementById('analytics-city-filter');
+    const deviceEl = document.getElementById('analytics-device-filter');
+    const rangeEl = document.getElementById('analytics-range');
+    
+    const city = (cityEl?.value || '').trim();
+    const device = (deviceEl?.value || '').trim();
+    const days = parseInt(rangeEl?.value || '30', 10);
     const fromIso = new Date(Date.now() - days*24*60*60*1000).toISOString();
-    return { city, device, fromIso };
+    
+    console.log('📊 Analytics Filters:', {
+        city: city || '(All Cities)',
+        device: device || '(All Devices)',
+        days: days,
+        fromIso: fromIso,
+        fromDate: new Date(fromIso).toLocaleString()
+    });
+    
+    return { city, device, fromIso, days };
 }
 
 async function loadAnalyticsTables() {
-    const { city, device, fromIso } = getAnalyticsFilters();
-    try { logger.info('🔢 Loading analytics with filters:', { city, device, fromIso }); } catch (_) {}
+    const { city, device, fromIso, days } = getAnalyticsFilters();
+    try { logger.info('🔢 Loading analytics with filters:', { city, device, fromIso, days }); } catch (_) {}
     await Promise.all([
-        loadRestaurantsAnalytics(city, device, fromIso),
+        loadRestaurantsAnalytics(city, device, fromIso, days),
         loadCitiesAnalytics(fromIso)
     ]);
 }
 
-async function loadRestaurantsAnalytics(city, device, fromIso) {
+async function loadRestaurantsAnalytics(city, device, fromIso, days) {
     const tbody = document.getElementById('analytics-restaurants-body');
-    if (!tbody) return;
+    if (!tbody) {
+        console.warn('⚠️ Analytics restaurants table body not found');
+        return;
+    }
     tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">Loading…</td></tr>';
 
     try {
-        const { data: restaurants } = await supabaseClient
+        console.log('📊 Step 1: Fetching restaurants...');
+        // Step 1: Fetch ALL restaurants (filter by city if specified)
+        let restaurantQuery = supabaseClient
             .from('restaurants')
             .select('id,name,city')
             .limit(5000);
-        const restaurantMap = new Map();
-        (restaurants || []).forEach(r => restaurantMap.set(r.id, r));
-
-        let query = supabaseClient
-            .from('analytics_events')
-            .select('restaurant_id,created_at,metadata')
-            .eq('event_type','restaurant_click')
-            .gte('created_at', fromIso)
-            .order('created_at', { ascending: false });
-        const { data: events, error } = await query.limit(10000);
-        if (error) throw error;
-
-        const agg = new Map();
-        for (const e of (events || [])) {
-            if (!e.restaurant_id) continue;
-            const meta = e.metadata || {};
-            const dev = (meta.device || '').toLowerCase();
-            if (device && dev !== device) continue;
-            const rinfo = restaurantMap.get(e.restaurant_id);
-            if (!rinfo) continue;
-            if (city && (rinfo.city || '').toLowerCase() !== city.toLowerCase()) continue;
-            const key = e.restaurant_id;
-            if (!agg.has(key)) agg.set(key, { id: key, total:0, card:0, marker:0, mobile:0, desktop:0, last:null });
-            const a = agg.get(key);
-            a.total++;
-            const source = (meta.source || '').toLowerCase();
-            if (source === 'marker') a.marker++; else a.card++;
-            if (dev==='mobile') a.mobile++; if (dev==='desktop') a.desktop++;
-            if (!a.last || new Date(e.created_at) > new Date(a.last)) a.last = e.created_at;
+        
+        if (city) {
+            restaurantQuery = restaurantQuery.ilike('city', city);
+            console.log(`📊 Filtering restaurants by city: "${city}"`);
+        }
+        
+        const { data: restaurants, error: restaurantsError } = await restaurantQuery;
+        if (restaurantsError) throw restaurantsError;
+        
+        console.log(`✅ Fetched ${restaurants?.length || 0} restaurants`);
+        if (restaurants && restaurants.length > 0) {
+            console.log('📊 Sample restaurants:', restaurants.slice(0, 3).map(r => ({ id: r.id, name: r.name, city: r.city })));
         }
 
-        const rows = Array.from(agg.values()).sort((a,b)=>b.total - a.total).slice(0, 500).map(a => {
-            const r = restaurantMap.get(a.id) || { name:'Unknown', city:'' };
-            const mobilePct = a.total ? Math.round((a.mobile/a.total)*100) : 0;
-            const desktopPct = a.total ? Math.round((a.desktop/a.total)*100) : 0;
-            const last = a.last ? new Date(a.last).toLocaleString() : '-';
-            return `<tr>
-                <td class=\"px-4 py-2\">${r.name || 'Unknown'}</td>
-                <td class=\"px-4 py-2\">${r.city || ''}</td>
-                <td class=\"px-4 py-2 text-right\">${a.total}</td>
-                <td class=\"px-4 py-2 text-right\">${a.card}</td>
-                <td class=\"px-4 py-2 text-right\">${a.marker}</td>
-                <td class=\"px-4 py-2 text-right\">${mobilePct}%</td>
-                <td class=\"px-4 py-2 text-right\">${desktopPct}%</td>
-                <td class=\"px-4 py-2\">${last}</td>
-                <td class=\"px-4 py-2\"><button class=\"text-indigo-600 hover:text-indigo-800 text-sm\" data-action=\"edit-restaurant\" data-id=\"${a.id}\">Edit</button></td>
-            </tr>`;
-        }).join('');
-        tbody.innerHTML = rows || '<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No data</td></tr>';
+        // Step 2: Fetch analytics events for the date range
+        console.log(`📊 Step 2: Fetching analytics events since ${new Date(fromIso).toLocaleString()}...`);
+        let eventsQuery = supabaseClient
+            .from('analytics_events')
+            .select('restaurant_id,created_at,metadata')
+            .eq('event_type', 'restaurant_click')
+            .gte('created_at', fromIso)
+            .order('created_at', { ascending: false })
+            .limit(10000);
+        
+        const { data: events, error: eventsError } = await eventsQuery;
+        if (eventsError) throw eventsError;
+        
+        console.log(`✅ Fetched ${events?.length || 0} click events`);
+        if (events && events.length > 0) {
+            console.log('📊 Sample events:', events.slice(0, 3).map(e => ({
+                restaurant_id: e.restaurant_id,
+                created_at: e.created_at,
+                device: e.metadata?.device,
+                source: e.metadata?.source
+            })));
+        }
 
-        tbody.querySelectorAll('button[data-action=\"edit-restaurant\"]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = parseInt(btn.dataset.id, 10);
-                showStatus('Open editor for restaurant ID: '+id, 'info');
+        // Step 3: Aggregate analytics per restaurant
+        console.log('📊 Step 3: Aggregating analytics per restaurant...');
+        const analyticsMap = new Map(); // restaurant_id -> stats
+        
+        // Initialize ALL restaurants with zero stats
+        (restaurants || []).forEach(r => {
+            analyticsMap.set(r.id, {
+                id: r.id,
+                name: r.name,
+                city: r.city,
+                total: 0,
+                card: 0,
+                marker: 0,
+                mobile: 0,
+                desktop: 0,
+                last: null
             });
         });
+        
+        console.log(`📊 Initialized ${analyticsMap.size} restaurants with zero stats`);
+
+        // Process events and aggregate
+        let eventsProcessed = 0;
+        let eventsSkipped = 0;
+        
+        for (const e of (events || [])) {
+            if (!e.restaurant_id) {
+                eventsSkipped++;
+                continue;
+            }
+            
+            const meta = e.metadata || {};
+            const dev = (meta.device || '').toLowerCase();
+            
+            // Apply device filter
+            if (device && dev !== device) {
+                eventsSkipped++;
+                continue;
+            }
+            
+            // Get restaurant info
+            const stats = analyticsMap.get(e.restaurant_id);
+            if (!stats) {
+                // Restaurant doesn't exist in our list (filtered out by city or deleted)
+                eventsSkipped++;
+                continue;
+            }
+            
+            // Apply city filter (if restaurant city doesn't match)
+            if (city && (stats.city || '').toLowerCase() !== city.toLowerCase()) {
+                eventsSkipped++;
+                continue;
+            }
+            
+            // Aggregate stats
+            stats.total++;
+            const source = (meta.source || '').toLowerCase();
+            if (source === 'marker') {
+                stats.marker++;
+            } else {
+                stats.card++;
+            }
+            if (dev === 'mobile') stats.mobile++;
+            if (dev === 'desktop') stats.desktop++;
+            if (!stats.last || new Date(e.created_at) > new Date(stats.last)) {
+                stats.last = e.created_at;
+            }
+            
+            eventsProcessed++;
+        }
+        
+        console.log(`✅ Processed ${eventsProcessed} events, skipped ${eventsSkipped}`);
+        console.log(`📊 Restaurants with clicks: ${Array.from(analyticsMap.values()).filter(s => s.total > 0).length}`);
+        console.log(`📊 Restaurants with zero clicks: ${Array.from(analyticsMap.values()).filter(s => s.total === 0).length}`);
+
+        // Step 4: Convert to array, sort by total clicks (desc), and render
+        console.log('📊 Step 4: Rendering table...');
+        const rows = Array.from(analyticsMap.values())
+            .sort((a, b) => b.total - a.total) // Sort by total clicks descending
+            .slice(0, 500) // Limit to 500 rows
+            .map(stats => {
+                const mobilePct = stats.total ? Math.round((stats.mobile / stats.total) * 100) : 0;
+                const desktopPct = stats.total ? Math.round((stats.desktop / stats.total) * 100) : 0;
+                const last = stats.last ? new Date(stats.last).toLocaleString() : '-';
+                return `<tr>
+                    <td class="px-4 py-2">${stats.name || 'Unknown'}</td>
+                    <td class="px-4 py-2">${stats.city || ''}</td>
+                    <td class="px-4 py-2 text-right">${stats.total}</td>
+                    <td class="px-4 py-2 text-right">${stats.card}</td>
+                    <td class="px-4 py-2 text-right">${stats.marker}</td>
+                    <td class="px-4 py-2 text-right">${mobilePct}%</td>
+                    <td class="px-4 py-2 text-right">${desktopPct}%</td>
+                    <td class="px-4 py-2">${last}</td>
+                    <td class="px-4 py-2"><button class="text-indigo-600 hover:text-indigo-800 text-sm" data-action="edit-restaurant" data-id="${stats.id}">Edit</button></td>
+                </tr>`;
+            }).join('');
+        
+        tbody.innerHTML = rows || '<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No restaurants found</td></tr>';
+        console.log(`✅ Rendered ${rows.split('</tr>').length - 1} rows in table`);
+
+        // Step 5: Wire up edit buttons
+        tbody.querySelectorAll('button[data-action="edit-restaurant"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.dataset.id, 10);
+                console.log(`📊 Edit button clicked for restaurant ID: ${id}`);
+                showStatus('Open editor for restaurant ID: ' + id, 'info');
+                // TODO: Wire this to the actual edit restaurant function
+            });
+        });
+        
+        console.log('✅ Analytics table loading complete');
     } catch (e) {
-        console.error('loadRestaurantsAnalytics error:', e);
-        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-red-500">Error loading analytics</td></tr>';
+        console.error('❌ loadRestaurantsAnalytics error:', e);
+        console.error('Error details:', {
+            message: e.message,
+            stack: e.stack,
+            name: e.name
+        });
+        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-red-500">Error loading analytics: ' + (e.message || 'Unknown error') + '</td></tr>';
     }
 }
 
 async function loadCitiesAnalytics(fromIso) {
     const tbody = document.getElementById('analytics-cities-body');
-    if (!tbody) return;
+    if (!tbody) {
+        console.warn('⚠️ Analytics cities table body not found');
+        return;
+    }
     tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading…</td></tr>';
+    
     try {
-        const { data: events } = await supabaseClient
+        console.log(`📊 Cities Analytics: Fetching city_view events since ${new Date(fromIso).toLocaleString()}...`);
+        const { data: events, error: eventsError } = await supabaseClient
             .from('analytics_events')
             .select('city_name,created_at,metadata')
-            .eq('event_type','city_view')
+            .eq('event_type', 'city_view')
             .gte('created_at', fromIso)
             .order('created_at', { ascending: false })
             .limit(10000);
+        
+        if (eventsError) throw eventsError;
+        
+        console.log(`✅ Fetched ${events?.length || 0} city_view events`);
+        if (events && events.length > 0) {
+            console.log('📊 Sample city_view events:', events.slice(0, 3).map(e => ({
+                city_name: e.city_name,
+                created_at: e.created_at,
+                device: e.metadata?.device
+            })));
+        }
+        
         const agg = new Map();
+        let eventsWithCity = 0;
+        let eventsWithoutCity = 0;
+        
         for (const e of (events || [])) {
             const city = (e.city_name || '').trim();
-            if (!city) continue;
+            if (!city) {
+                eventsWithoutCity++;
+                continue;
+            }
+            eventsWithCity++;
             const dev = (e.metadata?.device || '').toLowerCase();
             const key = city.toLowerCase();
             if (!agg.has(key)) agg.set(key, { city: city, total:0, mobile:0, desktop:0, last:null });
             const a = agg.get(key);
             a.total++;
-            if (dev==='mobile') a.mobile++; if (dev==='desktop') a.desktop++;
+            if (dev==='mobile') a.mobile++;
+            if (dev==='desktop') a.desktop++;
             if (!a.last || new Date(e.created_at) > new Date(a.last)) a.last = e.created_at;
         }
+        
+        console.log(`✅ Processed ${eventsWithCity} events with city names, ${eventsWithoutCity} without city names`);
+        console.log(`📊 Unique cities: ${agg.size}`);
+        
         const rows = Array.from(agg.values()).sort((a,b)=>b.total - a.total).slice(0,500).map(c => {
             const mobilePct = c.total ? Math.round((c.mobile/c.total)*100) : 0;
             const desktopPct = c.total ? Math.round((c.desktop/c.total)*100) : 0;
             const last = c.last ? new Date(c.last).toLocaleString() : '-';
             return `<tr>
-                <td class=\"px-4 py-2\">${c.city}</td>
-                <td class=\"px-4 py-2 text-right\">${c.total}</td>
-                <td class=\"px-4 py-2 text-right\">${mobilePct}%</td>
-                <td class=\"px-4 py-2 text-right\">${desktopPct}%</td>
-                <td class=\"px-4 py-2\">${last}</td>
+                <td class="px-4 py-2">${c.city}</td>
+                <td class="px-4 py-2 text-right">${c.total}</td>
+                <td class="px-4 py-2 text-right">${mobilePct}%</td>
+                <td class="px-4 py-2 text-right">${desktopPct}%</td>
+                <td class="px-4 py-2">${last}</td>
             </tr>`;
         }).join('');
-        tbody.innerHTML = rows || '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No data</td></tr>';
+        
+        tbody.innerHTML = rows || '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No city views found</td></tr>';
+        console.log(`✅ Rendered ${rows.split('</tr>').length - 1} city rows in table`);
     } catch (e) {
-        console.error('loadCitiesAnalytics error:', e);
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Error loading analytics</td></tr>';
+        console.error('❌ loadCitiesAnalytics error:', e);
+        console.error('Error details:', {
+            message: e.message,
+            stack: e.stack,
+            name: e.name
+        });
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Error loading analytics: ' + (e.message || 'Unknown error') + '</td></tr>';
     }
 }
 
