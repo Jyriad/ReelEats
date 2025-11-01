@@ -297,7 +297,8 @@
                     }
                 } else {
                     // User is logged out
-                    if (authContainer) authContainer.classList.add('hidden');
+                    // auth-container already has 'hidden md:block' which handles desktop/mobile visibility
+                    // Just ensure the button shows "Sign In" and opens the modal
                     if (authBtn) {
                         authBtn.textContent = 'Sign In';
                         // Replace event listeners to open modal
@@ -317,8 +318,6 @@
                         }
                     }
                     if (userDropdown) userDropdown.classList.add('hidden');
-                    if (loginLink) loginLink.style.display = 'inline-block';
-                    if (signupLink) signupLink.style.display = 'inline-block';
                 }
             }
             
