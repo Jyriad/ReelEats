@@ -1,0 +1,126 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.analytics_events (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  event_type text NOT NULL,
+  user_id uuid,
+  restaurant_id bigint,
+  city_name text,
+  metadata jsonb,
+  CONSTRAINT analytics_events_pkey PRIMARY KEY (id),
+  CONSTRAINT analytics_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT analytics_events_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)
+);
+CREATE TABLE public.cities (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name text NOT NULL,
+  lat numeric NOT NULL,
+  lon numeric NOT NULL,
+  CONSTRAINT cities_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.collection_restaurants (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  collection_id bigint NOT NULL,
+  restaurant_id bigint NOT NULL,
+  CONSTRAINT collection_restaurants_pkey PRIMARY KEY (id),
+  CONSTRAINT collection_restaurants_collection_id_fkey FOREIGN KEY (collection_id) REFERENCES public.user_collections(id),
+  CONSTRAINT collection_restaurants_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)
+);
+CREATE TABLE public.creator_applications (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  tiktok_handle text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  magic_word text,
+  requested_username text,
+  CONSTRAINT creator_applications_pkey PRIMARY KEY (id),
+  CONSTRAINT creator_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.cuisine_categories (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name text NOT NULL UNIQUE,
+  icon text,
+  CONSTRAINT cuisine_categories_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.cuisines (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name text NOT NULL UNIQUE,
+  category_id bigint,
+  icon text,
+  color_background text,
+  color_text text,
+  CONSTRAINT cuisines_pkey PRIMARY KEY (id),
+  CONSTRAINT cuisines_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.cuisine_categories(id)
+);
+CREATE TABLE public.restaurant_cuisines (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  restaurant_id bigint,
+  cuisine_id bigint,
+  CONSTRAINT restaurant_cuisines_pkey PRIMARY KEY (id),
+  CONSTRAINT restaurant_cuisines_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
+  CONSTRAINT restaurant_cuisines_cuisine_id_fkey FOREIGN KEY (cuisine_id) REFERENCES public.cuisines(id)
+);
+CREATE TABLE public.restaurants (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name text NOT NULL,
+  description text,
+  lat numeric NOT NULL,
+  lon numeric NOT NULL,
+  google_maps_url text,
+  city_id bigint,
+  price_range smallint,
+  rating numeric,
+  google_place_id text,
+  created_at timestamp with time zone,
+  city text,
+  submitted_by_user_id uuid,
+  is_publicly_approved boolean DEFAULT false,
+  CONSTRAINT restaurants_pkey PRIMARY KEY (id),
+  CONSTRAINT restaurants_city_id_fkey FOREIGN KEY (city_id) REFERENCES public.cities(id),
+  CONSTRAINT restaurants_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.tiktoks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  embed_html text NOT NULL,
+  author_handle text,
+  language_code text DEFAULT 'en'::text,
+  is_featured boolean NOT NULL DEFAULT false,
+  restaurant_id bigint NOT NULL,
+  submitted_by_user_id uuid,
+  is_publicly_approved boolean DEFAULT false,
+  thumbnail_url text,
+  CONSTRAINT tiktoks_pkey PRIMARY KEY (id),
+  CONSTRAINT tiktoks_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
+  CONSTRAINT tiktoks_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_collections (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_collections_pkey PRIMARY KEY (id),
+  CONSTRAINT user_collections_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_favorites (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  restaurant_id bigint NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_favorites_pkey PRIMARY KEY (id),
+  CONSTRAINT user_favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_favorites_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)
+);
+CREATE TABLE public.user_roles (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  role text NOT NULL,
+  tiktok_handle text,
+  username text UNIQUE,
+  CONSTRAINT user_roles_pkey PRIMARY KEY (id),
+  CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);

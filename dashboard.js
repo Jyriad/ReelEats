@@ -2278,6 +2278,11 @@ function createPreviewMarker(restaurant, index) {
     
     // Add click event to open video
     marker.on('click', () => {
+        // Analytics for preview map: marker click
+        try {
+            const { createClient } = supabase; // available globally, but we already have supabaseClient
+        } catch (_) {}
+        try { window.trackEvent && window.trackEvent('restaurant_click', { restaurant_id: restaurant.id, metadata: { source: 'marker' } }); } catch(_) {}
         logger.info('Map marker clicked for restaurant:', restaurant.name);
         showPreviewVideoFor(restaurant);
     });

@@ -211,6 +211,114 @@
 
                 <!-- Management Sections -->
                 <div class="space-y-6">
+                    <!-- Analytics Section -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Analytics</h3>
+                            <!-- Filters -->
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                    <select id="analytics-city-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                        <option value="">All Cities</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Device</label>
+                                    <select id="analytics-device-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                        <option value="">All</option>
+                                        <option value="mobile">Mobile</option>
+                                        <option value="tablet">Tablet</option>
+                                        <option value="desktop">Desktop</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Creator</label>
+                                    <select id="analytics-creator-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                        <option value="">All Creators</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                                    <select id="analytics-range" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                        <option value="all">All Time</option>
+                                        <option value="7">Last 7 days</option>
+                                        <option value="30" selected>Last 30 days</option>
+                                        <option value="90">Last 90 days</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="analytics-refresh" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">Refresh</button>
+                                </div>
+                            </div>
+
+                            <!-- Restaurants Analytics Table -->
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-md font-semibold text-gray-900">Restaurants</h4>
+                                <div class="flex items-center gap-4 text-xs text-gray-600">
+                                    <span class="flex items-center gap-1">
+                                        <span class="w-3 h-3 rounded bg-blue-50 border border-blue-200"></span>
+                                        Admin
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <span class="w-3 h-3 rounded bg-orange-50 border border-orange-200"></span>
+                                        Creator
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="name" data-sort-type="string">
+                                                Restaurant <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="city" data-sort-type="string">
+                                                City <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="total" data-sort-type="number">
+                                                Total <span class="sort-arrow">↓</span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="card" data-sort-type="number">
+                                                Card <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="marker" data-sort-type="number">
+                                                Marker <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="mobilePct" data-sort-type="number">
+                                                Mobile% <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="desktopPct" data-sort-type="number">
+                                                Desktop% <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none" data-sort="last" data-sort-type="date">
+                                                Last Click <span class="sort-arrow"></span>
+                                            </th>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="analytics-restaurants-body" class="divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- Cities Analytics Table -->
+                            <h4 class="text-md font-semibold text-gray-900 mt-6 mb-2">Cities</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700">City</th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Views</th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Mobile%</th>
+                                            <th class="px-4 py-2 text-right font-medium text-gray-700">Desktop%</th>
+                                            <th class="px-4 py-2 text-left font-medium text-gray-700">Last View</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="analytics-cities-body" class="divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Add Restaurant Section -->
                     <div class="bg-white shadow rounded-lg">
                         <div class="px-4 py-5 sm:p-6">

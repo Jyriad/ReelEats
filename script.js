@@ -13,6 +13,79 @@ const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Lightweight analytics helper (fire-and-forget)
+async function trackEvent(eventType, data = {}) {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        // Derive city from URL if not provided
+        let derivedCity = null;
+        try {
+            const usp = new URL(window.location.href).searchParams;
+            const cityParam = usp.get('city');
+            if (cityParam && cityParam.trim().length > 0) {
+                derivedCity = decodeURIComponent(cityParam);
+            }
+        } catch (_) {}
+
+        // Provide default metadata if not supplied
+        const defaultMeta = {
+            path: window.location.pathname,
+            href: window.location.href,
+            referrer: document.referrer || null,
+            ua: navigator.userAgent,
+            ts: Date.now()
+        };
+
+        // Device and viewport info
+        const deviceInfo = (() => {
+            const w = window.innerWidth || document.documentElement.clientWidth || 0;
+            const h = window.innerHeight || document.documentElement.clientHeight || 0;
+            const dpr = window.devicePixelRatio || 1;
+            let device = 'desktop';
+            if (w < 768) device = 'mobile'; else if (w < 1024) device = 'tablet';
+            const touch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+            return { device, touch, viewport: { w, h, dpr } };
+        })();
+
+        // Visibility snapshot if we have one for this restaurant
+        let visibility = null;
+        if (data.restaurant_id && window.__visibilityStore && window.__visibilityStore[data.restaurant_id]) {
+            const v = window.__visibilityStore[data.restaurant_id];
+            const now = Date.now();
+            const time_since_first_visible_ms = v.first_visible_at ? (now - v.first_visible_at) : null;
+            visibility = {
+                list_position: v.list_position,
+                was_visible: !!v.was_visible,
+                first_visible_at: v.first_visible_at || null,
+                time_since_first_visible_ms,
+                visible_impressions: v.visible_impressions || 0,
+                viewability_pct: v.viewability_pct || 0
+            };
+        }
+
+        const eventData = {
+            event_type: eventType,
+            user_id: user ? user.id : null,
+            restaurant_id: data.restaurant_id || null,
+            city_name: data.city_name || derivedCity || null,
+            metadata: Object.assign(
+                {},
+                defaultMeta,
+                deviceInfo,
+                visibility ? { visibility } : {},
+                data.metadata || {}
+            )
+        };
+        // Do not await to avoid blocking UX
+        supabaseClient.from('analytics_events').insert(eventData)
+            .then(({ error }) => {
+                if (error) console.warn('Analytics tracking error:', error.message);
+            });
+    } catch (err) {
+        console.warn('Analytics helper error:', err?.message || err);
+    }
+}
+
 // --- Configuration Constants ---
 const CONFIG = {
     STORAGE_KEYS: {
@@ -218,6 +291,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                     document.title = `ReelGrub - ${formattedHeading}`;
                     logger.info(`🏙️ Loading restaurants for city (query): ${formattedHeading}`);
+                    // Consume nav source hint if present
+                    let navSource = null; try { navSource = sessionStorage.getItem('nav_source'); sessionStorage.removeItem('nav_source'); } catch(_) {}
+                    try { trackEvent('city_view', { city_name: city, metadata: { source: navSource || 'deep_link' } }); } catch (_) {}
                 } else {
                 formattedHeading = 'Explore All';
                 document.title = 'ReelGrub - Discover Your Next Spot';
@@ -231,6 +307,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     formattedHeading = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
                     document.title = `ReelGrub - ${formattedHeading}`;
                     logger.info(`🏙️ Loading restaurants for city: ${formattedHeading}`);
+                    let navSource2 = null; try { navSource2 = sessionStorage.getItem('nav_source'); sessionStorage.removeItem('nav_source'); } catch(_) {}
+                    try { trackEvent('city_view', { city_name: city, metadata: { source: navSource2 || 'deep_link' } }); } catch (_) {}
                 }
             } else if (firstSegment.startsWith('@')) {
                 // Creator route: /@handle
@@ -2063,9 +2141,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             // --- Load restaurants with optional city filtering ---
             logger.info('loadRestaurantsForCity called with city:', city);
 
+            // Only show approved restaurants (is_publicly_approved = true)
             let query = supabaseClient
                 .from('restaurants')
-                .select('*');
+                .select('*')
+                .eq('is_publicly_approved', true);
 
             // If a city is provided, filter by city name (try multiple approaches)
             if (city) {
@@ -2086,6 +2166,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const { data: broaderRestaurants, error: broaderError } = await supabaseClient
                     .from('restaurants')
                     .select('*')
+                    .eq('is_publicly_approved', true)
                     .ilike('city', `%${city}%`); // Contains search
 
                 if (!broaderError && broaderRestaurants && broaderRestaurants.length > restaurants.length) {
@@ -4065,6 +4146,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Add position: relative to the list item for the button
             listItem.className = 'bg-white rounded-lg cursor-pointer hover:bg-gray-100 transition border border-gray-200 relative touch-manipulation';
             listItem.dataset.restaurantId = restaurant.id;
+            // Store list position (0-based) for analytics
+            listItem.dataset.listPosition = String(index);
             
             const isFavorited = favoritedRestaurants.has(restaurant.id);
             const isCollected = collectedRestaurants.has(restaurant.id);
@@ -4132,6 +4215,49 @@ document.addEventListener('DOMContentLoaded', async function() {
                     ${thumbnailHtml ? `<div class="flex-shrink-0 ml-3 restaurant-thumbnail-right">${thumbnailHtml}</div>` : ''}
                 </div>
             `;
+
+            // --- Visibility tracking (singleton IntersectionObserver) ---
+            (function setupVisibilityTracking() {
+                if (!window.__visibilityStore) window.__visibilityStore = {};
+                const store = window.__visibilityStore;
+                // Initialize record for restaurant
+                const rid = restaurant.id;
+                if (!store[rid]) {
+                    store[rid] = {
+                        list_position: index,
+                        was_visible: false,
+                        first_visible_at: null,
+                        visible_impressions: 0,
+                        viewability_pct: 0
+                    };
+                } else {
+                    store[rid].list_position = index;
+                }
+
+                if (!window.__visibilityObserver) {
+                    window.__visibilityObserver = new IntersectionObserver((entries) => {
+                        const now = Date.now();
+                        entries.forEach(entry => {
+                            const el = entry.target;
+                            const ridStr = el && el.getAttribute('data-restaurant-id');
+                            const ridNum = ridStr ? parseInt(ridStr, 10) : null;
+                            if (!ridNum || !store[ridNum]) return;
+                            const ratio = (entry.intersectionRatio || 0);
+                            if (entry.isIntersecting) {
+                                store[ridNum].visible_impressions += 1;
+                                if (!store[ridNum].was_visible) {
+                                    store[ridNum].was_visible = true;
+                                    store[ridNum].first_visible_at = now;
+                                }
+                                if (ratio > store[ridNum].viewability_pct) {
+                                    store[ridNum].viewability_pct = ratio;
+                                }
+                            }
+                        });
+                    }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+                }
+                window.__visibilityObserver.observe(listItem);
+            })();
 
             // Main click event to open video
             listItem.addEventListener('click', (e) => {
@@ -4249,6 +4375,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             marker.on('click', () => {
                 // Stop pulsing animation when user selects a restaurant
                 stopPulsingAnimation();
+                // Analytics: marker source click
+                try { trackEvent('restaurant_click', { restaurant_id: restaurant.id, metadata: { source: 'marker' } }); } catch (_) {}
 
                 // Remove active class from all cards
                 document.querySelectorAll('#restaurant-list .bg-white').forEach(card => {
@@ -4632,6 +4760,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Show video for restaurant
 async function showVideoFor(restaurant) {
+    // Analytics: restaurant card/video click
+    try { trackEvent('restaurant_click', { restaurant_id: restaurant.id }); } catch (_) {}
             logger.info('🎬 showVideoFor called with restaurant:', restaurant);
             logger.info('🎬 restaurant.tiktok_embed_html:', restaurant.tiktok_embed_html);
             logger.info('🎬 restaurant.tiktok_embed_html type:', typeof restaurant.tiktok_embed_html);
@@ -5117,6 +5247,10 @@ async function showVideoFor(restaurant) {
             cityList.addEventListener('click', (e) => {
                 if (e.target.tagName === 'LI') {
                     const selectedCity = e.target.dataset.city;
+                    // Analytics: city filter selection
+                    try { trackEvent('city_filter', { city_name: selectedCity || 'Explore All' }); } catch (_) {}
+                    // Hint navigation source
+                    try { sessionStorage.setItem('nav_source', 'filter'); } catch(_) {}
                     logger.info('🏙️ Navigating to city:', selectedCity);
                     
                     // Navigate to the new city URL
@@ -5570,9 +5704,11 @@ async function loadCityCollages() {
             logger.info(`Processing city: ${cityName}`);
 
             // Fetch restaurants for this city (try exact match first, then case-insensitive)
+            // Only include publicly approved restaurants for city collages
             let { data: restaurants, error: restaurantsError } = await supabaseClient
                 .from('restaurants')
                 .select('id')
+                .eq('is_publicly_approved', true)
                 .ilike('city', cityName);
 
             // If no exact match, try case-insensitive search
@@ -5580,6 +5716,7 @@ async function loadCityCollages() {
                 const { data: fallbackRestaurants, error: fallbackError } = await supabaseClient
                     .from('restaurants')
                     .select('id')
+                    .eq('is_publicly_approved', true)
                     .ilike('city', cityName.toLowerCase());
 
                 restaurants = fallbackRestaurants;
@@ -5630,6 +5767,10 @@ function createCityCollage(cityName, tiktoks) {
     const collageCard = document.createElement('a');
     collageCard.href = `/explore?city=${encodeURIComponent(cityName.toLowerCase())}`;
     collageCard.className = 'city-collage-card';
+    // Hint navigation source for analytics (read on destination page)
+    collageCard.addEventListener('click', () => {
+        try { sessionStorage.setItem('nav_source', 'collage'); } catch(_) {}
+    });
 
     const thumbnailsHtml = tiktoks.map(tiktok => {
         const videoId = tiktok.embed_html.match(/data-video-id="([^"]+)"/)?.[1] || '';
