@@ -54,8 +54,22 @@
         </svg>
         Explore
       </a>
-      <a href="#" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="login-link">Sign In</a>
-      <a href="#" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-link">Sign Up</a>
+      
+      <!-- Desktop Auth Buttons -->
+      <div id="auth-container" class="hidden md:block relative">
+          <button id="auth-btn" class="bg-gray-700 hover:bg-gray-800 text-white text-sm rounded px-3 py-2 transition-colors">
+              Sign In
+          </button>
+          <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-[10001] hidden border border-gray-200">
+              <span id="user-email" class="block px-4 py-2 text-sm text-gray-700 truncate border-b border-gray-200"></span>
+              <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</a>
+              <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+          </div>
+      </div>
+      
+      <a href="#" class="hidden md:block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-btn" style="display: none !important;">Sign Up</a>
+      <a href="#" class="md:hidden bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="login-link">Sign In</a>
+      <a href="#" class="md:hidden bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-link">Sign Up</a>
       <a href="#" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="logout-link" style="display: none;">Logout</a>
     </nav>
     </header>
@@ -233,68 +247,106 @@
             const { createClient } = supabase;
             const supabaseClient = createClient('https://jsuxrpnfofkigdfpnuua.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8');
             
-            // Check authentication status and update header
-            async function updateHeaderForAuth() {
-                try {
-                    console.log('updateHeaderForAuth called, signupLink:', !!signupLink);
-                    const { data: { session }, error } = await supabaseClient.auth.getSession();
+            // Auth state management for homepage
+            function updateHomepageAuthUI(user) {
+                const authContainer = document.getElementById('auth-container');
+                const authBtn = document.getElementById('auth-btn');
+                const userDropdown = document.getElementById('user-dropdown');
+                const userEmailEl = document.getElementById('user-email');
+                const signupBtn = document.getElementById('signup-btn');
+                const loginLink = document.getElementById('login-link');
+                const signupLink = document.getElementById('signup-link');
+                const logoutLink = document.getElementById('logout-link');
+                const logoutBtn = document.getElementById('logout-btn');
 
-                    if (error) {
-                        console.error('Error getting session on homepage:', error);
-                        return;
-                    }
-
-                    console.log('Homepage auth check - session:', session ? 'EXISTS' : 'NULL');
-
-                    if (session && session.user) {
-                        // User is authenticated - hide login/signup buttons, show logout
-                        if (signupLink) {
-                            signupLink.style.display = 'none';
-                            console.log('Sign-up button hidden for authenticated user');
-                        }
-                        if (loginLink) {
-                            loginLink.style.display = 'none';
-                            console.log('Login button hidden for authenticated user');
-                        }
-                        if (logoutLink) {
-                            logoutLink.style.display = 'inline-block';
-                            console.log('Logout button shown for authenticated user');
-                        }
-                    } else {
-                        // User not authenticated - show login/signup buttons, hide logout
-                        if (signupLink) {
-                            signupLink.style.display = 'inline-block';
-                            console.log('Sign-up button shown for non-authenticated user');
-                        }
-                        if (loginLink) {
-                            loginLink.style.display = 'inline-block';
-                            console.log('Login button shown for non-authenticated user');
-                        }
-                        if (logoutLink) {
-                            logoutLink.style.display = 'none';
-                            console.log('Logout button hidden for non-authenticated user');
+                if (user) {
+                    // User is logged in
+                    if (authContainer) authContainer.classList.remove('hidden');
+                    if (authBtn) {
+                        authBtn.textContent = user.email || 'Account';
+                        authBtn.classList.remove('hidden');
+                        // Replace event listeners
+                        const newAuthBtn = authBtn.cloneNode(true);
+                        authBtn.parentNode.replaceChild(newAuthBtn, authBtn);
+                        const updatedAuthBtn = document.getElementById('auth-btn');
+                        if (updatedAuthBtn) {
+                            updatedAuthBtn.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const dropdown = document.getElementById('user-dropdown');
+                                if (dropdown) {
+                                    dropdown.classList.toggle('hidden');
+                                }
+                            });
                         }
                     }
-                } catch (error) {
-                    console.error('Error in updateHeaderForAuth:', error);
+                    if (userDropdown && userEmailEl) {
+                        userEmailEl.textContent = user.email || 'User';
+                        userDropdown.classList.add('hidden'); // Hidden by default
+                    }
+                    if (signupBtn) signupBtn.style.display = 'none';
+                    if (loginLink) loginLink.style.display = 'none';
+                    if (signupLink) signupLink.style.display = 'none';
+                    if (logoutLink) logoutLink.style.display = 'none';
+                    
+                    // Logout button handler in dropdown
+                    if (logoutBtn) {
+                        const newLogoutBtn = logoutBtn.cloneNode(true);
+                        logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+                        const updatedLogoutBtn = document.getElementById('logout-btn');
+                        if (updatedLogoutBtn) {
+                            updatedLogoutBtn.addEventListener('click', async (e) => {
+                                e.preventDefault();
+                                await supabaseClient.auth.signOut();
+                            });
+                        }
+                    }
+                } else {
+                    // User is logged out
+                    if (authContainer) authContainer.classList.add('hidden');
+                    if (authBtn) {
+                        authBtn.textContent = 'Sign In';
+                        // Replace event listeners to open modal
+                        const newAuthBtn = authBtn.cloneNode(true);
+                        authBtn.parentNode.replaceChild(newAuthBtn, authBtn);
+                        const updatedAuthBtn = document.getElementById('auth-btn');
+                        if (updatedAuthBtn) {
+                            updatedAuthBtn.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                const authModal = document.getElementById('auth-modal');
+                                if (authModal) {
+                                    authModal.classList.remove('hidden');
+                                    authModal.classList.add('flex');
+                                    authModal.style.display = 'flex';
+                                }
+                            });
+                        }
+                    }
+                    if (userDropdown) userDropdown.classList.add('hidden');
+                    if (signupBtn) signupBtn.style.display = '';
+                    if (loginLink) loginLink.style.display = 'inline-block';
+                    if (signupLink) signupLink.style.display = 'inline-block';
+                    if (logoutLink) logoutLink.style.display = 'none';
                 }
             }
-            
-            // Run authentication check on page load
-            console.log('Homepage loaded, running authentication check...');
-            updateHeaderForAuth();
-            
-            // Also run it after a small delay to ensure session is loaded
-            setTimeout(() => {
-                console.log('Running delayed homepage authentication check...');
-                updateHeaderForAuth();
-            }, 500);
             
             // Listen for auth state changes
             supabaseClient.auth.onAuthStateChange((event, session) => {
                 console.log('Auth state changed on homepage:', event, session?.user?.email);
-                updateHeaderForAuth();
+                updateHomepageAuthUI(session?.user || null);
             });
+            
+            // Check initial auth state
+            supabaseClient.auth.getUser().then(({ data: { user } }) => {
+                updateHomepageAuthUI(user);
+            });
+            
+            // Also check after a delay to ensure session is loaded
+            setTimeout(() => {
+                supabaseClient.auth.getUser().then(({ data: { user } }) => {
+                    updateHomepageAuthUI(user);
+                });
+            }, 500);
             
             // Supabase client already initialized above
             
@@ -484,6 +536,15 @@
                     }
                 });
             }
+            
+            // Close dropdown when clicking outside (for homepage)
+            document.addEventListener('click', (e) => {
+                const userDropdown = document.getElementById('user-dropdown');
+                const authBtn = document.getElementById('auth-btn');
+                if (userDropdown && authBtn && !userDropdown.contains(e.target) && !authBtn.contains(e.target)) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
             
             // Authentication handlers
             async function showAuthFeedback(message, isError = true) {

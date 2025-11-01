@@ -1174,12 +1174,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 });
                 
-                // Show user dropdown with email
+                // Show user dropdown with email (but keep it hidden initially)
                 const userDropdown = document.getElementById('user-dropdown');
                 const userEmailEl = document.getElementById('user-email');
                 if (userDropdown && userEmailEl) {
                     userEmailEl.textContent = user.email || 'User';
-                    userDropdown.classList.remove('hidden');
+                    // Keep dropdown hidden by default - only show when button is clicked
+                    userDropdown.classList.add('hidden');
                 }
                 
                 if (signupBtn) {

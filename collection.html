@@ -79,9 +79,9 @@
         </div>
     </header>
 
-    <main class="flex-grow flex flex-col md:flex-row min-h-0">
-        <div class="w-full h-2/3 md:w-2/3 md:h-full relative" id="map-container">
-            <div id="map"></div>
+    <main class="flex-grow flex flex-col md:flex-row" style="height: calc(100vh - 120px); overflow: hidden;">
+        <div class="w-full h-2/3 md:w-2/3 md:h-full relative" id="map-container" style="min-height: 400px; position: relative;">
+            <div id="map" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"></div>
         </div>
         <aside class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-50 flex flex-col">
             <div class="flex-shrink-0 px-4 py-2">
@@ -247,23 +247,48 @@
                 cuisines: cuisineMap.get(restaurant.id) || []
             }));
 
-            // Initialize map
-            initializeMap();
-            
-            // Display restaurants
+            // Display restaurants first
             displayRestaurants();
+            
+            // Initialize map after DOM is ready
+            // Use longer delay to ensure map container is fully rendered
+            setTimeout(() => {
+                initializeMap();
+            }, 300);
         }
 
         function initializeMap() {
             if (map) return;
 
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) {
+                console.error('Map container not found');
+                return;
+            }
+
             map = L.map('map').setView([51.5074, -0.1278], 10);
+            
+            // Ensure map container has dimensions
+            mapContainer.style.height = '100%';
+            mapContainer.style.width = '100%';
+            
+            // Invalidate size to ensure map renders correctly
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize();
+                }
+            }, 100);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
                 maxZoom: 19
             }).addTo(map);
+
+            // Force map to render by invalidating size after tiles load
+            map.whenReady(() => {
+                map.invalidateSize();
+            });
 
             markerClusterGroup = L.markerClusterGroup({
                 maxClusterRadius: 50,
@@ -289,7 +314,20 @@
                     .map(r => [r.lat, r.lon]);
                 if (bounds.length > 0) {
                     map.fitBounds(bounds, { padding: [50, 50] });
+                    // Invalidate size again after fitting bounds to ensure proper rendering
+                    setTimeout(() => {
+                        if (map) {
+                            map.invalidateSize();
+                        }
+                    }, 200);
                 }
+            } else {
+                // If no restaurants, invalidate size anyway to show map
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 200);
             }
         }
 
