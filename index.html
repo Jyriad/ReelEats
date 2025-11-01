@@ -67,10 +67,9 @@
           </div>
       </div>
       
-      <a href="#" class="hidden md:block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-btn" style="display: none !important;">Sign Up</a>
+      <!-- Mobile Auth Buttons -->
       <a href="#" class="md:hidden bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="login-link">Sign In</a>
       <a href="#" class="md:hidden bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="signup-link">Sign Up</a>
-      <a href="#" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap" id="logout-link" style="display: none;">Logout</a>
     </nav>
     </header>
 
@@ -224,7 +223,6 @@
             const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
             const loginLink = document.getElementById('login-link');
             const signupLink = document.getElementById('signup-link');
-            const logoutLink = document.getElementById('logout-link');
 
             // Homepage now has auth modal - get elements
             const authModal = document.getElementById('auth-modal');
@@ -253,10 +251,8 @@
                 const authBtn = document.getElementById('auth-btn');
                 const userDropdown = document.getElementById('user-dropdown');
                 const userEmailEl = document.getElementById('user-email');
-                const signupBtn = document.getElementById('signup-btn');
                 const loginLink = document.getElementById('login-link');
                 const signupLink = document.getElementById('signup-link');
-                const logoutLink = document.getElementById('logout-link');
                 const logoutBtn = document.getElementById('logout-btn');
 
                 if (user) {
@@ -284,10 +280,8 @@
                         userEmailEl.textContent = user.email || 'User';
                         userDropdown.classList.add('hidden'); // Hidden by default
                     }
-                    if (signupBtn) signupBtn.style.display = 'none';
                     if (loginLink) loginLink.style.display = 'none';
                     if (signupLink) signupLink.style.display = 'none';
-                    if (logoutLink) logoutLink.style.display = 'none';
                     
                     // Logout button handler in dropdown
                     if (logoutBtn) {
@@ -323,10 +317,8 @@
                         }
                     }
                     if (userDropdown) userDropdown.classList.add('hidden');
-                    if (signupBtn) signupBtn.style.display = '';
                     if (loginLink) loginLink.style.display = 'inline-block';
                     if (signupLink) signupLink.style.display = 'inline-block';
-                    if (logoutLink) logoutLink.style.display = 'none';
                 }
             }
             
@@ -520,22 +512,7 @@
                 });
             }
             
-            if (logoutLink) {
-                logoutLink.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    try {
-                        const { error } = await supabaseClient.auth.signOut();
-                        if (error) {
-                            console.error('Logout error:', error);
-                        } else {
-                            console.log('User logged out successfully');
-                            // The auth state change will automatically update the header
-                        }
-                    } catch (error) {
-                        console.error('Logout error:', error);
-                    }
-                });
-            }
+            // Note: logout-link no longer exists, logout is handled via dropdown
             
             // Close dropdown when clicking outside (for homepage)
             document.addEventListener('click', (e) => {

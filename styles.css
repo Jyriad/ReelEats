@@ -38,6 +38,26 @@ body.homepage {
     background-color: #e5e7eb;
 }
 
+/* Prevent favorites and collections buttons from wrapping */
+#favorites-btn, #collections-btn {
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+}
+
+#favorites-btn svg,
+#collections-btn svg {
+    flex-shrink: 0 !important;
+}
+
+#favorites-btn span,
+#collections-btn span {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+}
+
 /* Force light mode scrollbars and prevent dark mode interference */
 ::-webkit-scrollbar {
     background-color: #f1f5f9 !important;
