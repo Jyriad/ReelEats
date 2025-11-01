@@ -267,6 +267,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         let selectedCollections = new Set();
         let userCollections = [];
         
+        // Favorites filter state
+        let favoritesFilterActive = false;
+        
         // Filter state persistence
         let selectedCuisines = new Set();
         
@@ -848,6 +851,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 logger.info('📚 No collection filter applied - showing all restaurants');
             }
             
+            // Apply favorites filter third
+            if (favoritesFilterActive) {
+                filteredRestaurants = filteredRestaurants.filter(restaurant => 
+                    favoritedRestaurants.has(restaurant.id)
+                );
+                logger.info(`⭐ After favorites filter: ${filteredRestaurants.length} restaurants`);
+            }
+            
             logger.info(`🎉 Final filtered results: ${filteredRestaurants.length} restaurants`);
             return filteredRestaurants;
         }
@@ -1015,6 +1026,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const loginForm = document.getElementById('login-form');
         const signupForm = document.getElementById('signup-form');
         const googleLoginBtn = document.getElementById('google-login-btn');
+        const authForms = document.getElementById('auth-forms');
 
         // Note: userDropdown, userEmailEl, and logoutBtn are no longer used
         // We now use a simple logout button instead of a dropdown
@@ -1055,18 +1067,121 @@ document.addEventListener('DOMContentLoaded', async function() {
             authFeedback.classList.remove('hidden');
         }
 
+        // Forgot password form elements
+        const forgotPasswordForm = document.getElementById('forgot-password-form');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const sendResetEmailBtn = document.getElementById('send-reset-email-btn');
+        const backToLoginBtn = document.getElementById('back-to-login-btn');
+        const forgotPasswordEmail = document.getElementById('forgot-password-email');
+
+        function showForgotPasswordForm() {
+            if (forgotPasswordForm) forgotPasswordForm.classList.remove('hidden');
+            if (loginForm) loginForm.classList.add('hidden');
+            if (signupForm) signupForm.classList.add('hidden');
+            if (authForms) authForms.classList.add('hidden');
+            authFeedback.classList.add('hidden');
+        }
+
+        function hideForgotPasswordForm() {
+            if (forgotPasswordForm) forgotPasswordForm.classList.add('hidden');
+            if (loginForm) loginForm.classList.remove('hidden');
+            if (authForms) authForms.classList.remove('hidden');
+            authFeedback.classList.add('hidden');
+        }
+
+        async function handleForgotPassword(email) {
+            try {
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset.html`
+                });
+                if (error) throw error;
+                showAuthFeedback('Password reset email sent! Check your inbox for reset instructions.', false);
+                if (forgotPasswordForm) forgotPasswordForm.classList.add('hidden');
+                if (loginForm) loginForm.classList.remove('hidden');
+                if (authForms) authForms.classList.remove('hidden');
+                if (forgotPasswordEmail) forgotPasswordEmail.value = '';
+            } catch (error) {
+                showAuthFeedback(error.message);
+            }
+        }
+
+        // Event listeners for forgot password
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                showForgotPasswordForm();
+            });
+        }
+
+        if (sendResetEmailBtn && forgotPasswordEmail) {
+            sendResetEmailBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const email = forgotPasswordEmail.value.trim();
+                if (!email) {
+                    showAuthFeedback('Please enter your email address.');
+                    return;
+                }
+                await handleForgotPassword(email);
+            });
+        }
+
+        if (backToLoginBtn) {
+            backToLoginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideForgotPasswordForm();
+            });
+        }
+
         // --- Auth State Management ---
         async function updateUserUI(user) {
             const collectionsBtn = document.getElementById('collections-btn');
             const collectionFilterBtn = document.getElementById('collection-filter-btn');
             const mobileCollectionsBtn = document.getElementById('mobile-collections-btn');
+            const favoritesBtn = document.getElementById('favorites-btn');
+            const mobileFavoritesBtn = document.getElementById('mobile-favorites-btn');
             const signupBtn = document.getElementById('signup-btn');
             const mobileSignupBtn = document.getElementById('mobile-signup-btn');
             const mobileAuthBtn = document.getElementById('mobile-auth-btn');
             
             if (user) {
-                // User is logged in - show logout button instead of login button, hide signup
-                if (authBtn) authBtn.classList.add('hidden');
+                // User is logged in - show user dropdown instead of login button, hide signup
+                if (authBtn) {
+                    authBtn.textContent = user.email || 'Account';
+                    authBtn.classList.remove('hidden');
+                    // Replace all event listeners by cloning and replacing
+                    const newAuthBtn = authBtn.cloneNode(true);
+                    authBtn.parentNode.replaceChild(newAuthBtn, authBtn);
+                    // Re-get the button reference and add dropdown toggle
+                    const updatedAuthBtn = document.getElementById('auth-btn');
+                    if (updatedAuthBtn) {
+                        updatedAuthBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const userDropdown = document.getElementById('user-dropdown');
+                            if (userDropdown) {
+                                userDropdown.classList.toggle('hidden');
+                            }
+                        });
+                    }
+                }
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    const userDropdown = document.getElementById('user-dropdown');
+                    const authBtn = document.getElementById('auth-btn');
+                    if (userDropdown && authBtn && !userDropdown.contains(e.target) && !authBtn.contains(e.target)) {
+                        userDropdown.classList.add('hidden');
+                    }
+                });
+                
+                // Show user dropdown with email
+                const userDropdown = document.getElementById('user-dropdown');
+                const userEmailEl = document.getElementById('user-email');
+                if (userDropdown && userEmailEl) {
+                    userEmailEl.textContent = user.email || 'User';
+                    userDropdown.classList.remove('hidden');
+                }
+                
                 if (signupBtn) {
                     signupBtn.style.display = 'none';
                 }
@@ -1074,9 +1189,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (mobileAuthBtn) mobileAuthBtn.classList.add('hidden');
                 if (collectionsBtn) collectionsBtn.classList.remove('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.remove('hidden');
+                if (favoritesBtn) favoritesBtn.classList.remove('hidden');
+                if (mobileFavoritesBtn) mobileFavoritesBtn.classList.remove('hidden');
+                const mobileProfileLink = document.getElementById('mobile-profile-link');
+                if (mobileProfileLink) mobileProfileLink.classList.remove('hidden');
                 if (collectionFilterBtn) collectionFilterBtn.classList.remove('hidden');
                 
-                // Create or update logout button
+                // Hide standalone logout button - we'll use dropdown logout
+                // But keep the dropdown logout button handler
+                const logoutBtnInDropdown = document.getElementById('logout-btn');
+                if (logoutBtnInDropdown) {
+                    logoutBtnInDropdown.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        await handleLogout();
+                    });
+                }
+                
+                // Create or update logout button (for pages without dropdown)
                 let logoutButton = document.getElementById('logout-button');
                 if (!logoutButton) {
                     logoutButton = document.createElement('button');
@@ -1146,7 +1275,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
             } else {
                 // User is logged out - show login and signup buttons
-                if (authBtn) authBtn.classList.remove('hidden');
+                if (authBtn) {
+                    authBtn.textContent = 'Sign In';
+                    authBtn.classList.remove('hidden');
+                    // Remove dropdown click handler
+                    const newAuthBtn = authBtn.cloneNode(true);
+                    authBtn.parentNode.replaceChild(newAuthBtn, authBtn);
+                    newAuthBtn.addEventListener('click', openAuthModal);
+                    // Update reference
+                    const updatedAuthBtn = document.getElementById('auth-btn');
+                    if (updatedAuthBtn) updatedAuthBtn.addEventListener('click', openAuthModal);
+                }
+                
+                // Hide user dropdown
+                const userDropdown = document.getElementById('user-dropdown');
+                if (userDropdown) userDropdown.classList.add('hidden');
+                
                 if (signupBtn) {
                     signupBtn.style.display = '';
                 }
@@ -1154,6 +1298,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (mobileAuthBtn) mobileAuthBtn.classList.remove('hidden');
                 if (collectionsBtn) collectionsBtn.classList.add('hidden');
                 if (mobileCollectionsBtn) mobileCollectionsBtn.classList.add('hidden');
+                if (favoritesBtn) favoritesBtn.classList.add('hidden');
+                if (mobileFavoritesBtn) mobileFavoritesBtn.classList.add('hidden');
+                const mobileProfileLink = document.getElementById('mobile-profile-link');
+                if (mobileProfileLink) mobileProfileLink.classList.add('hidden');
                 // Keep collection filter button visible for all users
                 // collectionFilterBtn.classList.add('hidden');
                 
@@ -1171,7 +1319,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 favoritedRestaurants.clear(); // Clear favorites on logout
                 selectedCollections.clear(); // Clear collection filter on logout
+                favoritesFilterActive = false; // Clear favorites filter on logout
                 updateCollectionFilterButtonAppearance();
+                updateFavoritesFilterButtonAppearance();
                 
                 // Re-display to remove favorite icons (only if restaurants are loaded)
                 if (currentRestaurants && currentRestaurants.length > 0) {
@@ -1318,7 +1468,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // --- Auth Event Listeners ---
-        authBtn.addEventListener('click', openAuthModal);
+        // Add initial auth button listener - will be replaced in updateUserUI when logged in
+        if (authBtn) {
+            authBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openAuthModal();
+            });
+        }
         
         // Add signup button event listener
         const signupBtn = document.getElementById('signup-btn');
@@ -2816,6 +2972,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Update filter button appearances
             updateFilterButtonAppearance();
             updateCollectionFilterButtonAppearance();
+            updateFavoritesFilterButtonAppearance();
             
             // Show skeleton loaders briefly for better UX
             displayRestaurants([], true);
@@ -3464,6 +3621,186 @@ document.addEventListener('DOMContentLoaded', async function() {
             collectionsModal.classList.add('flex');
             loadCollectionsForModal();
         });
+        
+        // Favorites button and modal handlers
+        const favoritesBtn = document.getElementById('favorites-btn');
+        const mobileFavoritesBtn = document.getElementById('mobile-favorites-btn');
+        const favoritesFilterModal = document.getElementById('favorites-filter-modal');
+        const closeFavoritesFilterModal = document.getElementById('close-favorites-filter-modal');
+        const toggleFavoritesFilterBtn = document.getElementById('toggle-favorites-filter-btn');
+        
+        function updateFavoritesFilterButtonAppearance() {
+            if (!favoritesBtn || !mobileFavoritesBtn) return;
+            
+            if (favoritesFilterActive) {
+                favoritesBtn.classList.add('ring-2', 'ring-yellow-300', 'ring-offset-2');
+                mobileFavoritesBtn.classList.add('ring-2', 'ring-yellow-300', 'ring-offset-2');
+                if (toggleFavoritesFilterBtn) {
+                    toggleFavoritesFilterBtn.textContent = 'Show All Restaurants';
+                    toggleFavoritesFilterBtn.classList.remove('bg-yellow-500');
+                    toggleFavoritesFilterBtn.classList.add('bg-gray-500');
+                }
+            } else {
+                favoritesBtn.classList.remove('ring-2', 'ring-yellow-300', 'ring-offset-2');
+                mobileFavoritesBtn.classList.remove('ring-2', 'ring-yellow-300', 'ring-offset-2');
+                if (toggleFavoritesFilterBtn) {
+                    toggleFavoritesFilterBtn.textContent = 'Show Only Favorites';
+                    toggleFavoritesFilterBtn.classList.remove('bg-gray-500');
+                    toggleFavoritesFilterBtn.classList.add('bg-yellow-500');
+                }
+            }
+        }
+        
+        async function loadFavoritesForModal() {
+            const favoritesList = document.getElementById('favorites-list');
+            const noFavoritesMessage = document.getElementById('no-favorites-message');
+            
+            if (!favoritesList || !noFavoritesMessage) return;
+            
+            const favoriteRestaurantIds = Array.from(favoritedRestaurants);
+            
+            if (favoriteRestaurantIds.length === 0) {
+                favoritesList.innerHTML = '';
+                noFavoritesMessage.classList.remove('hidden');
+                return;
+            }
+            
+            noFavoritesMessage.classList.add('hidden');
+            
+            // Fetch restaurant details for favorites
+            const { data: restaurants, error } = await supabaseClient
+                .from('restaurants')
+                .select('id, name, city, description')
+                .in('id', favoriteRestaurantIds);
+            
+            if (error) {
+                logger.error('Error loading favorites:', error);
+                return;
+            }
+            
+            favoritesList.innerHTML = '';
+            
+            restaurants.forEach(restaurant => {
+                const favoriteItem = document.createElement('div');
+                favoriteItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer';
+                favoriteItem.innerHTML = `
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-900">${restaurant.name}</h4>
+                        ${restaurant.city ? `<p class="text-sm text-gray-500">${restaurant.city}</p>` : ''}
+                    </div>
+                    <button class="ml-3 text-gray-400 hover:text-red-500 transition-colors remove-favorite-btn" data-restaurant-id="${restaurant.id}" title="Remove from favorites">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                `;
+                favoritesList.appendChild(favoriteItem);
+                
+                // Add click handler to navigate to restaurant
+                favoriteItem.querySelector('.flex-1').addEventListener('click', () => {
+                    const foundRestaurant = currentRestaurants.find(r => r.id === restaurant.id);
+                    if (foundRestaurant) {
+                        closeFavoritesFilterModal.click();
+                        showVideoFor(foundRestaurant);
+                        if (map && mapInitialized) {
+                            map.setView([foundRestaurant.lat, foundRestaurant.lon], 16, { animate: true });
+                        }
+                    }
+                });
+            });
+            
+            // Add remove favorite handlers
+            document.querySelectorAll('.remove-favorite-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const restaurantId = parseInt(btn.dataset.restaurantId);
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (!session) return;
+                    
+                    const { error } = await supabaseClient
+                        .from('user_favorites')
+                        .delete()
+                        .eq('user_id', session.user.id)
+                        .eq('restaurant_id', restaurantId);
+                    
+                    if (!error) {
+                        favoritedRestaurants.delete(restaurantId);
+                        await loadFavoritesForModal();
+                        if (favoritesFilterActive) {
+                            await applyAllFiltersAndDisplay();
+                        }
+                        // Update favorite buttons in restaurant cards
+                        const favoriteBtns = document.querySelectorAll(`.favorite-btn[data-restaurant-id="${restaurantId}"]`);
+                        favoriteBtns.forEach(favBtn => {
+                            favBtn.classList.remove('favorited');
+                            favBtn.title = 'Add to Favorites';
+                        });
+                    }
+                });
+            });
+        }
+        
+        function toggleFavoritesFilter() {
+            favoritesFilterActive = !favoritesFilterActive;
+            updateFavoritesFilterButtonAppearance();
+            applyAllFiltersAndDisplay();
+        }
+        
+        if (favoritesBtn) {
+            favoritesBtn.addEventListener('click', async () => {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    openAuthModal();
+                    return;
+                }
+                
+                favoritesFilterModal.classList.remove('hidden');
+                favoritesFilterModal.classList.add('flex');
+                await loadFavoritesForModal();
+            });
+        }
+        
+        if (mobileFavoritesBtn) {
+            mobileFavoritesBtn.addEventListener('click', async () => {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    mobileMenuModal.classList.add('hidden');
+                    mobileMenuModal.style.display = 'none';
+                    openAuthModal();
+                    return;
+                }
+                
+                mobileMenuModal.classList.add('hidden');
+                mobileMenuModal.style.display = 'none';
+                favoritesFilterModal.classList.remove('hidden');
+                favoritesFilterModal.classList.add('flex');
+                await loadFavoritesForModal();
+            });
+        }
+        
+        if (closeFavoritesFilterModal && favoritesFilterModal) {
+            closeFavoritesFilterModal.addEventListener('click', () => {
+                favoritesFilterModal.classList.add('hidden');
+                favoritesFilterModal.classList.remove('flex');
+            });
+            
+            favoritesFilterModal.addEventListener('click', (e) => {
+                if (e.target === favoritesFilterModal) {
+                    favoritesFilterModal.classList.add('hidden');
+                    favoritesFilterModal.classList.remove('flex');
+                }
+            });
+        }
+        
+        if (toggleFavoritesFilterBtn) {
+            toggleFavoritesFilterBtn.addEventListener('click', () => {
+                toggleFavoritesFilter();
+                if (!favoritesFilterActive) {
+                    favoritesFilterModal.classList.add('hidden');
+                    favoritesFilterModal.classList.remove('flex');
+                }
+            });
+        }
         closeCollectionsModalBtn.addEventListener('click', () => collectionsModal.classList.add('hidden'));
 
         // Handle new collection creation
@@ -3490,7 +3827,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!user) return;
 
             const collectionsListEl = document.getElementById('collections-list');
-            if (!collectionsListEl) return;
+            const mobileCollectionsListEl = document.getElementById('mobile-collections-list');
+            
+            if (!collectionsListEl && !mobileCollectionsListEl) return;
 
             const { data, error } = await supabaseClient
                 .from('user_collections')
@@ -3499,22 +3838,39 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                collectionsListEl.innerHTML = `<p class="text-red-500">Error loading collections.</p>`;
+                const errorMessage = `<p class="text-red-500">Error loading collections.</p>`;
+                if (collectionsListEl) collectionsListEl.innerHTML = errorMessage;
+                if (mobileCollectionsListEl) mobileCollectionsListEl.innerHTML = errorMessage;
                 return;
             }
 
             if (data.length === 0) {
-                collectionsListEl.innerHTML = `<p class="text-gray-500 text-center">You haven't created any collections yet.</p>`;
+                const emptyMessage = `<p class="text-gray-500 text-center">You haven't created any collections yet.</p>`;
+                if (collectionsListEl) collectionsListEl.innerHTML = emptyMessage;
+                if (mobileCollectionsListEl) mobileCollectionsListEl.innerHTML = emptyMessage;
             } else {
-                collectionsListEl.innerHTML = data.map(collection => `
-                    <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
-                        <div class="flex-1 cursor-pointer collection-item" data-collection-id="${collection.id}" data-collection-name="${collection.name}">
-                            <p class="font-semibold">${collection.name}</p>
-                            <p class="text-sm text-gray-500">${collection.collection_restaurants[0].count} items</p>
+                const collectionsHtml = data.map(collection => {
+                    const count = collection.collection_restaurants && collection.collection_restaurants[0] ? collection.collection_restaurants[0].count : 0;
+                    return `
+                        <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                            <div class="flex-1 cursor-pointer collection-item" data-collection-id="${collection.id}" data-collection-name="${collection.name}">
+                                <p class="font-semibold">${collection.name}</p>
+                                <p class="text-sm text-gray-500">${count} items</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="/collections/${collection.id}" class="text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors" title="View Collection">View</a>
+                                <button class="delete-collection-btn text-red-500 hover:text-red-700 ml-2" data-collection-id="${collection.id}">Delete</button>
+                            </div>
                         </div>
-                        <button class="delete-collection-btn text-red-500 hover:text-red-700 ml-2" data-collection-id="${collection.id}">Delete</button>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
+                
+                if (collectionsListEl) {
+                    collectionsListEl.innerHTML = collectionsHtml;
+                }
+                if (mobileCollectionsListEl) {
+                    mobileCollectionsListEl.innerHTML = collectionsHtml;
+                }
             }
         }
 

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://www.tiktok.com https://*.ttwstatic.com https://*.tiktok.com https://*.byteoversea.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://*.ttwstatic.com https://*.tiktok.com https://fonts.googleapis.com;
+    font-src 'self' data: https://unpkg.com https://*.tiktok.com https://fonts.gstatic.com;
+    img-src 'self' data: https://*.basemaps.cartocdn.com https://unpkg.com https://*.tiktok.com https://*.ttwstatic.com https://*.supabase.co;
+    frame-src 'self' https://www.tiktok.com https://*.tiktok.com;
+    connect-src 'self' https://*.basemaps.cartocdn.com https://jsuxrpnfofkigdfpnuua.supabase.co https://*.tiktok.com https://*.byteoversea.com https://*.tiktokv.com https://unpkg.com https://*.ttwstatic.com;
+    media-src 'self' https://*.tiktok.com;
+    ">
+    <title id="collection-title">ReelGrub - Collection</title>
+    
+    <!-- Load version number immediately -->
+    <script type="module">
+        async function loadVersionNumber() {
+            try {
+                const { versionNumber } = await import('./config.js');
+                const titleElement = document.getElementById('collection-title');
+                if (titleElement) {
+                    titleElement.textContent = `ReelGrub v${versionNumber} - Collection`;
+                }
+            } catch (error) {
+                console.log('Could not load version number:', error);
+            }
+        }
+        loadVersionNumber();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+    
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+    
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+</head>
+<body class="h-full flex flex-col">
+    <header class="bg-gray-50 text-gray-900 shadow flex-shrink-0 z-20">
+        <div class="h-[60px] flex items-center justify-between px-2 md:px-4">
+            <div class="flex items-center gap-3">
+                <a href="/" class="text-lg md:text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors">ReelGrub</a>
+                <span class="text-gray-400 hidden md:block">|</span>
+                <a href="/explore" class="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">← Back to Explore</a>
+            </div>
+            
+            <nav class="flex items-center gap-3">
+                <a href="/explore" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Explore
+                </a>
+            </nav>
+        </div>
+        <div class="px-4 pb-3 border-b border-gray-200">
+            <h1 id="collection-name-header" class="text-2xl font-bold text-gray-900">Loading...</h1>
+            <p id="collection-description" class="text-gray-600 mt-1"></p>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col md:flex-row min-h-0">
+        <div class="w-full h-2/3 md:w-2/3 md:h-full relative" id="map-container">
+            <div id="map"></div>
+        </div>
+        <aside class="w-full h-1/3 md:w-1/3 md:h-full bg-gray-50 flex flex-col">
+            <div class="flex-shrink-0 px-4 py-2">
+                <div class="text-sm font-medium text-gray-700">Restaurants in Collection</div>
+            </div>
+            <div id="restaurant-list" class="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-4"></div>
+        </aside>
+    </main>
+
+    <!-- Video Modal -->
+    <div id="video-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="bg-transparent w-auto h-auto overflow-hidden">
+            <div class="video-header-container">
+                <div class="video-header">
+                    <div class="video-header-left">
+                        <h3 id="video-restaurant-name" class="video-restaurant-name">Restaurant Name</h3>
+                    </div>
+                    <div class="video-header-right">
+                        <div class="video-header-actions">
+                            <button id="video-favorite-btn" class="video-action-btn" title="Add to Favorites">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                </svg>
+                            </button>
+                            <button id="video-collection-btn" class="video-action-btn" title="Add to Collection">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <button id="close-video-btn" class="video-close-btn" title="Close">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 flex items-center justify-center">
+                <div class="video-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script async src="https://www.tiktok.com/embed.js"></script>
+    <script src="script.js?v=156"></script>
+    <script>
+        // Collection page specific initialization
+        const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let collectionId = null;
+        let currentRestaurants = [];
+        let map = null;
+        let restaurantMarkers = [];
+        let markerClusterGroup = null;
+
+        // Get collection ID from URL
+        const path = window.location.pathname;
+        const pathParts = path.split('/');
+        const collectionsIndex = pathParts.indexOf('collections');
+        if (collectionsIndex !== -1 && pathParts[collectionsIndex + 1]) {
+            collectionId = parseInt(pathParts[collectionsIndex + 1]);
+        }
+
+        async function loadCollection() {
+            if (!collectionId) {
+                document.getElementById('collection-name-header').textContent = 'Collection Not Found';
+                document.getElementById('restaurant-list').innerHTML = '<p class="text-gray-500 text-center py-8">Invalid collection ID</p>';
+                return;
+            }
+
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) {
+                document.getElementById('collection-name-header').textContent = 'Please Sign In';
+                document.getElementById('restaurant-list').innerHTML = '<p class="text-gray-500 text-center py-8">You must be signed in to view collections.</p>';
+                return;
+            }
+
+            // Load collection details
+            const { data: collection, error: collectionError } = await supabaseClient
+                .from('user_collections')
+                .select('*')
+                .eq('id', collectionId)
+                .eq('user_id', user.id)
+                .single();
+
+            if (collectionError || !collection) {
+                document.getElementById('collection-name-header').textContent = 'Collection Not Found';
+                document.getElementById('restaurant-list').innerHTML = '<p class="text-gray-500 text-center py-8">Collection not found or you do not have access to it.</p>';
+                return;
+            }
+
+            document.getElementById('collection-name-header').textContent = collection.name;
+            if (collection.description) {
+                document.getElementById('collection-description').textContent = collection.description;
+            }
+
+            // Load restaurants in collection
+            const { data: collectionRestaurants, error: restaurantsError } = await supabaseClient
+                .from('collection_restaurants')
+                .select('restaurant_id')
+                .eq('collection_id', collectionId);
+
+            if (restaurantsError || !collectionRestaurants || collectionRestaurants.length === 0) {
+                document.getElementById('restaurant-list').innerHTML = '<p class="text-gray-500 text-center py-8">No restaurants in this collection yet.</p>';
+                return;
+            }
+
+            const restaurantIds = collectionRestaurants.map(cr => cr.restaurant_id);
+
+            // Fetch restaurant details
+            const { data: restaurants, error: restaurantsDataError } = await supabaseClient
+                .from('restaurants')
+                .select('*')
+                .in('id', restaurantIds);
+
+            if (restaurantsDataError || !restaurants) {
+                document.getElementById('restaurant-list').innerHTML = '<p class="text-gray-500 text-center py-8">Error loading restaurants.</p>';
+                return;
+            }
+
+            // Fetch TikToks for restaurants
+            const { data: tiktoks, error: tiktoksError } = await supabaseClient
+                .from('tiktoks')
+                .select('restaurant_id, embed_html, thumbnail_url, is_featured')
+                .in('restaurant_id', restaurantIds)
+                .eq('is_featured', true);
+
+            // Fetch cuisines
+            const { data: restaurantCuisines } = await supabaseClient
+                .from('restaurant_cuisines')
+                .select('restaurant_id, cuisines (name, icon, color_background, color_text)')
+                .in('restaurant_id', restaurantIds);
+
+            // Build data structure similar to explore page
+            const tiktokMap = new Map();
+            if (tiktoks) {
+                tiktoks.forEach(t => {
+                    if (!tiktokMap.has(t.restaurant_id)) {
+                        tiktokMap.set(t.restaurant_id, {
+                            embed_html: t.embed_html,
+                            thumbnail_url: t.thumbnail_url,
+                            is_featured: t.is_featured
+                        });
+                    }
+                });
+            }
+
+            const cuisineMap = new Map();
+            if (restaurantCuisines) {
+                restaurantCuisines.forEach(rc => {
+                    if (!cuisineMap.has(rc.restaurant_id)) cuisineMap.set(rc.restaurant_id, []);
+                    if (rc.cuisines) cuisineMap.get(rc.restaurant_id).push(rc.cuisines);
+                });
+            }
+
+            currentRestaurants = restaurants.map(restaurant => ({
+                ...restaurant,
+                tiktok: tiktokMap.get(restaurant.id),
+                cuisines: cuisineMap.get(restaurant.id) || []
+            }));
+
+            // Initialize map
+            initializeMap();
+            
+            // Display restaurants
+            displayRestaurants();
+        }
+
+        function initializeMap() {
+            if (map) return;
+
+            map = L.map('map').setView([51.5074, -0.1278], 10);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            markerClusterGroup = L.markerClusterGroup({
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true
+            });
+            map.addLayer(markerClusterGroup);
+
+            // Add markers for restaurants
+            currentRestaurants.forEach((restaurant, index) => {
+                if (restaurant.lat && restaurant.lon) {
+                    const marker = createRestaurantMarker(restaurant, index + 1);
+                    marker.addTo(markerClusterGroup);
+                    restaurantMarkers.push(marker);
+                }
+            });
+
+            // Fit map to bounds
+            if (currentRestaurants.length > 0) {
+                const bounds = currentRestaurants
+                    .filter(r => r.lat && r.lon)
+                    .map(r => [r.lat, r.lon]);
+                if (bounds.length > 0) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            }
+        }
+
+        function createRestaurantMarker(restaurant, number) {
+            const hasThumbnail = restaurant.tiktok && restaurant.tiktok.thumbnail_url;
+            const thumbnailUrl = hasThumbnail ? restaurant.tiktok.thumbnail_url : null;
+            
+            // Use thumbnail marker if available, otherwise use number marker
+            let markerHtml;
+            if (thumbnailUrl) {
+                markerHtml = `
+                    <div class="thumbnail-marker-wrapper" style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                        <img src="${thumbnailUrl}" alt="${restaurant.name}" style="width: 70px; height: 70px; object-fit: cover; object-position: center; transform: translate(-10px, -10px);" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div style="display: none; width: 50px; height: 50px; background: #4F46E5; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">${number}</div>
+                    </div>
+                `;
+            } else {
+                markerHtml = `
+                    <div class="number-marker" style="width: 50px; height: 50px; background: #4F46E5; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                        ${number}
+                    </div>
+                `;
+            }
+
+            const icon = L.divIcon({
+                className: 'custom-restaurant-marker',
+                html: markerHtml,
+                iconSize: [50, 50],
+                iconAnchor: [25, 25]
+            });
+
+            const marker = L.marker([restaurant.lat, restaurant.lon], { icon });
+            marker.restaurant = restaurant;
+            marker.on('click', () => {
+                showVideoForCollection(restaurant);
+            });
+
+            return marker;
+        }
+
+        function displayRestaurants() {
+            const restaurantList = document.getElementById('restaurant-list');
+            if (!restaurantList) return;
+
+            if (currentRestaurants.length === 0) {
+                restaurantList.innerHTML = '<p class="text-gray-500 text-center py-8">No restaurants in this collection.</p>';
+                return;
+            }
+
+            restaurantList.innerHTML = '';
+
+            currentRestaurants.forEach((restaurant, index) => {
+                const listItem = createRestaurantListItem(restaurant, index + 1, collectionId);
+                restaurantList.appendChild(listItem);
+            });
+        }
+
+        function createRestaurantListItem(restaurant, number, collectionId) {
+            const item = document.createElement('div');
+            item.className = 'bg-white rounded-lg border border-gray-200 p-3 md:p-4 relative touch-manipulation mb-3';
+            
+            const hasThumbnail = restaurant.tiktok && restaurant.tiktok.thumbnail_url;
+            const thumbnailUrl = hasThumbnail ? restaurant.tiktok.thumbnail_url : null;
+
+            item.innerHTML = `
+                <div class="w-full">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3 flex flex-col items-center">
+                            <div class="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center mb-2 font-bold text-sm">${number}</div>
+                            ${thumbnailUrl ? `
+                                <img src="${thumbnailUrl}" alt="${restaurant.name}" class="w-16 h-16 object-cover rounded-lg" style="aspect-ratio: 1/1;" onerror="this.style.display='none';">
+                            ` : ''}
+                        </div>
+                        <div class="flex-1 min-w-0 pr-16">
+                            <h3 class="font-bold text-gray-900 text-lg mb-1 cursor-pointer hover:text-indigo-600 transition-colors">${restaurant.name}</h3>
+                            ${restaurant.description ? `<p class="text-gray-600 text-sm mb-2 line-clamp-2">${restaurant.description}</p>` : ''}
+                            ${restaurant.cuisines && restaurant.cuisines.length > 0 ? `
+                                <div class="flex flex-wrap gap-1 mb-2">
+                                    ${restaurant.cuisines.map(cuisine => `
+                                        <span class="text-xs px-2 py-1 rounded-full" style="background-color: ${cuisine.color_background || '#F3F4F6'}; color: ${cuisine.color_text || '#374151'};">
+                                            ${cuisine.icon || ''} ${cuisine.name}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="absolute top-2 right-2 flex items-center space-x-1">
+                    <button class="remove-from-collection-btn text-red-500 hover:text-red-700 transition-colors" data-restaurant-id="${restaurant.id}" data-collection-id="${collectionId}" title="Remove from Collection">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            // Add click handler to restaurant name
+            const restaurantName = item.querySelector('h3');
+            restaurantName.addEventListener('click', () => {
+                showVideoForCollection(restaurant);
+            });
+
+            // Add remove from collection handler
+            const removeBtn = item.querySelector('.remove-from-collection-btn');
+            removeBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const restaurantId = parseInt(removeBtn.dataset.restaurantId);
+                const collectionId = parseInt(removeBtn.dataset.collectionId);
+                
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user) return;
+
+                if (confirm(`Remove ${restaurant.name} from this collection?`)) {
+                    const { error } = await supabaseClient
+                        .from('collection_restaurants')
+                        .delete()
+                        .eq('collection_id', collectionId)
+                        .eq('restaurant_id', restaurantId);
+
+                    if (!error) {
+                        // Remove from current list and update display
+                        currentRestaurants = currentRestaurants.filter(r => r.id !== restaurantId);
+                        displayRestaurants();
+                        
+                        // Remove marker
+                        const marker = restaurantMarkers.find(m => m.restaurant && m.restaurant.id === restaurantId);
+                        if (marker) {
+                            markerClusterGroup.removeLayer(marker);
+                            restaurantMarkers = restaurantMarkers.filter(m => m !== marker);
+                        }
+
+                        // Update map bounds
+                        if (currentRestaurants.length > 0) {
+                            const bounds = currentRestaurants
+                                .filter(r => r.lat && r.lon)
+                                .map(r => [r.lat, r.lon]);
+                            if (bounds.length > 0) {
+                                map.fitBounds(bounds, { padding: [50, 50] });
+                            }
+                        }
+                    }
+                }
+            });
+
+            return item;
+        }
+
+        function showVideoForCollection(restaurant) {
+            if (typeof window.showVideoFor === 'function') {
+                window.showVideoFor(restaurant);
+            } else {
+                // Fallback if showVideoFor is not available
+                const videoModal = document.getElementById('video-modal');
+                if (videoModal) {
+                    document.getElementById('video-restaurant-name').textContent = restaurant.name;
+                    videoModal.classList.remove('hidden');
+                    videoModal.classList.add('flex');
+                    
+                    const videoContainer = videoModal.querySelector('.video-container');
+                    if (restaurant.tiktok && restaurant.tiktok.embed_html) {
+                        videoContainer.innerHTML = restaurant.tiktok.embed_html;
+                    } else {
+                        videoContainer.innerHTML = '<p class="text-white">No video available</p>';
+                    }
+                }
+            }
+
+            // Center map on restaurant
+            if (map && restaurant.lat && restaurant.lon) {
+                map.setView([restaurant.lat, restaurant.lon], 16, { animate: true });
+            }
+        }
+
+        // Close video modal
+        const closeVideoBtn = document.getElementById('close-video-btn');
+        if (closeVideoBtn) {
+            closeVideoBtn.addEventListener('click', () => {
+                const videoModal = document.getElementById('video-modal');
+                if (videoModal) {
+                    videoModal.classList.add('hidden');
+                    videoModal.classList.remove('flex');
+                }
+            });
+        }
+
+        // Load collection on page load
+        loadCollection();
+    </script>
+</body>
+</html>
+

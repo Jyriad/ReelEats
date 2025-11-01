@@ -67,6 +67,22 @@ Complete test scenarios for verifying all functionality after refactor
 - [ ] Click logout → returns to logged out state
 - [ ] Auth modal remembers last form (login/signup)
 
+### 4a. Password Reset Flow
+- [ ] Click "Forgot Password?" link on login form
+- [ ] Forgot password form appears
+- [ ] Enter email address
+- [ ] Click "Send Reset Link"
+- [ ] Success message shows
+- [ ] Check email for reset link
+- [ ] Click reset link in email
+- [ ] Redirected to reset.html
+- [ ] Enter new password (min 6 characters)
+- [ ] Confirm new password
+- [ ] Submit → password updated successfully
+- [ ] Redirected to homepage
+- [ ] Can log in with new password
+- [ ] "Back to Sign In" button works from forgot password form
+
 ### 5. Collections
 - [ ] Click collection button on restaurant
 - [ ] Popup shows "Add to collection"
@@ -75,6 +91,10 @@ Complete test scenarios for verifying all functionality after refactor
 - [ ] Create named collection
 - [ ] Add multiple restaurants to collection
 - [ ] Open collection management modal
+- [ ] Click "View" link on collection → navigates to collection detail page
+- [ ] Collection detail page shows map with restaurant markers
+- [ ] Collection detail page shows restaurant list in side panel
+- [ ] Click restaurant in collection detail page → opens video modal
 - [ ] Remove restaurant from collection
 - [ ] Collection button updates accordingly
 
@@ -84,6 +104,12 @@ Complete test scenarios for verifying all functionality after refactor
 - [ ] Refresh page → favorite persists
 - [ ] Click again → unfavorites
 - [ ] Multiple favorites work correctly
+- [ ] Click "My Favorites" button → opens favorites filter modal
+- [ ] Favorites modal shows list of favorited restaurants
+- [ ] Click "Show Only Favorites" → filters map and list to show only favorites
+- [ ] Click restaurant in favorites modal → opens video and zooms map
+- [ ] Remove favorite from favorites modal → updates list
+- [ ] Favorites filter clears on logout
 
 ### 7. Video Modal
 - [ ] Click restaurant card
@@ -109,8 +135,13 @@ Complete test scenarios for verifying all functionality after refactor
 - [ ] Submit → success message
 - [ ] New restaurant appears in list
 - [ ] Click restaurant → shows on map preview
-- [ ] Edit restaurant details
-- [ ] Changes save correctly
+- [ ] Click "Edit Restaurant" button → opens edit modal
+- [ ] Edit restaurant name, description, address, cuisines
+- [ ] Save changes → updates successfully
+- [ ] Changes persist after page reload
+- [ ] Map updates with new location if address changed
+- [ ] Click "Edit Location Only" → opens location edit modal
+- [ ] Edit location → updates successfully
 - [ ] Delete restaurant → confirmation shown
 
 ### 2. TikTok Video Management
@@ -258,6 +289,22 @@ Run all checkboxes above in order
 4. Upload restaurant as creator
 5. Approve as admin
 6. View approved restaurant as normal user
+
+### 7. Account Profile Page
+- [ ] Navigate to /profile when logged in
+- [ ] Profile page loads with account information
+- [ ] Email address displays correctly
+- [ ] User ID displays correctly
+- [ ] Account creation date displays correctly
+- [ ] Favorites count displays correctly
+- [ ] Collections count displays correctly
+- [ ] Enter current password and new password
+- [ ] Change password form validates (min 6 characters)
+- [ ] Password confirmation must match
+- [ ] Submit password change → success message
+- [ ] Can log in with new password
+- [ ] Invalid current password shows error
+- [ ] Logout button works correctly
 
 ## Notes
 - Mark tests as passed with [x] or failed with [ ]

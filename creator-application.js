@@ -658,6 +658,38 @@ function setupEventListeners() {
         googleSigninBtn.addEventListener('click', handleGoogleSignin);
     }
     
+    // Forgot password handlers
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    const sendResetEmailBtn = document.getElementById('send-reset-email-btn');
+    const backToLoginBtn = document.getElementById('back-to-login-btn');
+    const forgotPasswordEmail = document.getElementById('forgot-password-email');
+    
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showForgotPasswordForm();
+        });
+    }
+    
+    if (sendResetEmailBtn && forgotPasswordEmail) {
+        sendResetEmailBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = forgotPasswordEmail.value.trim();
+            if (!email) {
+                showErrorMessage('Please enter your email address.');
+                return;
+            }
+            await handleForgotPassword(email);
+        });
+    }
+    
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideForgotPasswordForm();
+        });
+    }
+    
     // Mobile menu functionality
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenuModal = document.getElementById('mobile-menu-modal');
@@ -949,6 +981,42 @@ async function handleGoogleSignin() {
         console.error('Google signin error:', error);
         showErrorMessage('Google signin failed. Please try again.');
     }
+}
+
+// Handle forgot password
+async function handleForgotPassword(email) {
+    try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset.html`
+        });
+        if (error) throw error;
+        showSuccessMessage('Password reset email sent! Check your inbox for reset instructions.');
+        hideForgotPasswordForm();
+    } catch (error) {
+        showErrorMessage('Error: ' + error.message);
+    }
+}
+
+function showForgotPasswordForm() {
+    const forgotPasswordForm = document.getElementById('forgot-password-form');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const authFeedback = document.getElementById('auth-feedback');
+    
+    if (forgotPasswordForm) forgotPasswordForm.classList.remove('hidden');
+    if (loginForm) loginForm.style.display = 'none';
+    if (signupForm) signupForm.style.display = 'none';
+    if (authFeedback) authFeedback.classList.add('hidden');
+}
+
+function hideForgotPasswordForm() {
+    const forgotPasswordForm = document.getElementById('forgot-password-form');
+    const loginForm = document.getElementById('login-form');
+    const authFeedback = document.getElementById('auth-feedback');
+    
+    if (forgotPasswordForm) forgotPasswordForm.classList.add('hidden');
+    if (loginForm) loginForm.style.display = 'block';
+    if (authFeedback) authFeedback.classList.add('hidden');
 }
 
 // Open auth modal

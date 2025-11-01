@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+    font-src 'self' data: https://unpkg.com https://fonts.gstatic.com;
+    img-src 'self' data: https://*.supabase.co;
+    connect-src 'self' https://jsuxrpnfofkigdfpnuua.supabase.co;
+    ">
+    <title id="profile-title">ReelGrub - My Profile</title>
+    
+    <!-- Load version number immediately -->
+    <script type="module">
+        async function loadVersionNumber() {
+            try {
+                const { versionNumber } = await import('./config.js');
+                const titleElement = document.getElementById('profile-title');
+                if (titleElement) {
+                    titleElement.textContent = `ReelGrub v${versionNumber} - My Profile`;
+                }
+                const h1Element = document.getElementById('profile-h1');
+                if (h1Element) {
+                    h1Element.textContent = `My Profile v${versionNumber}`;
+                }
+            } catch (error) {
+                console.log('Could not load version number:', error);
+            }
+        }
+        loadVersionNumber();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full flex flex-col">
+    <header class="bg-gray-50 text-gray-900 shadow flex-shrink-0 z-20">
+        <div class="h-[60px] flex items-center justify-between px-2 md:px-4">
+            <div class="flex items-center gap-3">
+                <a href="/" class="text-lg md:text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors">ReelGrub</a>
+                <span class="text-gray-400 hidden md:block">|</span>
+                <h1 id="profile-h1" class="text-lg md:text-2xl font-bold truncate">My Profile</h1>
+            </div>
+            
+            <nav class="flex items-center gap-3">
+                <a href="/explore" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Explore
+                </a>
+                <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow overflow-y-auto p-4 md:p-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Loading State -->
+            <div id="loading-state" class="text-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Loading profile...</p>
+            </div>
+
+            <!-- Profile Content (initially hidden) -->
+            <div id="profile-content" class="hidden">
+                <!-- Account Information Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Account Information</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <p id="profile-email" class="text-gray-900 text-lg"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+                            <p id="profile-user-id" class="text-gray-600 text-sm font-mono"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
+                            <p id="profile-created-at" class="text-gray-900"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Statistics Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Account Statistics</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-600">Favorites</p>
+                                    <p id="profile-favorites-count" class="text-2xl font-bold text-gray-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-600">Collections</p>
+                                    <p id="profile-collections-count" class="text-2xl font-bold text-gray-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Password Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Change Password</h2>
+                    <form id="change-password-form" class="space-y-4">
+                        <div id="password-feedback" class="hidden p-3 rounded"></div>
+                        <div>
+                            <label for="current-password" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                            <input type="password" id="current-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                            <input type="password" id="new-password" required minlength="6" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
+                        </div>
+                        <div>
+                            <label for="confirm-new-password" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                            <input type="password" id="confirm-new-password" required minlength="6" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <button type="submit" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-colors">
+                            Change Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Not Authenticated Message -->
+            <div id="not-authenticated" class="hidden text-center py-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Please Sign In</h2>
+                <p class="text-gray-600 mb-6">You need to be signed in to view your profile.</p>
+                <a href="/" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition-colors">
+                    Go to Homepage
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://jsuxrpnfofkigdfpnuua.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXhycG5mb2ZraWdkZnBudXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzU3NTMsImV4cCI6MjA2OTk1MTc1M30.EgMu5bfHNPcVGpQIL8pL_mEFTouQG1nXOnP0mee0WJ8';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const loadingState = document.getElementById('loading-state');
+        const profileContent = document.getElementById('profile-content');
+        const notAuthenticated = document.getElementById('not-authenticated');
+        const logoutBtn = document.getElementById('logout-btn');
+        const changePasswordForm = document.getElementById('change-password-form');
+        const passwordFeedback = document.getElementById('password-feedback');
+
+        function showPasswordFeedback(message, isError = true) {
+            passwordFeedback.textContent = message;
+            passwordFeedback.className = isError 
+                ? 'p-3 rounded bg-red-100 text-red-800 border border-red-300' 
+                : 'p-3 rounded bg-green-100 text-green-800 border border-green-300';
+            passwordFeedback.classList.remove('hidden');
+        }
+
+        async function loadProfile() {
+            const { data: { user }, error } = await supabaseClient.auth.getUser();
+            
+            if (error || !user) {
+                loadingState.classList.add('hidden');
+                notAuthenticated.classList.remove('hidden');
+                return;
+            }
+
+            // Load account information
+            document.getElementById('profile-email').textContent = user.email;
+            document.getElementById('profile-user-id').textContent = user.id;
+            
+            const createdAt = new Date(user.created_at);
+            document.getElementById('profile-created-at').textContent = createdAt.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            // Load statistics
+            const { data: favorites, error: favoritesError } = await supabaseClient
+                .from('user_favorites')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+            
+            const favoritesCount = favoritesError ? 0 : (favorites?.length || 0);
+            document.getElementById('profile-favorites-count').textContent = favoritesCount;
+
+            const { data: collections, error: collectionsError } = await supabaseClient
+                .from('user_collections')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+            
+            const collectionsCount = collectionsError ? 0 : (collections?.length || 0);
+            document.getElementById('profile-collections-count').textContent = collectionsCount;
+
+            loadingState.classList.add('hidden');
+            profileContent.classList.remove('hidden');
+        }
+
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmNewPassword = document.getElementById('confirm-new-password').value;
+
+            if (newPassword.length < 6) {
+                showPasswordFeedback('New password must be at least 6 characters long.');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                showPasswordFeedback('New passwords do not match.');
+                return;
+            }
+
+            try {
+                // Verify current password by attempting to sign in
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user) {
+                    showPasswordFeedback('You must be logged in to change your password.');
+                    return;
+                }
+
+                // For Supabase, we can update the password directly
+                // But first verify current password by attempting to sign in
+                const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+                    email: user.email,
+                    password: currentPassword
+                });
+
+                if (signInError) {
+                    showPasswordFeedback('Current password is incorrect.');
+                    return;
+                }
+
+                // Update password
+                const { error: updateError } = await supabaseClient.auth.updateUser({
+                    password: newPassword
+                });
+
+                if (updateError) {
+                    throw updateError;
+                }
+
+                showPasswordFeedback('Password changed successfully!', false);
+                changePasswordForm.reset();
+                
+                // Clear feedback after 3 seconds
+                setTimeout(() => {
+                    passwordFeedback.classList.add('hidden');
+                }, 3000);
+            } catch (error) {
+                showPasswordFeedback('Error changing password: ' + error.message);
+            }
+        });
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await supabaseClient.auth.signOut();
+                window.location.href = '/';
+            });
+        }
+
+        // Load profile on page load
+        loadProfile();
+    </script>
+</body>
+</html>
+

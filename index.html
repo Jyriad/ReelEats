@@ -137,6 +137,18 @@
                 </button>
             </div>
             <div id="auth-feedback" class="hidden mb-4"></div>
+            
+            <!-- Forgot Password Form (initially hidden) -->
+            <div id="forgot-password-form" class="hidden space-y-4">
+                <p class="text-gray-600 text-sm mb-4">Enter your email address and we'll send you a link to reset your password.</p>
+                <div>
+                    <label for="forgot-password-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="forgot-password-email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="button" id="send-reset-email-btn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Send Reset Link</button>
+                <button type="button" id="back-to-login-btn" class="w-full text-sm text-indigo-600 hover:text-indigo-800">Back to Sign In</button>
+            </div>
+            
             <div id="auth-forms">
                 <!-- Login Form -->
                 <form id="login-form" class="space-y-4">
@@ -149,6 +161,9 @@
                         <input type="password" id="login-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Sign In</button>
+                    <div class="text-center mt-2">
+                        <a href="#" id="forgot-password-link" class="text-sm text-indigo-600 hover:text-indigo-800">Forgot Password?</a>
+                    </div>
                 </form>
                 
                 <!-- Signup Form -->
@@ -551,6 +566,71 @@
                 googleLoginBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     handleOAuthLogin('google');
+                });
+            }
+            
+            // Forgot password handlers
+            const forgotPasswordLink = document.getElementById('forgot-password-link');
+            const forgotPasswordForm = document.getElementById('forgot-password-form');
+            const sendResetEmailBtn = document.getElementById('send-reset-email-btn');
+            const backToLoginBtn = document.getElementById('back-to-login-btn');
+            const forgotPasswordEmail = document.getElementById('forgot-password-email');
+            const authForms = document.getElementById('auth-forms');
+
+            function showForgotPasswordForm() {
+                if (forgotPasswordForm) forgotPasswordForm.classList.remove('hidden');
+                if (loginForm) loginForm.classList.add('hidden');
+                if (signupForm) signupForm.classList.add('hidden');
+                if (authForms) authForms.classList.add('hidden');
+                authFeedback.classList.add('hidden');
+            }
+
+            function hideForgotPasswordForm() {
+                if (forgotPasswordForm) forgotPasswordForm.classList.add('hidden');
+                if (loginForm) loginForm.classList.remove('hidden');
+                if (authForms) authForms.classList.remove('hidden');
+                authFeedback.classList.add('hidden');
+            }
+
+            async function handleForgotPassword(email) {
+                try {
+                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/reset.html`
+                    });
+                    if (error) throw error;
+                    showAuthFeedback('Password reset email sent! Check your inbox for reset instructions.', false);
+                    if (forgotPasswordForm) forgotPasswordForm.classList.add('hidden');
+                    if (loginForm) loginForm.classList.remove('hidden');
+                    if (authForms) authForms.classList.remove('hidden');
+                    if (forgotPasswordEmail) forgotPasswordEmail.value = '';
+                } catch (error) {
+                    showAuthFeedback(error.message);
+                }
+            }
+
+            if (forgotPasswordLink) {
+                forgotPasswordLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showForgotPasswordForm();
+                });
+            }
+
+            if (sendResetEmailBtn && forgotPasswordEmail) {
+                sendResetEmailBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const email = forgotPasswordEmail.value.trim();
+                    if (!email) {
+                        showAuthFeedback('Please enter your email address.');
+                        return;
+                    }
+                    await handleForgotPassword(email);
+                });
+            }
+
+            if (backToLoginBtn) {
+                backToLoginBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    hideForgotPasswordForm();
                 });
             }
             

@@ -763,9 +763,250 @@ function displayContent() {
 
 
 // Edit restaurant function
-function editRestaurant(restaurantId) {
-    // TODO: Implement edit restaurant functionality
-    alert(`Edit restaurant ${restaurantId} - functionality coming soon!`);
+async function editRestaurant(restaurantId) {
+    try {
+        // Fetch restaurant data
+        const { data: restaurant, error } = await supabaseClient
+            .from('restaurants')
+            .select('*')
+            .eq('id', restaurantId)
+            .eq('submitted_by_user_id', currentUser.id)
+            .single();
+
+        if (error || !restaurant) {
+            alert('Restaurant not found or you do not have permission to edit it.');
+            return;
+        }
+
+        // Fetch cuisines for this restaurant
+        const { data: restaurantCuisines } = await supabaseClient
+            .from('restaurant_cuisines')
+            .select('cuisine_id, cuisines (id, name, icon)')
+            .eq('restaurant_id', restaurantId);
+
+        const selectedCuisineIds = restaurantCuisines ? restaurantCuisines.map(rc => rc.cuisine_id) : [];
+
+        // Fetch all available cuisines
+        const { data: allCuisines } = await supabaseClient
+            .from('cuisines')
+            .select('id, name, icon')
+            .order('name');
+
+        // Create edit modal HTML
+        const modalHtml = `
+            <div id="edit-restaurant-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[1000] flex items-center justify-center p-4">
+                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                        <h2 class="text-2xl font-bold text-gray-900">Edit Restaurant</h2>
+                        <button id="close-edit-restaurant-modal" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <form id="edit-restaurant-form" class="p-6 space-y-4">
+                        <input type="hidden" id="edit-restaurant-id" value="${restaurant.id}">
+                        
+                        <div>
+                            <label for="edit-restaurant-name" class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name *</label>
+                            <input type="text" id="edit-restaurant-name" value="${restaurant.name || ''}" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="edit-restaurant-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="edit-restaurant-description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">${restaurant.description || ''}</textarea>
+                        </div>
+
+                        <div>
+                            <label for="edit-restaurant-address" class="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+                            <input type="text" id="edit-restaurant-address" 
+                                   value="${restaurant.address || ''}" required
+                                   placeholder="Enter address or location"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Address will be geocoded automatically</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Cuisines</label>
+                            <div class="border border-gray-300 rounded-md p-3 max-h-48 overflow-y-auto">
+                                ${allCuisines ? allCuisines.map(cuisine => `
+                                    <label class="flex items-center mb-2">
+                                        <input type="checkbox" name="cuisine" value="${cuisine.id}" 
+                                               ${selectedCuisineIds.includes(cuisine.id) ? 'checked' : ''}
+                                               class="mr-2 text-blue-600 focus:ring-blue-500">
+                                        <span>${cuisine.icon || ''} ${cuisine.name}</span>
+                                    </label>
+                                `).join('') : '<p class="text-gray-500 text-sm">No cuisines available</p>'}
+                            </div>
+                        </div>
+
+                        <div id="edit-restaurant-status" class="hidden p-3 rounded"></div>
+
+                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                            <button type="button" id="cancel-edit-restaurant" 
+                                    class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" id="save-restaurant-btn"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('edit-restaurant-modal');
+        if (existingModal) existingModal.remove();
+
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add event listeners
+        const modal = document.getElementById('edit-restaurant-modal');
+        const closeBtn = document.getElementById('close-edit-restaurant-modal');
+        const cancelBtn = document.getElementById('cancel-edit-restaurant');
+        const form = document.getElementById('edit-restaurant-form');
+
+        const closeModal = () => {
+            modal.remove();
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveRestaurantChanges(restaurantId);
+        });
+
+        // Initialize Google Places autocomplete for address
+        if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+            const addressInput = document.getElementById('edit-restaurant-address');
+            const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+                types: ['establishment', 'geocode']
+            });
+
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.geometry) {
+                    // Address will be geocoded on save
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading restaurant for editing:', error);
+        alert('Error loading restaurant data: ' + error.message);
+    }
+}
+
+async function saveRestaurantChanges(restaurantId) {
+    const statusEl = document.getElementById('edit-restaurant-status');
+    const saveBtn = document.getElementById('save-restaurant-btn');
+    const name = document.getElementById('edit-restaurant-name').value.trim();
+    const description = document.getElementById('edit-restaurant-description').value.trim();
+    const address = document.getElementById('edit-restaurant-address').value.trim();
+    const cuisineCheckboxes = document.querySelectorAll('#edit-restaurant-form input[name="cuisine"]:checked');
+    const selectedCuisineIds = Array.from(cuisineCheckboxes).map(cb => parseInt(cb.value));
+
+    if (!name || !address) {
+        showEditRestaurantStatus('Please fill in all required fields', 'error');
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    hideEditRestaurantStatus();
+
+    try {
+        // Geocode address
+        const { data: geocodeData, error: geocodeError } = await supabaseClient.functions.invoke('geocode-address', {
+            body: { address: address }
+        });
+
+        if (geocodeError || !geocodeData || !geocodeData.lat || !geocodeData.lon) {
+            throw new Error('Could not geocode address. Please check the address and try again.');
+        }
+
+        const { lat, lon, city } = geocodeData;
+
+        // Update restaurant
+        const { error: updateError } = await supabaseClient
+            .from('restaurants')
+            .update({
+                name: name,
+                description: description || null,
+                address: address,
+                lat: lat,
+                lon: lon,
+                city: city || 'Unknown'
+            })
+            .eq('id', restaurantId)
+            .eq('submitted_by_user_id', currentUser.id);
+
+        if (updateError) throw updateError;
+
+        // Update cuisines
+        // First, remove all existing cuisines
+        await supabaseClient
+            .from('restaurant_cuisines')
+            .delete()
+            .eq('restaurant_id', restaurantId);
+
+        // Then, add selected cuisines
+        if (selectedCuisineIds.length > 0) {
+            const cuisineInserts = selectedCuisineIds.map(cuisineId => ({
+                restaurant_id: restaurantId,
+                cuisine_id: cuisineId
+            }));
+
+            const { error: cuisineError } = await supabaseClient
+                .from('restaurant_cuisines')
+                .insert(cuisineInserts);
+
+            if (cuisineError) throw cuisineError;
+        }
+
+        showEditRestaurantStatus('Restaurant updated successfully!', 'success');
+
+        setTimeout(() => {
+            document.getElementById('edit-restaurant-modal').remove();
+            loadUserContent();
+        }, 1500);
+
+    } catch (error) {
+        console.error('Error updating restaurant:', error);
+        showEditRestaurantStatus('Error: ' + error.message, 'error');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+    }
+}
+
+function showEditRestaurantStatus(message, type) {
+    const statusEl = document.getElementById('edit-restaurant-status');
+    if (!statusEl) return;
+
+    statusEl.textContent = message;
+    statusEl.className = `p-3 rounded ${
+        type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
+        type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' :
+        'bg-blue-100 text-blue-800 border border-blue-300'
+    }`;
+    statusEl.classList.remove('hidden');
+}
+
+function hideEditRestaurantStatus() {
+    const statusEl = document.getElementById('edit-restaurant-status');
+    if (statusEl) statusEl.classList.add('hidden');
 }
 
 // Delete restaurant function
@@ -1203,6 +1444,14 @@ function showContentError(message) {
 
 // Add event listeners for content edit and delete buttons
 function addContentEventListeners() {
+    // Edit restaurant buttons
+    document.querySelectorAll('.edit-restaurant-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const restaurantId = e.target.dataset.restaurantId;
+            editRestaurant(restaurantId);
+        });
+    });
+
     // Edit restaurant location buttons
     document.querySelectorAll('.edit-restaurant-location-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
