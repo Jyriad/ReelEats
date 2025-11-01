@@ -2141,12 +2141,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             // --- Load restaurants with optional city filtering ---
             logger.info('loadRestaurantsForCity called with city:', city);
 
-            // TODO: After backfilling existing admin restaurants to is_publicly_approved=true, uncomment filter below
-            // For now, show all restaurants to maintain backward compatibility
+            // Only show approved restaurants (is_publicly_approved = true)
             let query = supabaseClient
                 .from('restaurants')
-                .select('*');
-            // .or('is_publicly_approved.eq.true,submitted_by_user_id.is.null,is_publicly_approved.is.null'); // Approved, legacy admin-added, or null approval
+                .select('*')
+                .eq('is_publicly_approved', true);
 
             // If a city is provided, filter by city name (try multiple approaches)
             if (city) {
@@ -2167,7 +2166,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const { data: broaderRestaurants, error: broaderError } = await supabaseClient
                     .from('restaurants')
                     .select('*')
-                    // .or('is_publicly_approved.eq.true,submitted_by_user_id.is.null,is_publicly_approved.is.null') // TODO: Re-enable after backfilling
+                    .eq('is_publicly_approved', true)
                     .ilike('city', `%${city}%`); // Contains search
 
                 if (!broaderError && broaderRestaurants && broaderRestaurants.length > restaurants.length) {
@@ -5705,11 +5704,11 @@ async function loadCityCollages() {
             logger.info(`Processing city: ${cityName}`);
 
             // Fetch restaurants for this city (try exact match first, then case-insensitive)
-            // TODO: After backfilling existing admin restaurants, add approval filter back
+            // Only include publicly approved restaurants for city collages
             let { data: restaurants, error: restaurantsError } = await supabaseClient
                 .from('restaurants')
                 .select('id')
-                // .or('is_publicly_approved.eq.true,submitted_by_user_id.is.null,is_publicly_approved.is.null') // TODO: Re-enable after backfilling
+                .eq('is_publicly_approved', true)
                 .ilike('city', cityName);
 
             // If no exact match, try case-insensitive search
@@ -5717,7 +5716,7 @@ async function loadCityCollages() {
                 const { data: fallbackRestaurants, error: fallbackError } = await supabaseClient
                     .from('restaurants')
                     .select('id')
-                    // .or('is_publicly_approved.eq.true,submitted_by_user_id.is.null,is_publicly_approved.is.null') // TODO: Re-enable after backfilling
+                    .eq('is_publicly_approved', true)
                     .ilike('city', cityName.toLowerCase());
 
                 restaurants = fallbackRestaurants;
